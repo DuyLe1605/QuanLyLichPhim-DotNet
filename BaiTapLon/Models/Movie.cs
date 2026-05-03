@@ -3,6 +3,7 @@ namespace BaiTapLon.Models;
 public class Movie
 {
     public int Id { get; set; }
+    public string Code { get; set; } = string.Empty; // Mã phim: VD "MV001"
     public string Title { get; set; } = string.Empty;
     public string? Director { get; set; }
     public string? Actors { get; set; }

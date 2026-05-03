@@ -80,7 +80,7 @@ public class UcRoomManagement : UserControl
         using var dlg = new DlgRoomEdit(null);
         if (dlg.ShowDialog() != DialogResult.OK) return;
         using var ctx = Program.CreateDbContext();
-        var (ok, msg) = await new RoomService(ctx).CreateAsync(dlg.RoomData, dlg.VipFromRow, dlg.CoupleLastRow ? 1 : 0);
+        var (ok, msg) = await new RoomService(ctx).CreateAsync(dlg.RoomData, dlg.RowConfigs);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
         if (ok) await LoadDataAsync();
     }

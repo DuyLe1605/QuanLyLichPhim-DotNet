@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using BaiTapLon.Data;
 using BaiTapLon.Models;
+using BaiTapLon.Forms.Admin; // RowConfig
 
 namespace BaiTapLon.Services;
 
@@ -21,20 +22,43 @@ public class RoomService
         return await _context.Rooms.Include(r => r.Seats).FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public async Task<(bool Success, string Message)> CreateAsync(Room room, int vipFromRow, int coupleLastRow)
+    /// <summary>
+    /// Tạo phòng với cấu hình ghế theo từng hàng (variable columns per row).
+    /// </summary>
+    public async Task<(bool Success, string Message)> CreateAsync(Room room, List<RowConfig> rowConfigs)
     {
         if (string.IsNullOrWhiteSpace(room.Name))
             return (false, "Tên phòng không được để trống!");
 
-        room.TotalSeats = room.Rows * room.Columns;
+        if (rowConfigs.Count == 0)
+            return (false, "Chưa có hàng ghế nào!");
+
+        // Tính lại TotalSeats & Columns từ RowConfigs
+        room.TotalSeats = rowConfigs.Sum(r => r.SeatCount);
+        room.Rows = rowConfigs.Count;
+        room.Columns = rowConfigs.Max(r => r.SeatCount);
+
         _context.Rooms.Add(room);
         await _context.SaveChangesAsync();
 
-        // Auto-generate ghế
-        GenerateSeats(room, vipFromRow, coupleLastRow);
-        await _context.SaveChangesAsync();
+        // Tạo ghế theo từng hàng
+        foreach (var config in rowConfigs)
+        {
+            for (int c = 1; c <= config.SeatCount; c++)
+            {
+                _context.Seats.Add(new Seat
+                {
+                    RoomId = room.Id,
+                    RowLabel = config.RowLabel,
+                    SeatNumber = c,
+                    Type = config.SeatType,
+                    PriceMultiplier = config.PriceMultiplier
+                });
+            }
+        }
 
-        return (true, "Tạo phòng thành công!");
+        await _context.SaveChangesAsync();
+        return (true, $"Tạo phòng thành công! ({room.Rows} hàng, {room.TotalSeats} ghế)");
     }
 
     public async Task<(bool Success, string Message)> UpdateAsync(Room room)
@@ -60,40 +84,5 @@ public class RoomService
         room.IsActive = false;
         await _context.SaveChangesAsync();
         return (true, "Đã xóa phòng!");
-    }
-
-    private void GenerateSeats(Room room, int vipFromRow, int coupleLastRow)
-    {
-        for (int r = 0; r < room.Rows; r++)
-        {
-            string rowLabel = ((char)('A' + r)).ToString();
-            string seatType;
-            decimal multiplier;
-
-            if (coupleLastRow == 1 && r == room.Rows - 1)
-            {
-                seatType = "Couple"; multiplier = 2.0m;
-            }
-            else if (r >= vipFromRow)
-            {
-                seatType = "VIP"; multiplier = 1.5m;
-            }
-            else
-            {
-                seatType = "Standard"; multiplier = 1.0m;
-            }
-
-            for (int c = 1; c <= room.Columns; c++)
-            {
-                _context.Seats.Add(new Seat
-                {
-                    RoomId = room.Id,
-                    RowLabel = rowLabel,
-                    SeatNumber = c,
-                    Type = seatType,
-                    PriceMultiplier = multiplier
-                });
-            }
-        }
     }
 }

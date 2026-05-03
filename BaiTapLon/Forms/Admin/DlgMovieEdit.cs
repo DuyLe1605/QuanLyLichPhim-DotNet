@@ -3,10 +3,11 @@ using BaiTapLon.Models;
 namespace BaiTapLon.Forms.Admin;
 
 /// <summary>
-/// Dialog thêm/sửa phim — layout 2 cột sạch sẽ, không chồng lấn.
+/// Dialog thêm/sửa phim — layout 2 cột, có Mã phim.
 /// </summary>
 public class DlgMovieEdit : Form
 {
+    private TextBox txtCode = null!;
     private TextBox txtTitle = null!;
     private TextBox txtDirector = null!;
     private TextBox txtActors = null!;
@@ -36,7 +37,7 @@ public class DlgMovieEdit : Form
     private void InitializeComponent()
     {
         this.Text = _editMovie == null ? "Thêm phim mới" : "Sửa thông tin phim";
-        this.ClientSize = new Size(750, 560);
+        this.ClientSize = new Size(750, 590);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
@@ -47,14 +48,19 @@ public class DlgMovieEdit : Form
         // ==== CỘT TRÁI: các field nhập liệu ====
         int x1 = 20, x2 = 170, wField = 280, y = 20;
 
+        AddLabel("Mã phim *", x1, y);
+        txtCode = AddTextBox(x2, y, 120);
+        txtCode.CharacterCasing = CharacterCasing.Upper;
+        y += 38;
+
         AddLabel("Tên phim *", x1, y);
-        txtTitle = AddTextBox(x2, y, wField); y += 40;
+        txtTitle = AddTextBox(x2, y, wField); y += 38;
 
         AddLabel("Đạo diễn", x1, y);
-        txtDirector = AddTextBox(x2, y, wField); y += 40;
+        txtDirector = AddTextBox(x2, y, wField); y += 38;
 
         AddLabel("Diễn viên", x1, y);
-        txtActors = AddTextBox(x2, y, wField); y += 40;
+        txtActors = AddTextBox(x2, y, wField); y += 38;
 
         AddLabel("Thời lượng (phút) *", x1, y);
         nudDuration = new NumericUpDown
@@ -64,7 +70,7 @@ public class DlgMovieEdit : Form
             BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
             Minimum = 1, Maximum = 500, Value = 120, BorderStyle = BorderStyle.FixedSingle
         };
-        this.Controls.Add(nudDuration); y += 40;
+        this.Controls.Add(nudDuration); y += 38;
 
         AddLabel("Độ tuổi", x1, y);
         cboAgeRating = new ComboBox
@@ -76,7 +82,7 @@ public class DlgMovieEdit : Form
         };
         cboAgeRating.Items.AddRange(new[] { "P", "C13", "C16", "C18" });
         cboAgeRating.SelectedIndex = 0;
-        this.Controls.Add(cboAgeRating); y += 40;
+        this.Controls.Add(cboAgeRating); y += 38;
 
         AddLabel("Ngày khởi chiếu", x1, y);
         dtpRelease = new DateTimePicker
@@ -85,12 +91,12 @@ public class DlgMovieEdit : Form
             Location = new Point(x2, y),
             Format = DateTimePickerFormat.Short, CalendarForeColor = Color.Black
         };
-        this.Controls.Add(dtpRelease); y += 40;
+        this.Controls.Add(dtpRelease); y += 38;
 
         AddLabel("Link trailer", x1, y);
-        txtTrailer = AddTextBox(x2, y, wField); y += 40;
+        txtTrailer = AddTextBox(x2, y, wField); y += 38;
 
-        // Mô tả (multiline)
+        // Mô tả
         AddLabel("Mô tả", x1, y);
         txtDescription = new TextBox
         {
@@ -106,10 +112,9 @@ public class DlgMovieEdit : Form
         // ==== CỘT PHẢI: poster + thể loại ====
         int rx = 475;
 
-        // Poster
         picPoster = new PictureBox
         {
-            Size = new Size(245, 200),
+            Size = new Size(245, 195),
             Location = new Point(rx, 20),
             BackColor = Color.FromArgb(35, 35, 55),
             SizeMode = PictureBoxSizeMode.Zoom,
@@ -121,8 +126,8 @@ public class DlgMovieEdit : Form
         {
             Text = "📷 Chọn ảnh poster",
             Font = new Font("Segoe UI", 9),
-            Size = new Size(245, 30),
-            Location = new Point(rx, 225),
+            Size = new Size(245, 28),
+            Location = new Point(rx, 220),
             BackColor = Color.FromArgb(50, 50, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -133,12 +138,12 @@ public class DlgMovieEdit : Form
         this.Controls.Add(btnChoose);
 
         // Thể loại
-        AddLabel("Thể loại:", rx, 268);
+        AddLabel("Thể loại:", rx, 258);
         clbGenres = new CheckedListBox
         {
             Font = new Font("Segoe UI", 9.5f),
-            Size = new Size(245, 190),
-            Location = new Point(rx, 290),
+            Size = new Size(245, 195),
+            Location = new Point(rx, 280),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.FromArgb(200, 200, 220),
             BorderStyle = BorderStyle.FixedSingle,
@@ -153,7 +158,7 @@ public class DlgMovieEdit : Form
             Text = _editMovie == null ? "✅ Thêm phim" : "💾 Lưu",
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
             Size = new Size(140, 40),
-            Location = new Point(460, 510),
+            Location = new Point(460, 540),
             BackColor = Color.FromArgb(80, 160, 80),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -169,7 +174,7 @@ public class DlgMovieEdit : Form
             Text = "Hủy",
             Font = new Font("Segoe UI", 10),
             Size = new Size(100, 40),
-            Location = new Point(610, 510),
+            Location = new Point(610, 540),
             BackColor = Color.FromArgb(50, 50, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -186,6 +191,7 @@ public class DlgMovieEdit : Form
     private void LoadEditData()
     {
         if (_editMovie == null) return;
+        txtCode.Text = _editMovie.Code;
         txtTitle.Text = _editMovie.Title;
         txtDirector.Text = _editMovie.Director;
         txtActors.Text = _editMovie.Actors;
@@ -213,6 +219,12 @@ public class DlgMovieEdit : Form
 
     private void BtnSave_Click(object? sender, EventArgs e)
     {
+        if (string.IsNullOrWhiteSpace(txtCode.Text))
+        {
+            MessageBox.Show("Vui lòng nhập mã phim!", "Thiếu thông tin");
+            this.DialogResult = DialogResult.None;
+            return;
+        }
         if (string.IsNullOrWhiteSpace(txtTitle.Text))
         {
             MessageBox.Show("Vui lòng nhập tên phim!", "Thiếu thông tin");
@@ -222,6 +234,7 @@ public class DlgMovieEdit : Form
 
         MovieData = new Movie
         {
+            Code = txtCode.Text.Trim().ToUpper(),
             Title = txtTitle.Text.Trim(),
             Director = txtDirector.Text.Trim(),
             Actors = txtActors.Text.Trim(),

@@ -151,6 +151,7 @@ public class UcMovieManagement : UserControl
             dgvMovies.DataSource = movies.Select(m => new
             {
                 m.Id,
+                MãPhim = m.Code,
                 TênPhim = m.Title,
                 ĐạoDiễn = m.Director ?? "",
                 ThờiLượng = $"{m.Duration} phút",

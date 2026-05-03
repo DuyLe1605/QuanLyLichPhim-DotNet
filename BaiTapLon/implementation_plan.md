@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Dự án:** Bài Tập Lớn .NET — WinForms C# (.NET 10)
-> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 4 hoàn thành)
+> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 4 + UI improvements)
 
 ---
 
@@ -335,20 +335,23 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 
 **2.1 — MovieService + UcMovieManagement** ✅
 - [x] Tạo `MovieService.cs` (GetAll, GetById, Create, Update, SoftDelete, Search, GetAllGenres)
+  - [x] Trường `Code` (mã phim) — validate duy nhất, tìm kiếm theo mã
 - [x] Tạo `UcMovieManagement.cs` (UserControl)
-  - [x] DataGridView hiển thị danh sách phim
-  - [x] Thanh tìm kiếm + ComboBox lọc thể loại
-  - [x] Nút Thêm/Sửa/Xóa + Refresh
-  - [x] `DlgMovieEdit.cs` — Dialog thêm/sửa phim (với CheckedListBox chọn thể loại)
+  - [x] DataGridView hiển thị: Mã phim, Tên, Đạo diễn, Thời lượng, Thể loại...
+  - [x] Thanh tìm kiếm (theo mã, tên, đạo diễn) + ComboBox lọc thể loại
+  - [x] Nút Thêm/Sửa/Xóa + Refresh, chống re-entrancy
+  - [x] `DlgMovieEdit.cs` — 2 cột: fields trái + poster/thể loại phải
   - [x] Upload + hiển thị poster (PictureBox)
 - [x] Tích hợp vào `FrmMain.LoadModule("Movies")`
 
 **2.2 — RoomService + UcRoomManagement** ✅
-- [x] Tạo `RoomService.cs` (CRUD phòng + auto-generate ghế + kiểm tra lịch chiếu khi xóa)
+- [x] Tạo `RoomService.cs` (CRUD phòng + generate ghế theo RowConfig)
 - [x] Tạo `UcRoomManagement.cs`
   - [x] DataGridView danh sách phòng
-  - [x] `DlgRoomEdit.cs` — Dialog thêm/sửa phòng (tên, loại, hàng×cột)
-  - [x] Cho phép set VIP/Couple rows (NumericUpDown VIP từ hàng + CheckBox Couple cuối)
+  - [x] `DlgRoomEdit.cs` — Cấu hình ghế theo từng hàng (DataGridView)
+    - [x] Mỗi hàng: Label (A-Z), Số ghế (variable), Loại (Standard/VIP/Couple), Hệ số giá
+    - [x] Nút Thêm hàng / Xóa hàng + tổng kết realtime
+    - [x] Hỗ trợ số ghế khác nhau mỗi hàng (VD: hàng A=10, hàng B=12)
 
 **2.3 — ShowtimeService + UcShowtimeManagement ⭐** ✅
 - [x] Tạo `ShowtimeService.cs`

@@ -2,16 +2,30 @@ using BaiTapLon.Models;
 
 namespace BaiTapLon.Forms.Admin;
 
+/// <summary>
+/// DTO cho cấu hình 1 hàng ghế.
+/// </summary>
+public class RowConfig
+{
+    public string RowLabel { get; set; } = "A";
+    public int SeatCount { get; set; } = 10;
+    public string SeatType { get; set; } = "Standard";
+    public decimal PriceMultiplier { get; set; } = 1.0m;
+}
+
+/// <summary>
+/// Dialog tạo/sửa phòng chiếu — cấu hình ghế theo từng hàng.
+/// </summary>
 public class DlgRoomEdit : Form
 {
     private TextBox txtName = null!;
     private ComboBox cboType = null!;
-    private NumericUpDown nudRows = null!, nudCols = null!, nudVipFrom = null!;
-    private CheckBox chkCouple = null!;
+    private DataGridView dgvRows = null!;
+    private Label lblSummary = null!;
 
     public Room RoomData { get; private set; } = new();
-    public int VipFromRow => (int)nudVipFrom.Value;
-    public bool CoupleLastRow => chkCouple.Checked;
+    public List<RowConfig> RowConfigs { get; private set; } = new();
+
     private readonly Room? _edit;
 
     public DlgRoomEdit(Room? edit)
@@ -25,7 +39,7 @@ public class DlgRoomEdit : Form
     {
         bool isNew = _edit == null;
         this.Text = isNew ? "Thêm phòng chiếu" : "Sửa phòng";
-        this.ClientSize = new Size(430, 380);
+        this.ClientSize = new Size(620, 560);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
@@ -33,14 +47,13 @@ public class DlgRoomEdit : Form
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
 
-        int x1 = 20, x2 = 180, y = 25;
+        int x1 = 20, x2 = 130, y = 20;
 
-        // Tên phòng
+        // === Room info ===
         Lbl("Tên phòng *", x1, y);
-        txtName = Txt(x2, y, 210);
-        y += 45;
+        txtName = Txt(x2, y, 200);
+        y += 42;
 
-        // Loại phòng
         Lbl("Loại phòng", x1, y);
         cboType = new ComboBox
         {
@@ -55,78 +68,148 @@ public class DlgRoomEdit : Form
         cboType.Items.AddRange(new[] { "2D", "3D", "IMAX" });
         cboType.SelectedIndex = 0;
         this.Controls.Add(cboType);
-        y += 45;
+        y += 48;
 
-        // Số hàng
-        Lbl("Số hàng", x1, y);
-        nudRows = Nud(x2, y, 3, 20, 8);
-        nudRows.Enabled = isNew;
-        y += 45;
-
-        // Số cột
-        Lbl("Số cột", x1, y);
-        nudCols = Nud(x2, y, 5, 20, 10);
-        nudCols.Enabled = isNew;
-        y += 45;
-
-        // VIP từ hàng
-        Lbl("VIP từ hàng", x1, y);
-        nudVipFrom = Nud(x2, y, 0, 20, 5);
-        nudVipFrom.Enabled = isNew;
-        y += 45;
-
-        // Couple hàng cuối
-        chkCouple = new CheckBox
+        // === Seat Configuration Section ===
+        this.Controls.Add(new Label
         {
-            Text = "Hàng cuối là Couple",
-            Font = new Font("Segoe UI", 10),
-            ForeColor = Color.FromArgb(180, 180, 200),
+            Text = "🪑  Cấu hình ghế theo hàng",
+            Font = new Font("Segoe UI", 12, FontStyle.Bold),
+            ForeColor = Color.FromArgb(100, 80, 255),
             Location = new Point(x1, y),
-            AutoSize = true,
-            Checked = true,
+            AutoSize = true
+        });
+        y += 30;
+
+        // Buttons: Add Row / Remove Row
+        var btnAddRow = new Button
+        {
+            Text = "➕ Thêm hàng",
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            Size = new Size(120, 30),
+            Location = new Point(x1, y),
+            BackColor = Color.FromArgb(60, 160, 60),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
             Enabled = isNew
         };
-        this.Controls.Add(chkCouple);
-        y += 45;
+        btnAddRow.FlatAppearance.BorderSize = 0;
+        btnAddRow.Click += BtnAddRow_Click;
+        this.Controls.Add(btnAddRow);
 
-        // Buttons
+        var btnRemoveRow = new Button
+        {
+            Text = "➖ Xóa hàng",
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            Size = new Size(120, 30),
+            Location = new Point(155, y),
+            BackColor = Color.FromArgb(200, 60, 60),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            Enabled = isNew
+        };
+        btnRemoveRow.FlatAppearance.BorderSize = 0;
+        btnRemoveRow.Click += BtnRemoveRow_Click;
+        this.Controls.Add(btnRemoveRow);
+        y += 38;
+
+        // === DataGridView for row configs ===
+        dgvRows = new DataGridView
+        {
+            Location = new Point(x1, y),
+            Size = new Size(575, 230),
+            BackgroundColor = Color.FromArgb(26, 26, 44),
+            GridColor = Color.FromArgb(45, 45, 65),
+            BorderStyle = BorderStyle.FixedSingle,
+            RowHeadersVisible = false,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            MultiSelect = false,
+            EnableHeadersVisualStyles = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            Font = new Font("Segoe UI", 10),
+            ReadOnly = !isNew,
+            EditMode = isNew ? DataGridViewEditMode.EditOnEnter : DataGridViewEditMode.EditProgrammatically
+        };
+        dgvRows.RowTemplate.Height = 32;
+        StyleGrid(dgvRows);
+
+        // Columns
+        dgvRows.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "colLabel",
+            HeaderText = "Hàng",
+            Width = 60,
+            ReadOnly = true,
+            DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 11, FontStyle.Bold) }
+        });
+        dgvRows.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "colSeats",
+            HeaderText = "Số ghế",
+            Width = 80,
+            DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+        });
+
+        var colType = new DataGridViewComboBoxColumn
+        {
+            Name = "colType",
+            HeaderText = "Loại ghế",
+            Width = 120,
+            Items = { "Standard", "VIP", "Couple" },
+            FlatStyle = FlatStyle.Flat,
+            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
+        };
+        dgvRows.Columns.Add(colType);
+
+        dgvRows.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "colMultiplier",
+            HeaderText = "Hệ số giá",
+            Width = 90,
+            DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+        });
+
+        this.Controls.Add(dgvRows);
+        y += 240;
+
+        // Summary
+        lblSummary = new Label
+        {
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            ForeColor = Color.FromArgb(80, 200, 120),
+            Location = new Point(x1, y),
+            AutoSize = true,
+            Text = "Tổng: 0 hàng, 0 ghế"
+        };
+        this.Controls.Add(lblSummary);
+        y += 30;
+
+        // === Action Buttons ===
         var btnOk = new Button
         {
             Text = isNew ? "✅ Tạo phòng" : "💾 Lưu",
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
-            Size = new Size(130, 38),
-            Location = new Point(160, y),
+            Size = new Size(140, 40),
+            Location = new Point(330, y),
             BackColor = Color.FromArgb(80, 160, 80),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             DialogResult = DialogResult.OK
         };
         btnOk.FlatAppearance.BorderSize = 0;
-        btnOk.Click += (s, e) =>
-        {
-            if (string.IsNullOrWhiteSpace(txtName.Text))
-            {
-                MessageBox.Show("Nhập tên phòng!", "Thiếu thông tin");
-                this.DialogResult = DialogResult.None;
-                return;
-            }
-            RoomData = new Room
-            {
-                Name = txtName.Text.Trim(),
-                Type = cboType.SelectedItem?.ToString() ?? "2D",
-                Rows = (int)nudRows.Value,
-                Columns = (int)nudCols.Value,
-                IsActive = true
-            };
-        };
+        btnOk.Click += BtnOk_Click;
         this.Controls.Add(btnOk);
 
         var btnCancel = new Button
         {
             Text = "Hủy",
             Font = new Font("Segoe UI", 10),
-            Size = new Size(90, 38),
-            Location = new Point(300, y),
+            Size = new Size(100, 40),
+            Location = new Point(480, y),
             BackColor = Color.FromArgb(50, 50, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -137,6 +220,134 @@ public class DlgRoomEdit : Form
 
         this.AcceptButton = btnOk;
         this.CancelButton = btnCancel;
+
+        // Hook up change events
+        dgvRows.CellValueChanged += (s, e) => UpdateSummary();
+        dgvRows.CurrentCellDirtyStateChanged += (s, e) =>
+        {
+            if (dgvRows.IsCurrentCellDirty)
+                dgvRows.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        };
+
+        // Seed default rows for new room
+        if (isNew)
+        {
+            SeedDefaultRows();
+        }
+    }
+
+    private void SeedDefaultRows()
+    {
+        string[] labels = { "A", "B", "C", "D", "E", "F", "G", "H" };
+        foreach (var label in labels)
+        {
+            string type = label switch
+            {
+                "F" or "G" => "VIP",
+                "H" => "Couple",
+                _ => "Standard"
+            };
+            decimal mult = type switch
+            {
+                "VIP" => 1.5m,
+                "Couple" => 2.0m,
+                _ => 1.0m
+            };
+            int seats = type == "Couple" ? 8 : 10;
+
+            dgvRows.Rows.Add(label, seats, type, mult);
+        }
+        UpdateSummary();
+    }
+
+    private void BtnAddRow_Click(object? s, EventArgs e)
+    {
+        int nextIdx = dgvRows.Rows.Count;
+        if (nextIdx >= 26) { MessageBox.Show("Tối đa 26 hàng (A-Z)!"); return; }
+
+        string label = ((char)('A' + nextIdx)).ToString();
+        dgvRows.Rows.Add(label, 10, "Standard", 1.0m);
+        UpdateSummary();
+    }
+
+    private void BtnRemoveRow_Click(object? s, EventArgs e)
+    {
+        if (dgvRows.Rows.Count == 0) return;
+        dgvRows.Rows.RemoveAt(dgvRows.Rows.Count - 1);
+
+        // Re-label remaining rows
+        for (int i = 0; i < dgvRows.Rows.Count; i++)
+            dgvRows.Rows[i].Cells["colLabel"].Value = ((char)('A' + i)).ToString();
+
+        UpdateSummary();
+    }
+
+    private void UpdateSummary()
+    {
+        int totalSeats = 0;
+        for (int i = 0; i < dgvRows.Rows.Count; i++)
+        {
+            if (int.TryParse(dgvRows.Rows[i].Cells["colSeats"].Value?.ToString(), out int seats))
+                totalSeats += seats;
+        }
+        lblSummary.Text = $"Tổng: {dgvRows.Rows.Count} hàng, {totalSeats} ghế";
+    }
+
+    private void BtnOk_Click(object? s, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(txtName.Text))
+        {
+            MessageBox.Show("Nhập tên phòng!", "Thiếu thông tin");
+            this.DialogResult = DialogResult.None;
+            return;
+        }
+        if (dgvRows.Rows.Count == 0)
+        {
+            MessageBox.Show("Chưa có hàng ghế nào!", "Thiếu thông tin");
+            this.DialogResult = DialogResult.None;
+            return;
+        }
+
+        // Build RowConfigs
+        RowConfigs.Clear();
+        int totalSeats = 0;
+        int maxCols = 0;
+
+        for (int i = 0; i < dgvRows.Rows.Count; i++)
+        {
+            var row = dgvRows.Rows[i];
+            string label = row.Cells["colLabel"].Value?.ToString() ?? ((char)('A' + i)).ToString();
+            int seats = 10;
+            int.TryParse(row.Cells["colSeats"].Value?.ToString(), out seats);
+            string type = row.Cells["colType"].Value?.ToString() ?? "Standard";
+            decimal mult = 1.0m;
+            decimal.TryParse(row.Cells["colMultiplier"].Value?.ToString(), out mult);
+
+            if (seats < 1) seats = 1;
+            if (seats > 30) seats = 30;
+            if (mult <= 0) mult = 1.0m;
+
+            RowConfigs.Add(new RowConfig
+            {
+                RowLabel = label,
+                SeatCount = seats,
+                SeatType = type,
+                PriceMultiplier = mult
+            });
+
+            totalSeats += seats;
+            if (seats > maxCols) maxCols = seats;
+        }
+
+        RoomData = new Room
+        {
+            Name = txtName.Text.Trim(),
+            Type = cboType.SelectedItem?.ToString() ?? "2D",
+            Rows = RowConfigs.Count,
+            Columns = maxCols,
+            TotalSeats = totalSeats,
+            IsActive = true
+        };
     }
 
     private void LoadData()
@@ -144,9 +355,29 @@ public class DlgRoomEdit : Form
         txtName.Text = _edit!.Name;
         var i = cboType.Items.IndexOf(_edit.Type);
         cboType.SelectedIndex = i >= 0 ? i : 0;
-        nudRows.Value = _edit.Rows;
-        nudCols.Value = _edit.Columns;
+
+        // Load existing seats into the grid (read-only)
+        if (_edit.Seats.Count > 0)
+        {
+            var rowGroups = _edit.Seats
+                .GroupBy(s => s.RowLabel)
+                .OrderBy(g => g.Key)
+                .ToList();
+
+            foreach (var group in rowGroups)
+            {
+                dgvRows.Rows.Add(
+                    group.Key,
+                    group.Count(),
+                    group.First().Type,
+                    group.First().PriceMultiplier
+                );
+            }
+        }
+        UpdateSummary();
     }
+
+    // === Helpers ===
 
     private void Lbl(string t, int x, int y)
     {
@@ -175,18 +406,16 @@ public class DlgRoomEdit : Form
         return t;
     }
 
-    private NumericUpDown Nud(int x, int y, int min, int max, int val)
+    private static void StyleGrid(DataGridView dgv)
     {
-        var n = new NumericUpDown
-        {
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(80, 30),
-            Location = new Point(x, y),
-            BackColor = Color.FromArgb(35, 35, 55),
-            ForeColor = Color.White,
-            Minimum = min, Maximum = max, Value = val
-        };
-        this.Controls.Add(n);
-        return n;
+        dgv.DefaultCellStyle.BackColor = Color.FromArgb(26, 26, 44);
+        dgv.DefaultCellStyle.ForeColor = Color.FromArgb(200, 200, 220);
+        dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(60, 50, 120);
+        dgv.DefaultCellStyle.SelectionForeColor = Color.White;
+        dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 30, 52);
+        dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 160, 190);
+        dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+        dgv.ColumnHeadersHeight = 36;
+        dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(30, 30, 48);
     }
 }

@@ -5,7 +5,7 @@ namespace BaiTapLon.Forms.Controls;
 
 /// <summary>
 /// Custom GDI+ control hiển thị sơ đồ ghế phòng chiếu.
-/// Vẽ toàn bộ bằng OnPaint (1 control thay vì hàng trăm Button).
+/// Hỗ trợ số ghế khác nhau mỗi hàng (variable columns).
 /// </summary>
 public class SeatMapControl : Control
 {
@@ -13,7 +13,8 @@ public class SeatMapControl : Control
     private List<SeatInfo> _seats = new();
     private HashSet<int> _soldSeatIds = new();
     private readonly HashSet<int> _selectedSeatIds = new();
-    private int _rows, _cols;
+    private int _rows, _maxCols;
+    private Dictionary<string, int> _seatsPerRow = new(); // RowLabel → seat count
 
     // === Layout constants ===
     private const int CellSize = 34;
@@ -92,11 +93,16 @@ public class SeatMapControl : Control
         _soldSeatIds = soldIds;
         _selectedSeatIds.Clear();
         _rows = rows;
-        _cols = cols;
+        _maxCols = cols;
         BasePrice = basePrice;
 
+        // Build seats-per-row map
+        _seatsPerRow = _seats
+            .GroupBy(s => s.RowLabel)
+            .ToDictionary(g => g.Key, g => g.Max(s => s.SeatNumber));
+
         // Auto-size control
-        int w = RowLabelWidth + _cols * (CellSize + Gap) + Gap + 20;
+        int w = RowLabelWidth + _maxCols * (CellSize + Gap) + Gap + RowLabelWidth + 20;
         int h = ScreenMarginTop + _rows * (CellSize + Gap) + Gap + LegendHeight + 10;
         this.MinimumSize = new Size(w, h);
         this.Size = new Size(Math.Max(w, this.Width), h);
@@ -125,9 +131,9 @@ public class SeatMapControl : Control
 
         if (_seats.Count == 0) return;
 
-        // Tính offset để căn giữa
-        int gridWidth = _cols * (CellSize + Gap) - Gap;
-        int totalWidth = RowLabelWidth + gridWidth;
+        // Tính offset để căn giữa toàn bộ
+        int gridWidth = _maxCols * (CellSize + Gap) - Gap;
+        int totalWidth = RowLabelWidth + gridWidth + RowLabelWidth;
         int offsetX = Math.Max(0, (this.Width - totalWidth) / 2);
 
         // === Vẽ "MÀN HÌNH" ===
@@ -140,21 +146,32 @@ public class SeatMapControl : Control
         for (int r = 0; r < _rows; r++)
         {
             string rowLabel = ((char)('A' + r)).ToString();
+            int rowSeatCount = _seatsPerRow.GetValueOrDefault(rowLabel, _maxCols);
+
+            // Offset X để căn giữa hàng ngắn hơn
+            int rowOffsetX = (_maxCols - rowSeatCount) * (CellSize + Gap) / 2;
 
             // Row label bên trái
-            var rowRect = new RectangleF(
+            var rowRectL = new RectangleF(
                 offsetX, ScreenMarginTop + r * (CellSize + Gap),
                 RowLabelWidth - 5, CellSize);
             using var rowBrush = new SolidBrush(Color.FromArgb(120, 120, 150));
-            g.DrawString(rowLabel, fontRow, rowBrush, rowRect,
+            g.DrawString(rowLabel, fontRow, rowBrush, rowRectL,
                 new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
 
-            for (int c = 0; c < _cols; c++)
+            // Row label bên phải
+            var rowRectR = new RectangleF(
+                offsetX + RowLabelWidth + gridWidth + 5, ScreenMarginTop + r * (CellSize + Gap),
+                RowLabelWidth - 5, CellSize);
+            g.DrawString(rowLabel, fontRow, rowBrush, rowRectR,
+                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+
+            for (int c = 0; c < rowSeatCount; c++)
             {
                 var seat = _seats.FirstOrDefault(s => s.RowLabel == rowLabel && s.SeatNumber == c + 1);
                 if (seat == null) continue;
 
-                float x = offsetX + RowLabelWidth + c * (CellSize + Gap);
+                float x = offsetX + RowLabelWidth + rowOffsetX + c * (CellSize + Gap);
                 float y = ScreenMarginTop + r * (CellSize + Gap);
                 var rect = new RectangleF(x, y, CellSize, CellSize);
 
@@ -219,7 +236,6 @@ public class SeatMapControl : Control
     private void DrawLegend(Graphics g, float startX, float gridWidth)
     {
         float y = ScreenMarginTop + _rows * (CellSize + Gap) + 15;
-        float x = startX;
         using var font = new Font("Segoe UI", 7.5f);
 
         var items = new[]
@@ -233,7 +249,7 @@ public class SeatMapControl : Control
 
         // Căn giữa legend
         float totalW = items.Length * 80;
-        x = startX + (gridWidth - totalW) / 2;
+        float x = startX + (gridWidth - totalW) / 2;
 
         foreach (var (label, color) in items)
         {
@@ -306,20 +322,23 @@ public class SeatMapControl : Control
 
     private SeatInfo? HitTest(Point pt)
     {
-        int gridWidth = _cols * (CellSize + Gap) - Gap;
-        int totalWidth = RowLabelWidth + gridWidth;
+        int gridWidth = _maxCols * (CellSize + Gap) - Gap;
+        int totalWidth = RowLabelWidth + gridWidth + RowLabelWidth;
         int offsetX = Math.Max(0, (this.Width - totalWidth) / 2);
 
         for (int r = 0; r < _rows; r++)
         {
-            for (int c = 0; c < _cols; c++)
+            string rowLabel = ((char)('A' + r)).ToString();
+            int rowSeatCount = _seatsPerRow.GetValueOrDefault(rowLabel, _maxCols);
+            int rowOffsetX = (_maxCols - rowSeatCount) * (CellSize + Gap) / 2;
+
+            for (int c = 0; c < rowSeatCount; c++)
             {
-                float x = offsetX + RowLabelWidth + c * (CellSize + Gap);
+                float x = offsetX + RowLabelWidth + rowOffsetX + c * (CellSize + Gap);
                 float y = ScreenMarginTop + r * (CellSize + Gap);
                 var rect = new RectangleF(x, y, CellSize, CellSize);
                 if (rect.Contains(pt))
                 {
-                    string rowLabel = ((char)('A' + r)).ToString();
                     return _seats.FirstOrDefault(s => s.RowLabel == rowLabel && s.SeatNumber == c + 1);
                 }
             }

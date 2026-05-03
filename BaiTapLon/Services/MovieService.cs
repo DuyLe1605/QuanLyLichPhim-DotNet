@@ -40,7 +40,7 @@ public class MovieService
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(keyword))
-            query = query.Where(m => m.Title.Contains(keyword) || (m.Director != null && m.Director.Contains(keyword)));
+            query = query.Where(m => m.Code.Contains(keyword) || m.Title.Contains(keyword) || (m.Director != null && m.Director.Contains(keyword)));
 
         if (genreId.HasValue)
             query = query.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genreId.Value));
@@ -50,11 +50,19 @@ public class MovieService
 
     public async Task<(bool Success, string Message)> CreateAsync(Movie movie, List<int> genreIds)
     {
+        if (string.IsNullOrWhiteSpace(movie.Code))
+            return (false, "Mã phim không được để trống!");
+
         if (string.IsNullOrWhiteSpace(movie.Title))
             return (false, "Tên phim không được để trống!");
 
         if (movie.Duration <= 0)
             return (false, "Thời lượng phải lớn hơn 0!");
+
+        // Kiểm tra mã phim trùng
+        bool codeExists = await _context.Movies.AnyAsync(m => m.Code == movie.Code);
+        if (codeExists)
+            return (false, $"Mã phim '{movie.Code}' đã tồn tại!");
 
         movie.CreatedAt = DateTime.Now;
         _context.Movies.Add(movie);
@@ -79,6 +87,7 @@ public class MovieService
         if (existing == null)
             return (false, "Phim không tồn tại!");
 
+        existing.Code = movie.Code;
         existing.Title = movie.Title;
         existing.Director = movie.Director;
         existing.Actors = movie.Actors;
