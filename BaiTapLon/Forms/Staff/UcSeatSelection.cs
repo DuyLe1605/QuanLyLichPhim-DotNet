@@ -40,6 +40,11 @@ public class UcSeatSelection : UserControl
     /// </summary>
     public event Action? CheckoutCompleted;
 
+    /// <summary>
+    /// Event khi nhân viên chọn xong ghế và tiếp tục sang màn bắp nước.
+    /// </summary>
+    public event Action<SaleOrderState>? ContinueRequested;
+
     public UcSeatSelection()
     {
         InitUI();
@@ -231,10 +236,10 @@ public class UcSeatSelection : UserControl
         pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(280, 1), BackColor = Color.FromArgb(50, 50, 75) });
         y += 15;
 
-        // Thanh toán
+        // Bước tiếp theo
         pnlRight.Controls.Add(new Label
         {
-            Text = "Thanh toán",
+            Text = "Bước tiếp theo",
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(160, 160, 190),
             Location = new Point(15, y),
@@ -242,7 +247,14 @@ public class UcSeatSelection : UserControl
         });
         y += 28;
 
-        pnlRight.Controls.Add(new Label { Text = "Tiền nhận:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), AutoSize = true });
+        pnlRight.Controls.Add(new Label
+        {
+            Text = "Chọn bắp nước rồi thanh toán một lần.",
+            Font = new Font("Segoe UI", 9),
+            ForeColor = Color.FromArgb(130, 130, 160),
+            Location = new Point(15, y + 3),
+            Size = new Size(260, 34)
+        });
         txtReceived = new TextBox
         {
             Font = new Font("Segoe UI", 11),
@@ -251,7 +263,8 @@ public class UcSeatSelection : UserControl
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.FromArgb(80, 220, 120),
             BorderStyle = BorderStyle.FixedSingle,
-            TextAlign = HorizontalAlignment.Right
+            TextAlign = HorizontalAlignment.Right,
+            Visible = false
         };
         txtReceived.TextChanged += (s, e) => CalculateChange();
         pnlRight.Controls.Add(txtReceived);
@@ -263,15 +276,16 @@ public class UcSeatSelection : UserControl
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
             ForeColor = Color.FromArgb(255, 200, 60),
             Location = new Point(15, y),
-            AutoSize = true
+            AutoSize = true,
+            Visible = false
         };
         pnlRight.Controls.Add(lblChange);
-        y += 40;
+        y += 12;
 
         // Nút thanh toán
         btnCheckout = new Button
         {
-            Text = "💳  THANH TOÁN",
+            Text = "TIẾP TỤC",
             Font = new Font("Segoe UI", 12, FontStyle.Bold),
             Size = new Size(280, 48),
             Location = new Point(15, y),
@@ -372,7 +386,7 @@ public class UcSeatSelection : UserControl
         }
     }
 
-    private async void BtnCheckout_Click(object? sender, EventArgs e)
+    private void BtnCheckout_Click(object? sender, EventArgs e)
     {
         var selected = seatMap.SelectedSeats;
         if (selected.Count == 0)
@@ -383,81 +397,15 @@ public class UcSeatSelection : UserControl
 
         decimal total = seatMap.TotalPrice;
 
-        // Validate tiền nhận
-        if (!decimal.TryParse(txtReceived.Text.Replace(",", "").Replace(".", ""), out decimal received))
+        ContinueRequested?.Invoke(new SaleOrderState
         {
-            MessageBox.Show("Vui lòng nhập số tiền nhận!", "Thiếu thông tin");
-            txtReceived.Focus();
-            return;
-        }
-
-        if (received < total)
-        {
-            MessageBox.Show($"Tiền nhận ({received:N0}đ) ít hơn tổng ({total:N0}đ)!", "Chưa đủ tiền");
-            txtReceived.Focus();
-            return;
-        }
-
-        decimal change = received - total;
-
-        // Xác nhận
-        string seatList = string.Join(", ", selected.OrderBy(s => s.RowLabel).ThenBy(s => s.SeatNumber).Select(s => $"{s.RowLabel}{s.SeatNumber}"));
-        var confirmMsg = $"Xác nhận thanh toán:\n\n" +
-                        $"Phim: {_movie.Title}\n" +
-                        $"Suất: {_showtime.StartTime:HH:mm dd/MM/yyyy}\n" +
-                        $"Phòng: {_room.Name}\n" +
-                        $"Ghế: {seatList}\n" +
-                        $"Tổng tiền: {total:N0} đ\n" +
-                        $"Tiền nhận: {received:N0} đ\n" +
-                        $"Tiền thối: {change:N0} đ";
-
-        if (MessageBox.Show(confirmMsg, "Xác nhận thanh toán",
-            MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
-            return;
-
-        // Tạo Invoice + Tickets
-        var invoice = new Invoice
-        {
-            UserId = SessionManager.CurrentUser!.Id,
+            Showtime = _showtime,
+            Movie = _movie,
+            Room = _room,
+            Seats = selected.ToList(),
             CustomerName = string.IsNullOrWhiteSpace(txtCustomerName.Text) ? null : txtCustomerName.Text.Trim(),
             CustomerPhone = string.IsNullOrWhiteSpace(txtCustomerPhone.Text) ? null : txtCustomerPhone.Text.Trim(),
-            TotalAmount = total,
-            ReceivedAmount = received,
-            ChangeAmount = change,
-            CreatedAt = DateTime.Now
-        };
-
-        var tickets = selected.Select(s => new Ticket
-        {
-            ShowtimeId = _showtime.Id,
-            SeatId = s.Id,
-            Price = _showtime.BasePrice * s.PriceMultiplier
-        }).ToList();
-
-        // Lưu vào DB
-        btnCheckout.Enabled = false;
-        btnCheckout.Text = "⏳ Đang xử lý...";
-
-        using var ctx = Program.CreateDbContext();
-        var invoiceService = new InvoiceService(ctx);
-        var (ok, msg, invoiceId) = await invoiceService.CreateAsync(invoice, tickets);
-
-        if (ok)
-        {
-            MessageBox.Show(
-                $"✅ {msg}\n\n" +
-                $"Ghế: {seatList}\n" +
-                $"Tổng: {total:N0} đ\n" +
-                $"Tiền thối: {change:N0} đ",
-                "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            CheckoutCompleted?.Invoke();
-        }
-        else
-        {
-            MessageBox.Show(msg, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            btnCheckout.Enabled = true;
-            btnCheckout.Text = "💳  THANH TOÁN";
-        }
+            TicketTotal = total
+        });
     }
 }

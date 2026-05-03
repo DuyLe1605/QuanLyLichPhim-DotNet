@@ -190,8 +190,8 @@ BaiTapLon/
     │   ├── RoomService.cs                  ✅ Phase 2
     │   ├── ShowtimeService.cs              ✅ Phase 2
     │   ├── TicketService.cs                ✅ Phase 3
-    │   ├── InvoiceService.cs               ✅ Phase 3
-    │   ├── SnackService.cs                 🔲 Phase 5
+    │   ├── InvoiceService.cs               ✅ Phase 3 + Phase 5 (Tickets + InvoiceSnacks transaction)
+    │   ├── SnackService.cs                 ✅ Phase 5
     │   └── ReportService.cs                ✅ Phase 4
     │
     ├── Forms/
@@ -206,10 +206,14 @@ BaiTapLon/
     │   │   ├── DlgShowtimeEdit.cs          ✅ Phase 2
     │   │   ├── UcStaffManagement.cs        ✅ Phase 2
     │   │   ├── DlgStaffEdit.cs             ✅ Phase 2
+    │   │   ├── UcSnackManagement.cs        ✅ Phase 5
+    │   │   ├── DlgSnackEdit.cs             ✅ Phase 5
     │   │   └── UcDashboard.cs              ✅ Phase 4 (LiveCharts2 + PDF export)
     │   ├── Staff/
     │   │   ├── UcNowShowing.cs             ✅ Phase 3
-    │   │   └── UcSeatSelection.cs          ✅ Phase 3
+    │   │   ├── UcSeatSelection.cs          ✅ Phase 3 + Phase 5 navigation
+    │   │   ├── UcSnackOrder.cs             ✅ Phase 5
+    │   │   └── SaleOrderState.cs           ✅ Phase 5
     │   └── Controls/
     │       └── SeatMapControl.cs           ✅ Phase 3 (Custom GDI+ seat map)
     │
@@ -463,12 +467,56 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 - [x] Fix sidebar branding: tăng vùng logo/app name để chữ `CineManager` không bị cắt/đè.
 - [x] Build kiểm tra thành công ra `C:\tmp\BaiTapLonBuild` vì app đang chạy khóa output `bin`.
 
-### Phase 5: Module Bắp Nước ⬅️ TIẾP THEO
+### Phase 5: Module Bắp Nước ✅ HOÀN THÀNH (03/05/2026)
 
-- [ ] `SnackService.cs` (CRUD đồ ăn)
-- [ ] `UcSnackManagement.cs` (Admin CRUD)
-- [ ] `UcSnackOrder.cs` (Staff chọn bắp nước)
-- [ ] Tích hợp vào luồng thanh toán (InvoiceSnack)
+**5.1 — SnackService + Admin CRUD** ✅
+- [x] `SnackService.cs`
+  - [x] `GetAllActiveAsync()`, `GetAllAsync()`, `GetByCategoryAsync()`, `SearchAsync()`
+  - [x] `CreateAsync()`, `UpdateAsync()`, `SoftDeleteAsync()`
+  - [x] Validate tên món, giá, phân loại (`Food`, `Drink`, `Combo`)
+- [x] `UcSnackManagement.cs`
+  - [x] DataGridView danh sách món: loại, tên, giá, trạng thái
+  - [x] Tìm kiếm theo tên + lọc theo loại
+  - [x] Thêm/Sửa/Ẩn món, double-click để sửa
+- [x] `DlgSnackEdit.cs`
+  - [x] Layout nhập liệu bằng `TableLayoutPanel`
+  - [x] `ErrorProvider` cho lỗi tên món/giá thay vì chỉ phụ thuộc MessageBox
+
+**5.2 — Staff POS Bắp Nước** ✅
+- [x] `SaleOrderState.cs` giữ state bán hàng giữa màn ghế và màn bắp nước
+- [x] `UcSnackOrder.cs`
+  - [x] Menu sản phẩm dạng card trong `FlowLayoutPanel`
+  - [x] Lọc nhanh theo `Food`, `Drink`, `Combo`
+  - [x] Giỏ hàng DataGridView có nút `+` / `-`
+  - [x] Tính realtime: tiền vé, tiền bắp nước, tổng bill, tiền thối
+
+**5.3 — Tích hợp Checkout** ✅
+- [x] Đổi luồng bán vé: Chọn phim → Chọn ghế → Chọn bắp nước → Thanh toán
+- [x] `FrmMain` điều hướng `UcSeatSelection` → `UcSnackOrder`
+- [x] `InvoiceService.CreateAsync()` nhận thêm `List<InvoiceSnack>`
+- [x] Transaction lưu `Invoice` → `Tickets` → `InvoiceSnacks` → `Commit`
+- [x] Giữ double-check race condition ghế đã bán trước khi commit
+- [x] Build kiểm tra thành công ra `C:\tmp\BaiTapLonPhase5Build2`
+
+### Phase 5.5: Refactor Backlog Cho Phase 1-5 ⬅️ TIẾP THEO
+
+- [ ] Chuẩn hóa `ErrorProvider` cho các dialog quản trị còn lại:
+  - [ ] `DlgMovieEdit`
+  - [ ] `DlgRoomEdit`
+  - [ ] `DlgShowtimeEdit`
+  - [ ] `DlgStaffEdit`
+- [ ] Cải thiện lưu poster phim:
+  - [ ] Copy file upload vào `Resources/Posters`
+  - [ ] DB chỉ lưu tên file/relative path thay vì phụ thuộc đường dẫn tuyệt đối trên máy dev
+  - [ ] Load ảnh bằng `Path.Combine(Application.StartupPath, "Resources", "Posters", fileName)`
+- [ ] Hoàn thiện hóa đơn/PDF bán hàng:
+  - [ ] Thêm hàm xuất hóa đơn bán vé có bảng "Dịch vụ đi kèm"
+  - [ ] In danh sách bắp nước theo tên món, số lượng, đơn giá, thành tiền
+- [ ] Polish dashboard:
+  - [ ] Đảm bảo các query thống kê chạy bằng `async/await`
+  - [ ] Thêm trạng thái loading trong lúc chờ dữ liệu/biểu đồ
+- [x] Chống race condition bán ghế trong `InvoiceService.CreateAsync()`:
+  - [x] Double-check ghế đã bán trong transaction trước khi lưu invoice/tickets/snacks
 
 ### Phase 6: Hoàn Thiện & Polish
 

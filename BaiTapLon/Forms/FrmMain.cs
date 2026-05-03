@@ -187,6 +187,7 @@ public class FrmMain : Form
             AddMenuButton("🎬  Quản lý phim", yPos, "Movies"); yPos += 48;
             AddMenuButton("🏠  Phòng chiếu", yPos, "Rooms"); yPos += 48;
             AddMenuButton("📅  Lịch chiếu", yPos, "Showtimes"); yPos += 48;
+            AddMenuButton("🍿  Bắp nước", yPos, "Snacks"); yPos += 48;
             AddMenuButton("👥  Nhân viên", yPos, "Staff"); yPos += 48;
         }
         else
@@ -265,6 +266,7 @@ public class FrmMain : Form
             "Movies" => new Admin.UcMovieManagement(),
             "Rooms" => new Admin.UcRoomManagement(),
             "Showtimes" => new Admin.UcShowtimeManagement(),
+            "Snacks" => new Admin.UcSnackManagement(),
             "Staff" => new Admin.UcStaffManagement(),
             "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
@@ -290,7 +292,7 @@ public class FrmMain : Form
     }
 
     /// <summary>
-    /// Tạo module bán vé với luồng: NowShowing → SeatSelection → Checkout → NowShowing.
+    /// Tạo module bán vé với luồng: NowShowing → SeatSelection → SnackOrder → Checkout → NowShowing.
     /// </summary>
     private Staff.UcNowShowing CreateNowShowingModule()
     {
@@ -298,24 +300,36 @@ public class FrmMain : Form
 
         ucNowShowing.ShowtimeSelected += async (showtime) =>
         {
-            // Chuyển sang chọn ghế
-            pnlContent.Controls.Clear();
-
-            var ucSeatSelection = new Staff.UcSeatSelection();
-            ucSeatSelection.Dock = DockStyle.Fill;
-            pnlContent.Controls.Add(ucSeatSelection);
-
-            // Quay lại NowShowing
-            ucSeatSelection.BackRequested += () => LoadModule("NowShowing");
-
-            // Thanh toán xong → quay lại NowShowing
-            ucSeatSelection.CheckoutCompleted += () => LoadModule("NowShowing");
-
-            // Load dữ liệu suất chiếu
-            await ucSeatSelection.LoadShowtimeAsync(showtime);
+            await LoadSeatSelectionAsync(showtime);
         };
 
         return ucNowShowing;
+    }
+
+    private async Task LoadSeatSelectionAsync(Models.Showtime showtime)
+    {
+        pnlContent.Controls.Clear();
+
+        var ucSeatSelection = new Staff.UcSeatSelection { Dock = DockStyle.Fill };
+        pnlContent.Controls.Add(ucSeatSelection);
+
+        ucSeatSelection.BackRequested += () => LoadModule("NowShowing");
+        ucSeatSelection.ContinueRequested += async (state) => await LoadSnackOrderAsync(state);
+
+        await ucSeatSelection.LoadShowtimeAsync(showtime);
+    }
+
+    private async Task LoadSnackOrderAsync(Staff.SaleOrderState state)
+    {
+        pnlContent.Controls.Clear();
+
+        var ucSnackOrder = new Staff.UcSnackOrder { Dock = DockStyle.Fill };
+        pnlContent.Controls.Add(ucSnackOrder);
+
+        ucSnackOrder.BackRequested += async () => await LoadSeatSelectionAsync(state.Showtime);
+        ucSnackOrder.CheckoutCompleted += () => LoadModule("NowShowing");
+
+        await ucSnackOrder.LoadOrderAsync(state);
     }
 
     private void ShowWelcomeScreen()
