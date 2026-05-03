@@ -94,7 +94,7 @@ public class DlgShowtimeEdit : Form
         {
             Font = new Font("Segoe UI", 11), Dock = DockStyle.Fill,
             Format = DateTimePickerFormat.Time, ShowUpDown = true,
-            Value = DateTime.Today.AddHours(9),
+            Value = GetDefaultStartTime(),
             Margin = new Padding(0, 6, 0, 6)
         };
         tbl.Controls.Add(dtpTime, 1, row++);
@@ -185,6 +185,15 @@ public class DlgShowtimeEdit : Form
         dtpDate.Value = _edit.StartTime.Date;
         dtpTime.Value = DateTime.Today.Add(_edit.StartTime.TimeOfDay);
         nudPrice.Value = Math.Min(nudPrice.Maximum, Math.Max(nudPrice.Minimum, _edit.BasePrice));
+    }
+
+    private static DateTime GetDefaultStartTime()
+    {
+        var now = DateTime.Now;
+        int minute = now.Minute < 30 ? 30 : 0;
+        int hour = minute == 30 ? now.Hour : now.Hour + 1;
+        if (hour > 23) hour = 23;
+        return DateTime.Today.AddHours(hour).AddMinutes(minute);
     }
 
     private static Label MakeLbl(string text) => new()

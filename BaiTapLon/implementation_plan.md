@@ -456,6 +456,11 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
   - [x] `DlgShowtimeEdit` hỗ trợ cả thêm mới và sửa
   - [x] Sau khi thêm/sửa lịch chiếu, tự chuyển filter sang ngày của lịch vừa lưu và reload danh sách
   - [x] `ShowtimeService.GetByIdAsync()` để load lịch chiếu đang sửa
+- [x] Polish Staff bán vé:
+  - [x] `UcNowShowing` có bộ chọn ngày chiếu, không còn chỉ khóa cứng vào hôm nay
+  - [x] Staff thấy các suất theo ngày được chọn; suất đã bắt đầu vẫn hiện để kiểm tra nhưng bị disable bán vé
+  - [x] Dialog thêm lịch mặc định giờ chiếu là mốc sắp tới thay vì luôn 09:00
+- [x] Fix sidebar branding: tăng vùng logo/app name để chữ `CineManager` không bị cắt/đè.
 - [x] Build kiểm tra thành công ra `C:\tmp\BaiTapLonBuild` vì app đang chạy khóa output `bin`.
 
 ### Phase 5: Module Bắp Nước ⬅️ TIẾP THEO

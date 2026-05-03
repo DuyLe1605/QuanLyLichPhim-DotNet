@@ -16,6 +16,8 @@ public class UcNowShowing : UserControl
     private Label lblSelectedMovie = null!;
     private PictureBox picSelected = null!;
     private Label lblMovieInfo = null!;
+    private DateTimePicker dtpShowDate = null!;
+    private Label lblShowtimeTitle = null!;
 
     private List<Movie> _movies = new();
     private Movie? _selectedMovie;
@@ -46,6 +48,37 @@ public class UcNowShowing : UserControl
             Location = new Point(5, 10),
             AutoSize = true
         });
+
+        pnlTitle.Controls.Add(new Label
+        {
+            Text = "Ngày chiếu:",
+            Font = new Font("Segoe UI", 10),
+            ForeColor = Color.FromArgb(150, 150, 180),
+            AutoSize = true,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Location = new Point(520, 19)
+        });
+
+        dtpShowDate = new DateTimePicker
+        {
+            Font = new Font("Segoe UI", 10),
+            Format = DateTimePickerFormat.Short,
+            Size = new Size(135, 28),
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Location = new Point(605, 14)
+        };
+        dtpShowDate.ValueChanged += async (s, e) => await LoadMoviesAsync();
+        pnlTitle.Controls.Add(dtpShowDate);
+
+        pnlTitle.Resize += (s, e) =>
+        {
+            dtpShowDate.Location = new Point(Math.Max(260, pnlTitle.Width - 150), 14);
+            foreach (Control c in pnlTitle.Controls)
+            {
+                if (c is Label { Text: "Ngày chiếu:" })
+                    c.Location = new Point(dtpShowDate.Left - 85, 19);
+            }
+        };
         this.Controls.Add(pnlTitle);
 
         // === Panel chọn suất chiếu (bên phải) ===
@@ -100,15 +133,16 @@ public class UcNowShowing : UserControl
             BackColor = Color.FromArgb(50, 50, 75)
         });
 
-        // Label "Suất chiếu hôm nay"
-        pnlShowtimes.Controls.Add(new Label
+        // Label ngày chiếu
+        lblShowtimeTitle = new Label
         {
-            Text = "📅  Suất chiếu hôm nay",
+            Text = "📅  Suất chiếu",
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
             ForeColor = Color.FromArgb(180, 180, 210),
             Location = new Point(15, 205),
             AutoSize = true
-        });
+        };
+        pnlShowtimes.Controls.Add(lblShowtimeTitle);
 
         // Flow cho các nút suất chiếu
         flpShowtimes = new FlowLayoutPanel
@@ -143,16 +177,20 @@ public class UcNowShowing : UserControl
         {
             using var ctx = Program.CreateDbContext();
 
-            // Lấy phim đang chiếu (có suất chiếu hôm nay trở đi)
+            var selectedDate = dtpShowDate.Value.Date;
+
+            // Lấy phim có suất chiếu trong ngày đang chọn.
             _movies = await ctx.Movies
                 .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
                 .Include(m => m.Showtimes)
-                .Where(m => m.IsActive && m.Showtimes.Any(s => s.IsActive && s.StartTime.Date >= DateTime.Today))
+                .Where(m => m.IsActive && m.Showtimes.Any(s => s.IsActive && s.StartTime.Date == selectedDate))
                 .AsNoTracking()
                 .OrderBy(m => m.Title)
                 .ToListAsync();
 
             RenderMovieCards();
+            pnlShowtimes.Visible = false;
+            _selectedMovie = null;
         }
         catch (Exception ex)
         {
@@ -168,7 +206,7 @@ public class UcNowShowing : UserControl
         {
             flpMovies.Controls.Add(new Label
             {
-                Text = "📭  Không có phim nào đang chiếu hôm nay.",
+                Text = $"📭  Không có phim nào có suất chiếu ngày {dtpShowDate.Value:dd/MM/yyyy}.",
                 Font = new Font("Segoe UI", 14),
                 ForeColor = Color.FromArgb(100, 100, 130),
                 AutoSize = true,
@@ -315,7 +353,7 @@ public class UcNowShowing : UserControl
         }
         else picSelected.Image = null;
 
-        // Load suất chiếu hôm nay
+        // Load suất chiếu theo ngày đang chọn
         await LoadShowtimesAsync(movie.Id);
     }
 
@@ -327,13 +365,17 @@ public class UcNowShowing : UserControl
         {
             using var ctx = Program.CreateDbContext();
             var ticketService = new TicketService(ctx);
+            var selectedDate = dtpShowDate.Value.Date;
+
+            lblShowtimeTitle.Text = selectedDate == DateTime.Today
+                ? "📅  Suất chiếu hôm nay"
+                : $"📅  Suất chiếu {selectedDate:dd/MM/yyyy}";
 
             var showtimes = await ctx.Showtimes
                 .Include(s => s.Room)
                 .Where(s => s.MovieId == movieId
                          && s.IsActive
-                         && s.StartTime.Date == DateTime.Today
-                         && s.StartTime > DateTime.Now) // Chỉ hiện suất chưa bắt đầu
+                         && s.StartTime.Date == selectedDate)
                 .OrderBy(s => s.StartTime)
                 .AsNoTracking()
                 .ToListAsync();
@@ -342,7 +384,7 @@ public class UcNowShowing : UserControl
             {
                 flpShowtimes.Controls.Add(new Label
                 {
-                    Text = "Không có suất chiếu nào\ncòn lại hôm nay.",
+                    Text = $"Không có suất chiếu nào\nngày {selectedDate:dd/MM/yyyy}.",
                     Font = new Font("Segoe UI", 10),
                     ForeColor = Color.FromArgb(100, 100, 130),
                     AutoSize = true,
@@ -356,18 +398,21 @@ public class UcNowShowing : UserControl
                 int sold = await ticketService.CountSoldAsync(st.Id);
                 int total = st.Room.TotalSeats;
                 int avail = total - sold;
+                bool isPast = st.StartTime <= DateTime.Now;
+                bool canSell = avail > 0 && !isPast;
 
                 var btn = new Button
                 {
                     Text = $"{st.StartTime:HH:mm}\n{st.Room.Name} ({st.Room.Type})\n" +
-                           $"Còn {avail}/{total} ghế\n{st.BasePrice:N0}đ",
+                           (isPast ? "Đã bắt đầu\n" : $"Còn {avail}/{total} ghế\n") +
+                           $"{st.BasePrice:N0}đ",
                     Font = new Font("Segoe UI", 9),
                     Size = new Size(145, 85),
-                    BackColor = avail > 0 ? Color.FromArgb(40, 40, 65) : Color.FromArgb(35, 35, 45),
-                    ForeColor = avail > 0 ? Color.FromArgb(200, 200, 225) : Color.FromArgb(80, 80, 100),
+                    BackColor = canSell ? Color.FromArgb(40, 40, 65) : Color.FromArgb(35, 35, 45),
+                    ForeColor = canSell ? Color.FromArgb(200, 200, 225) : Color.FromArgb(80, 80, 100),
                     FlatStyle = FlatStyle.Flat,
-                    Cursor = avail > 0 ? Cursors.Hand : Cursors.No,
-                    Enabled = avail > 0,
+                    Cursor = canSell ? Cursors.Hand : Cursors.No,
+                    Enabled = canSell,
                     Margin = new Padding(4),
                     Tag = st,
                     TextAlign = ContentAlignment.MiddleCenter

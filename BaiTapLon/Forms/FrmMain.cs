@@ -85,9 +85,10 @@ public class FrmMain : Form
         var lblLogo = new Label
         {
             Text = "🎬",
-            Font = new Font("Segoe UI", 32),
+            Font = new Font("Segoe UI", 30),
             AutoSize = false,
-            Size = new Size(250, 60),
+            Size = new Size(250, 58),
+            Location = new Point(0, 8),
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = Color.FromArgb(130, 110, 255)
         };
@@ -97,11 +98,11 @@ public class FrmMain : Form
         var lblAppName = new Label
         {
             Text = "CineManager",
-            Font = new Font("Segoe UI", 16, FontStyle.Bold),
+            Font = new Font("Segoe UI", 15, FontStyle.Bold),
             ForeColor = Color.FromArgb(130, 110, 255),
             AutoSize = false,
-            Size = new Size(250, 32),
-            Location = new Point(0, 58),
+            Size = new Size(250, 36),
+            Location = new Point(0, 68),
             TextAlign = ContentAlignment.MiddleCenter
         };
         pnlSidebar.Controls.Add(lblAppName);
@@ -113,14 +114,14 @@ public class FrmMain : Form
             Font = new Font("Segoe UI", 9),
             ForeColor = Color.FromArgb(90, 90, 115),
             AutoSize = false,
-            Size = new Size(250, 20),
-            Location = new Point(0, 90),
+            Size = new Size(250, 22),
+            Location = new Point(0, 102),
             TextAlign = ContentAlignment.MiddleCenter
         };
         pnlSidebar.Controls.Add(lblRole);
 
         // Separator
-        var sep = new Panel { Size = new Size(200, 1), Location = new Point(25, 120), BackColor = Color.FromArgb(40, 40, 60) };
+        var sep = new Panel { Size = new Size(200, 1), Location = new Point(25, 132), BackColor = Color.FromArgb(40, 40, 60) };
         pnlSidebar.Controls.Add(sep);
 
         // ===== Header =====
@@ -178,7 +179,7 @@ public class FrmMain : Form
 
     private void SetupMenuByRole()
     {
-        int yPos = 140;
+        int yPos = 155;
 
         if (SessionManager.IsAdmin)
         {
