@@ -260,6 +260,7 @@ public class FrmMain : Form
 
         UserControl? uc = module switch
         {
+            "Dashboard" => new Admin.UcDashboard(),
             "Movies" => new Admin.UcMovieManagement(),
             "Rooms" => new Admin.UcRoomManagement(),
             "Showtimes" => new Admin.UcShowtimeManagement(),

@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Dự án:** Bài Tập Lớn .NET — WinForms C# (.NET 10)
-> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 3 hoàn thành)
+> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 4 hoàn thành)
 
 ---
 
@@ -192,31 +192,31 @@ BaiTapLon/
     │   ├── TicketService.cs                ✅ Phase 3
     │   ├── InvoiceService.cs               ✅ Phase 3
     │   ├── SnackService.cs                 🔲 Phase 5
-    │   └── ReportService.cs                🔲 Phase 4
+    │   └── ReportService.cs                ✅ Phase 4
     │
     ├── Forms/
     │   ├── FrmLogin.cs                     ✅ (dark theme, borderless)
-    │   ├── FrmMain.cs                      ✅ (sidebar + header + content + Staff flow)
+    │   ├── FrmMain.cs                      ✅ (sidebar + header + all modules)
     │   ├── Admin/
-    │   │   ├── UcMovieManagement.cs        ✅ Phase 2 (DataGridView + search + genre filter)
-    │   │   ├── DlgMovieEdit.cs             ✅ Phase 2 (poster + CheckedListBox thể loại)
-    │   │   ├── UcRoomManagement.cs         ✅ Phase 2 (CRUD phòng)
-    │   │   ├── DlgRoomEdit.cs              ✅ Phase 2 (VIP/Couple config)
-    │   │   ├── UcShowtimeManagement.cs     ✅ Phase 2 (filter ngày/phim/phòng)
-    │   │   ├── DlgShowtimeEdit.cs          ✅ Phase 2 (chọn phim/phòng/giờ/giá)
-    │   │   ├── UcStaffManagement.cs        ✅ Phase 2 (CRUD + reset MK + khóa TK)
-    │   │   ├── DlgStaffEdit.cs             ✅ Phase 2 (thêm nhân viên)
-    │   │   └── UcDashboard.cs              🔲 Phase 4
+    │   │   ├── UcMovieManagement.cs        ✅ Phase 2
+    │   │   ├── DlgMovieEdit.cs             ✅ Phase 2
+    │   │   ├── UcRoomManagement.cs         ✅ Phase 2
+    │   │   ├── DlgRoomEdit.cs              ✅ Phase 2
+    │   │   ├── UcShowtimeManagement.cs     ✅ Phase 2
+    │   │   ├── DlgShowtimeEdit.cs          ✅ Phase 2
+    │   │   ├── UcStaffManagement.cs        ✅ Phase 2
+    │   │   ├── DlgStaffEdit.cs             ✅ Phase 2
+    │   │   └── UcDashboard.cs              ✅ Phase 4 (LiveCharts2 + PDF export)
     │   ├── Staff/
-    │   │   ├── UcNowShowing.cs             ✅ Phase 3 (movie cards + suất chiếu)
-    │   │   └── UcSeatSelection.cs          ✅ Phase 3 (seat map + checkout)
+    │   │   ├── UcNowShowing.cs             ✅ Phase 3
+    │   │   └── UcSeatSelection.cs          ✅ Phase 3
     │   └── Controls/
     │       └── SeatMapControl.cs           ✅ Phase 3 (Custom GDI+ seat map)
     │
     ├── Helpers/
     │   ├── AppConfig.cs                    ✅
     │   ├── SessionManager.cs               ✅
-    │   └── PrintHelper.cs                  🔲 Phase 4
+    │   └── PrintHelper.cs                  ✅ Phase 4 (QuestPDF)
     │
     └── Resources/                          🔲 Phase 6
 ```
@@ -404,17 +404,34 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 - [x] `LoadModule("NowShowing")` và `LoadModule("SellTicket")` → UcNowShowing
 - [x] Luồng navigation: NowShowing → SeatSelection → Checkout → NowShowing
 
-### Phase 4: Thống Kê & Báo Cáo ⬅️ TIẾP THEO
+### Phase 4: Thống Kê & Báo Cáo ✅ HOÀN THÀNH (03/05/2026)
 
-- [ ] `ReportService.cs` (queries tổng hợp)
-- [ ] `UcDashboard.cs` + LiveCharts2
-  - [ ] Doanh thu theo ngày/tháng (Column Chart)
-  - [ ] Top 5 phim ăn khách (Bar Chart)
-  - [ ] Tỷ lệ lấp đầy phòng (Pie Chart)
-- [ ] Xuất PDF bằng QuestPDF
-- [ ] `PrintHelper.cs`
+**4.1 — ReportService** ✅
+- [x] `ReportService.cs` (queries tổng hợp)
+  - [x] `GetStatsAsync()` — tổng phim, phòng, suất hôm nay, vé, doanh thu, hóa đơn
+  - [x] `GetRevenueByDateAsync()` — doanh thu + số vé theo ngày
+  - [x] `GetRevenueByMonthAsync()` — doanh thu + số vé theo tháng
+  - [x] `GetTopMoviesAsync()` — top N phim theo số vé + doanh thu
+  - [x] `GetRoomOccupancyAsync()` — tỷ lệ lấp đầy từng phòng
 
-### Phase 5: Module Bắp Nước
+**4.2 — UcDashboard** ✅
+- [x] `UcDashboard.cs` + LiveCharts2
+  - [x] 6 stat cards (phim, phòng, suất, vé, doanh thu, hóa đơn) với accent colors
+  - [x] Doanh thu theo ngày/tháng (Column Chart — có toggle)
+  - [x] Top 5 phim ăn khách (Row/Bar Chart)
+  - [x] Tỷ lệ lấp đầy phòng (Pie Chart)
+  - [x] Bộ lọc ngày (từ/đến) + nút làm mới
+- [x] Tích hợp vào `FrmMain.LoadModule("Dashboard")`
+
+**4.3 — Xuất PDF** ✅
+- [x] `PrintHelper.cs` (QuestPDF)
+  - [x] Header: logo + khoảng thời gian + ngày xuất
+  - [x] Tổng quan stats (6 chỉ số)
+  - [x] Top 5 phim (định dạng bảng)
+  - [x] Doanh thu theo ngày (định dạng bảng + tổng cộng)
+  - [x] Footer với số trang
+
+### Phase 5: Module Bắp Nước ⬅️ TIẾP THEO
 
 - [ ] `SnackService.cs` (CRUD đồ ăn)
 - [ ] `UcSnackManagement.cs` (Admin CRUD)
