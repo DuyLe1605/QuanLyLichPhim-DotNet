@@ -1,0 +1,440 @@
+# 🎬 Kế Hoạch Triển Khai: Hệ Thống Quản Lý Lịch Chiếu Phim
+
+> [!NOTE]
+> **Dự án:** Bài Tập Lớn .NET — WinForms C# (.NET 10)
+> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026
+
+---
+
+## 1. Tổng Quan Kiến Trúc
+
+### 1.1 Kiến trúc 3 lớp (3-Layer Architecture)
+
+```mermaid
+graph TB
+    subgraph Presentation["🖥️ Presentation Layer (WinForms + Custom UI)"]
+        Forms["Forms / UserControls"]
+    end
+    subgraph Business["⚙️ Business Logic Layer (Services)"]
+        Services["Services / Validators"]
+    end
+    subgraph Data["🗄️ Data Access Layer (EF Core)"]
+        DbContext["AppDbContext"]
+        Entities["Entities / Models"]
+    end
+    Forms --> Services
+    Services --> DbContext
+    DbContext --> Entities
+    DbContext -->|SQL Server LocalDB| DB[(Database)]
+```
+
+### 1.2 Công Nghệ Sử Dụng
+
+| Thành phần | Công nghệ | Trạng thái |
+|---|---|---|
+| **Framework** | .NET 10, WinForms | ✅ Đã cài |
+| **UI Library** | `ReaLTaiizor` (MIT, miễn phí) + Custom GDI+ | ✅ Đã cài |
+| **ORM** | EF Core 10 + SQL Server provider | ✅ Đã cài |
+| **Database** | SQL Server LocalDB | ✅ Đã tạo DB |
+| **Biểu đồ** | `LiveChartsCore.SkiaSharpView.WinForms` | ✅ Đã cài |
+| **Xuất PDF** | `QuestPDF` | ✅ Đã cài |
+| **Hash mật khẩu** | `BCrypt.Net-Next` | ✅ Đã cài |
+| **Sơ đồ ghế** | Custom `SeatMapControl` (GDI+) | 🔲 Phase 3 |
+
+---
+
+## 2. Thiết Kế Cơ Sở Dữ Liệu
+
+### 2.1 Sơ đồ ERD
+
+```mermaid
+erDiagram
+    User ||--o{ Invoice : "tạo"
+    User {
+        int Id PK
+        string FullName
+        string Username
+        string PasswordHash
+        string Role "Admin | Staff"
+        string Phone
+        bool IsActive
+        datetime CreatedAt
+    }
+
+    Genre ||--o{ MovieGenre : "có"
+    Genre {
+        int Id PK
+        string Name
+    }
+
+    Movie ||--o{ MovieGenre : "thuộc"
+    Movie ||--o{ Showtime : "có"
+    Movie {
+        int Id PK
+        string Title
+        string Director
+        string Actors
+        int Duration "phút"
+        string AgeRating "P, C13, C16, C18"
+        string Description
+        byte[] Poster "ảnh poster"
+        string TrailerUrl
+        bool IsActive
+        datetime ReleaseDate
+        datetime CreatedAt
+    }
+
+    MovieGenre {
+        int MovieId FK
+        int GenreId FK
+    }
+
+    Room ||--o{ Seat : "có"
+    Room ||--o{ Showtime : "thuộc"
+    Room {
+        int Id PK
+        string Name "Phòng 1, Phòng 2..."
+        string Type "2D, 3D, IMAX"
+        int TotalSeats
+        int Rows
+        int Columns
+        bool IsActive
+    }
+
+    Seat {
+        int Id PK
+        int RoomId FK
+        string RowLabel "A, B, C..."
+        int SeatNumber "1, 2, 3..."
+        string Type "Standard, VIP, Couple"
+        decimal PriceMultiplier "1.0, 1.5, 2.0"
+    }
+
+    Showtime ||--o{ Ticket : "có"
+    Showtime {
+        int Id PK
+        int MovieId FK
+        int RoomId FK
+        datetime StartTime
+        datetime EndTime "auto = StartTime + Duration + 15 phút dọn rạp"
+        decimal BasePrice
+        bool IsActive
+    }
+
+    Invoice ||--o{ Ticket : "chứa"
+    Invoice ||--o{ InvoiceSnack : "chứa"
+    Invoice {
+        int Id PK
+        int UserId FK "nhân viên bán"
+        string CustomerName "nullable"
+        string CustomerPhone "nullable"
+        decimal TotalAmount
+        decimal ReceivedAmount
+        decimal ChangeAmount
+        datetime CreatedAt
+    }
+
+    Ticket {
+        int Id PK
+        int ShowtimeId FK
+        int SeatId FK
+        int InvoiceId FK
+        decimal Price "BasePrice x PriceMultiplier"
+    }
+
+    Snack ||--o{ InvoiceSnack : "có"
+    Snack {
+        int Id PK
+        string Name "Bắp rang, Coca..."
+        decimal Price
+        string Category "Food, Drink, Combo"
+        bool IsActive
+    }
+
+    InvoiceSnack {
+        int Id PK
+        int InvoiceId FK
+        int SnackId FK
+        int Quantity
+        decimal UnitPrice
+    }
+```
+
+---
+
+## 3. Cấu Trúc Thư Mục Dự Án
+
+```
+BaiTapLon/
+├── .gitignore                              ✅
+├── BaiTapLon.slnx                          ✅
+└── BaiTapLon/
+    ├── BaiTapLon.csproj                    ✅
+    ├── Program.cs                          ✅ (auto-migrate + seed users)
+    ├── appsettings.json                    ✅ (connection string LocalDB)
+    │
+    ├── Data/
+    │   ├── AppDbContext.cs                 ✅ (full config + seed data)
+    │   ├── AppDbContextFactory.cs          ✅ (design-time factory)
+    │   └── Migrations/                     ✅ (InitialCreate)
+    │
+    ├── Models/                             ✅ (10 entity classes)
+    │   ├── User.cs, Movie.cs, Genre.cs, MovieGenre.cs
+    │   ├── Room.cs, Seat.cs, Showtime.cs
+    │   ├── Invoice.cs, Ticket.cs
+    │   └── Snack.cs, InvoiceSnack.cs
+    │
+    ├── Services/
+    │   ├── AuthService.cs                  ✅
+    │   ├── MovieService.cs                 🔲 Phase 2
+    │   ├── RoomService.cs                  🔲 Phase 2
+    │   ├── ShowtimeService.cs              🔲 Phase 2
+    │   ├── TicketService.cs                🔲 Phase 3
+    │   ├── InvoiceService.cs               🔲 Phase 3
+    │   ├── SnackService.cs                 🔲 Phase 5
+    │   └── ReportService.cs                🔲 Phase 4
+    │
+    ├── Forms/
+    │   ├── FrmLogin.cs                     ✅ (dark theme, borderless)
+    │   ├── FrmMain.cs                      ✅ (sidebar + header + content)
+    │   ├── Admin/
+    │   │   ├── UcMovieManagement.cs        🔲 Phase 2
+    │   │   ├── UcRoomManagement.cs         🔲 Phase 2
+    │   │   ├── UcShowtimeManagement.cs     🔲 Phase 2
+    │   │   ├── UcStaffManagement.cs        🔲 Phase 2
+    │   │   └── UcDashboard.cs              🔲 Phase 4
+    │   ├── Staff/
+    │   │   ├── UcNowShowing.cs             🔲 Phase 3
+    │   │   ├── UcSeatSelection.cs          🔲 Phase 3
+    │   │   └── UcCheckout.cs               🔲 Phase 3
+    │   └── Controls/
+    │       └── SeatMapControl.cs           🔲 Phase 3 (Custom GDI+)
+    │
+    ├── Helpers/
+    │   ├── AppConfig.cs                    ✅
+    │   ├── SessionManager.cs               ✅
+    │   └── PrintHelper.cs                  🔲 Phase 4
+    │
+    └── Resources/                          🔲 Phase 6
+```
+
+---
+
+## 4. Chi Tiết Chức Năng Theo Role
+
+### 4.1 Màn hình Đăng nhập (`FrmLogin`) ✅
+
+- Dark theme với `FormBorderStyle.None`, custom close button, draggable
+- Nhập Username + Password → xác thực bằng BCrypt (async)
+- Phân quyền: chuyển đến giao diện Admin hoặc Staff
+- Hiển thị thông báo lỗi khi sai tài khoản
+- Hint mặc định: admin/admin123, staff/staff123
+
+### 4.2 Màn hình chính (`FrmMain`) ✅
+
+- Layout: Custom title bar + Sidebar (250px) + Header (55px) + Content panel
+- Sidebar: logo, role label, menu theo quyền, nút đăng xuất ở cuối
+- Menu highlight khi active (màu tím), hover effect
+- Window controls: minimize, maximize, close
+- Content panel swap UserControl (placeholder cho Phase 2+)
+
+### 4.3 Admin — Quản lý Phim (`UcMovieManagement`) 🔲
+
+| Thao tác | Mô tả |
+|---|---|
+| Xem danh sách | DataGridView + tìm kiếm + lọc thể loại |
+| Thêm phim | Dialog: tên, đạo diễn, diễn viên, thời lượng, thể loại (CheckedListBox), poster |
+| Sửa phim | Load dữ liệu vào dialog |
+| Xóa phim | Soft-delete (`IsActive = false`) |
+
+### 4.4 Admin — Quản lý Phòng chiếu (`UcRoomManagement`) 🔲
+
+| Thao tác | Mô tả |
+|---|---|
+| Xem danh sách | Tên, loại, số ghế, trạng thái |
+| Thêm/Sửa phòng | Tên, loại (2D/3D/IMAX), hàng × cột |
+| Thiết lập ghế | Auto-generate + đánh dấu VIP/Couple |
+
+### 4.5 Admin — Quản lý Lịch chiếu (`UcShowtimeManagement`) ⭐ 🔲
+
+> [!IMPORTANT]
+> **Logic chống trùng lịch** là tính năng quan trọng nhất:
+> ```csharp
+> bool isConflict = context.Showtimes.Any(s =>
+>     s.RoomId == roomId &&
+>     s.Id != currentId &&
+>     newStartTime < s.EndTime &&
+>     newEndTime > s.StartTime);
+> ```
+
+### 4.6 Admin — Quản lý Nhân viên (`UcStaffManagement`) 🔲
+
+- CRUD tài khoản, hash password bằng BCrypt
+- Reset mật khẩu, vô hiệu hóa tài khoản
+
+### 4.7 Admin — Thống kê (`UcDashboard`) 🔲
+
+- Doanh thu theo ngày/tháng (Column Chart)
+- Top 5 phim (Bar Chart)
+- Tỷ lệ lấp đầy (Pie Chart)
+- LiveCharts2 + xuất PDF bằng QuestPDF
+
+### 4.8 Staff — Luồng bán vé 🔲
+
+```mermaid
+flowchart LR
+    A["📋 Chọn phim\n& suất chiếu"] --> B["💺 Chọn ghế\n(SeatMapControl)"]
+    B --> C["💰 Thanh toán\n& In vé"]
+```
+
+---
+
+## 5. NuGet Packages ✅
+
+```powershell
+# Tất cả đã được cài đặt
+ReaLTaiizor                                  # UI (MIT, miễn phí)
+Microsoft.EntityFrameworkCore                 # ORM
+Microsoft.EntityFrameworkCore.SqlServer       # SQL Server provider
+Microsoft.EntityFrameworkCore.Tools           # CLI migrations
+Microsoft.EntityFrameworkCore.Design          # Design-time factory
+LiveChartsCore.SkiaSharpView.WinForms        # Biểu đồ
+QuestPDF                                      # Xuất PDF
+BCrypt.Net-Next                               # Hash password
+Microsoft.Extensions.Configuration            # Config
+Microsoft.Extensions.Configuration.Json       # appsettings.json
+```
+
+---
+
+## 6. Lộ Trình Phát Triển
+
+### Phase 1: Nền tảng ✅ HOÀN THÀNH (03/05/2026)
+
+- [x] Tạo project WinForms .NET 10
+- [x] Tạo `.gitignore`
+- [x] Cài đặt 10 NuGet packages
+- [x] Tạo 10 Models (User, Movie, Genre, MovieGenre, Room, Seat, Showtime, Invoice, Ticket, Snack, InvoiceSnack)
+- [x] Tạo `AppDbContext` (full config: relationships, precision, constraints, seed data)
+- [x] Tạo `AppDbContextFactory` (design-time factory cho EF CLI)
+- [x] Cấu hình `appsettings.json` (LocalDB connection string)
+- [x] Chạy `InitialCreate` migration + apply database
+- [x] Seed dữ liệu: 8 genres, 3 phòng chiếu, 240 ghế, 7 đồ ăn
+- [x] Seed users tại runtime (admin + staff, BCrypt hash)
+- [x] Tạo `AppConfig` helper (đọc connection string)
+- [x] Tạo `SessionManager` (quản lý phiên đăng nhập)
+- [x] Tạo `AuthService` (login async + create user)
+- [x] Tạo `FrmLogin` (dark theme, borderless, draggable, error handling)
+- [x] Tạo `FrmMain` (sidebar, header, content panel, role-based menu)
+- [x] Build + chạy thành công
+
+### Phase 2: Module Admin CRUD ⬅️ ĐANG LÀM
+
+**2.1 — MovieService + UcMovieManagement**
+- [ ] Tạo `MovieService.cs` (GetAll, GetById, Create, Update, SoftDelete, Search)
+- [ ] Tạo `UcMovieManagement.cs` (UserControl)
+  - [ ] DataGridView hiển thị danh sách phim
+  - [ ] Thanh tìm kiếm + ComboBox lọc thể loại
+  - [ ] Nút Thêm/Sửa/Xóa
+  - [ ] Dialog thêm/sửa phim (với CheckedListBox chọn thể loại)
+  - [ ] Upload + hiển thị poster (PictureBox)
+- [ ] Tích hợp vào `FrmMain.LoadModule("Movies")`
+
+**2.2 — RoomService + UcRoomManagement**
+- [ ] Tạo `RoomService.cs` (CRUD phòng + auto-generate ghế)
+- [ ] Tạo `UcRoomManagement.cs`
+  - [ ] DataGridView danh sách phòng
+  - [ ] Dialog thêm/sửa phòng (tên, loại, hàng×cột)
+  - [ ] Preview sơ đồ ghế khi tạo phòng
+  - [ ] Cho phép set VIP/Couple rows
+
+**2.3 — ShowtimeService + UcShowtimeManagement ⭐**
+- [ ] Tạo `ShowtimeService.cs`
+  - [ ] CRUD lịch chiếu
+  - [ ] **Logic chống trùng lịch** (overlap detection)
+  - [ ] Auto-calculate EndTime = StartTime + Duration + 15 phút
+  - [ ] Validation: không xóa lịch đã bán vé
+- [ ] Tạo `UcShowtimeManagement.cs`
+  - [ ] DataGridView + lọc theo ngày/phim/phòng
+  - [ ] Dialog thêm lịch chiếu (ComboBox phim, ComboBox phòng, DateTimePicker)
+  - [ ] Hiển thị cảnh báo nếu trùng lịch
+
+**2.4 — UcStaffManagement**
+- [ ] Tạo `UcStaffManagement.cs`
+  - [ ] DataGridView danh sách nhân viên
+  - [ ] Dialog thêm/sửa (tên, username, password, phone, role)
+  - [ ] Toggle active/inactive
+  - [ ] Reset mật khẩu
+
+### Phase 3: Module Bán Vé — Core
+
+**3.1 — UcNowShowing**
+- [ ] Hiển thị phim đang chiếu dạng Card (poster + tên + thời lượng)
+- [ ] Click phim → hiển thị suất chiếu trong ngày
+- [ ] Chọn suất → chuyển sang chọn ghế
+
+**3.2 — SeatMapControl (Custom GDI+)**
+- [ ] Tạo `SeatMapControl : Control`
+- [ ] Vẽ ghế bằng GDI+ (OnPaint)
+- [ ] Màu sắc: Trống/Đang chọn/Đã bán/VIP/Couple
+- [ ] Click chọn/bỏ chọn ghế
+- [ ] Hover tooltip (tên ghế + giá)
+- [ ] Event `SeatSelectionChanged`
+- [ ] Vẽ "Màn hình" ở trên cùng + legend
+
+**3.3 — UcSeatSelection + UcCheckout**
+- [ ] Tích hợp SeatMapControl
+- [ ] Hiển thị tổng tiền realtime
+- [ ] Thanh toán: nhập tiền khách, tính tiền thối
+- [ ] Lưu Invoice + Tickets vào DB
+- [ ] `InvoiceService.cs`
+
+### Phase 4: Thống Kê & Báo Cáo
+
+- [ ] `ReportService.cs` (queries tổng hợp)
+- [ ] `UcDashboard.cs` + LiveCharts2
+  - [ ] Doanh thu theo ngày/tháng (Column Chart)
+  - [ ] Top 5 phim ăn khách (Bar Chart)
+  - [ ] Tỷ lệ lấp đầy phòng (Pie Chart)
+- [ ] Xuất PDF bằng QuestPDF
+- [ ] `PrintHelper.cs`
+
+### Phase 5: Module Bắp Nước
+
+- [ ] `SnackService.cs` (CRUD đồ ăn)
+- [ ] `UcSnackManagement.cs` (Admin CRUD)
+- [ ] `UcSnackOrder.cs` (Staff chọn bắp nước)
+- [ ] Tích hợp vào luồng thanh toán (InvoiceSnack)
+
+### Phase 6: Hoàn Thiện & Polish
+
+- [ ] Test toàn bộ luồng: Admin CRUD → Staff bán vé → Thống kê
+- [ ] Fix bug, xử lý edge cases
+- [ ] Seed dữ liệu demo đẹp (phim thật, poster)
+- [ ] Tài liệu hướng dẫn sử dụng
+
+> **Tổng ước tính: ~19-25 ngày** (thong thả)
+
+---
+
+## 7. Quyết Định Đã Xác Nhận
+
+| # | Câu hỏi | Quyết định |
+|---|---|---|
+| 1 | Database | **SQL Server LocalDB** (đi kèm VS) |
+| 2 | UI Library | **ReaLTaiizor** (MIT) + Custom `Form` (borderless, GDI+) |
+| 3 | Bắp nước | Có, đưa vào **Phase 5** |
+| 4 | Xuất báo cáo | **PDF** trước (QuestPDF) |
+| 5 | Deadline | Thong thả |
+| 6 | .env | Không cần — dùng `appsettings.json` (LocalDB không password) |
+| 7 | Sơ đồ ghế | **Custom GDI+ Control** (hiệu suất cao, 1 control thay vì 200 Button) |
+
+---
+
+## 8. Ghi Chú Kỹ Thuật
+
+- **BCrypt trong seed data**: Không dùng `HasData()` vì hash thay đổi mỗi lần build → seed users tại runtime trong `Program.cs`
+- **EF Core Design**: Cần `AppDbContextFactory` + package `Microsoft.EntityFrameworkCore.Design` cho `dotnet ef` CLI
+- **FormBorderStyle.None**: Tự vẽ title bar, window buttons, và xử lý drag-to-move
+- **dotnet-ef tool**: Phải cài đúng version `10.0.7` khớp với EF Core packages
+
