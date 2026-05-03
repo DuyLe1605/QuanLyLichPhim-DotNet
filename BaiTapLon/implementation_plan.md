@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Dự án:** Bài Tập Lớn .NET — WinForms C# (.NET 10)
-> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026
+> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 2 hoàn thành)
 
 ---
 
@@ -186,9 +186,9 @@ BaiTapLon/
     │
     ├── Services/
     │   ├── AuthService.cs                  ✅
-    │   ├── MovieService.cs                 🔲 Phase 2
-    │   ├── RoomService.cs                  🔲 Phase 2
-    │   ├── ShowtimeService.cs              🔲 Phase 2
+    │   ├── MovieService.cs                 ✅ Phase 2
+    │   ├── RoomService.cs                  ✅ Phase 2
+    │   ├── ShowtimeService.cs              ✅ Phase 2
     │   ├── TicketService.cs                🔲 Phase 3
     │   ├── InvoiceService.cs               🔲 Phase 3
     │   ├── SnackService.cs                 🔲 Phase 5
@@ -196,12 +196,16 @@ BaiTapLon/
     │
     ├── Forms/
     │   ├── FrmLogin.cs                     ✅ (dark theme, borderless)
-    │   ├── FrmMain.cs                      ✅ (sidebar + header + content)
+    │   ├── FrmMain.cs                      ✅ (sidebar + header + content + LoadModule)
     │   ├── Admin/
-    │   │   ├── UcMovieManagement.cs        🔲 Phase 2
-    │   │   ├── UcRoomManagement.cs         🔲 Phase 2
-    │   │   ├── UcShowtimeManagement.cs     🔲 Phase 2
-    │   │   ├── UcStaffManagement.cs        🔲 Phase 2
+    │   │   ├── UcMovieManagement.cs        ✅ Phase 2 (DataGridView + search + genre filter)
+    │   │   ├── DlgMovieEdit.cs             ✅ Phase 2 (poster + CheckedListBox thể loại)
+    │   │   ├── UcRoomManagement.cs         ✅ Phase 2 (CRUD phòng)
+    │   │   ├── DlgRoomEdit.cs              ✅ Phase 2 (VIP/Couple config)
+    │   │   ├── UcShowtimeManagement.cs     ✅ Phase 2 (filter ngày/phim/phòng)
+    │   │   ├── DlgShowtimeEdit.cs          ✅ Phase 2 (chọn phim/phòng/giờ/giá)
+    │   │   ├── UcStaffManagement.cs        ✅ Phase 2 (CRUD + reset MK + khóa TK)
+    │   │   ├── DlgStaffEdit.cs             ✅ Phase 2 (thêm nhân viên)
     │   │   └── UcDashboard.cs              🔲 Phase 4
     │   ├── Staff/
     │   │   ├── UcNowShowing.cs             🔲 Phase 3
@@ -328,45 +332,44 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 - [x] Tạo `FrmMain` (sidebar, header, content panel, role-based menu)
 - [x] Build + chạy thành công
 
-### Phase 2: Module Admin CRUD ⬅️ ĐANG LÀM
+### Phase 2: Module Admin CRUD ✅ HOÀN THÀNH (03/05/2026)
 
-**2.1 — MovieService + UcMovieManagement**
-- [ ] Tạo `MovieService.cs` (GetAll, GetById, Create, Update, SoftDelete, Search)
-- [ ] Tạo `UcMovieManagement.cs` (UserControl)
-  - [ ] DataGridView hiển thị danh sách phim
-  - [ ] Thanh tìm kiếm + ComboBox lọc thể loại
-  - [ ] Nút Thêm/Sửa/Xóa
-  - [ ] Dialog thêm/sửa phim (với CheckedListBox chọn thể loại)
-  - [ ] Upload + hiển thị poster (PictureBox)
-- [ ] Tích hợp vào `FrmMain.LoadModule("Movies")`
+**2.1 — MovieService + UcMovieManagement** ✅
+- [x] Tạo `MovieService.cs` (GetAll, GetById, Create, Update, SoftDelete, Search, GetAllGenres)
+- [x] Tạo `UcMovieManagement.cs` (UserControl)
+  - [x] DataGridView hiển thị danh sách phim
+  - [x] Thanh tìm kiếm + ComboBox lọc thể loại
+  - [x] Nút Thêm/Sửa/Xóa + Refresh
+  - [x] `DlgMovieEdit.cs` — Dialog thêm/sửa phim (với CheckedListBox chọn thể loại)
+  - [x] Upload + hiển thị poster (PictureBox)
+- [x] Tích hợp vào `FrmMain.LoadModule("Movies")`
 
-**2.2 — RoomService + UcRoomManagement**
-- [ ] Tạo `RoomService.cs` (CRUD phòng + auto-generate ghế)
-- [ ] Tạo `UcRoomManagement.cs`
-  - [ ] DataGridView danh sách phòng
-  - [ ] Dialog thêm/sửa phòng (tên, loại, hàng×cột)
-  - [ ] Preview sơ đồ ghế khi tạo phòng
-  - [ ] Cho phép set VIP/Couple rows
+**2.2 — RoomService + UcRoomManagement** ✅
+- [x] Tạo `RoomService.cs` (CRUD phòng + auto-generate ghế + kiểm tra lịch chiếu khi xóa)
+- [x] Tạo `UcRoomManagement.cs`
+  - [x] DataGridView danh sách phòng
+  - [x] `DlgRoomEdit.cs` — Dialog thêm/sửa phòng (tên, loại, hàng×cột)
+  - [x] Cho phép set VIP/Couple rows (NumericUpDown VIP từ hàng + CheckBox Couple cuối)
 
-**2.3 — ShowtimeService + UcShowtimeManagement ⭐**
-- [ ] Tạo `ShowtimeService.cs`
-  - [ ] CRUD lịch chiếu
-  - [ ] **Logic chống trùng lịch** (overlap detection)
-  - [ ] Auto-calculate EndTime = StartTime + Duration + 15 phút
-  - [ ] Validation: không xóa lịch đã bán vé
-- [ ] Tạo `UcShowtimeManagement.cs`
-  - [ ] DataGridView + lọc theo ngày/phim/phòng
-  - [ ] Dialog thêm lịch chiếu (ComboBox phim, ComboBox phòng, DateTimePicker)
-  - [ ] Hiển thị cảnh báo nếu trùng lịch
+**2.3 — ShowtimeService + UcShowtimeManagement ⭐** ✅
+- [x] Tạo `ShowtimeService.cs`
+  - [x] CRUD lịch chiếu
+  - [x] **Logic chống trùng lịch** (overlap detection) — trả về showtime bị trùng
+  - [x] Auto-calculate EndTime = StartTime + Duration + 15 phút dọn rạp
+  - [x] Validation: không xóa lịch đã bán vé
+- [x] Tạo `UcShowtimeManagement.cs`
+  - [x] DataGridView + lọc theo ngày/phim/phòng (3 bộ lọc)
+  - [x] `DlgShowtimeEdit.cs` — Dialog thêm lịch chiếu (ComboBox phim, ComboBox phòng, DateTimePicker ngày + giờ, giá vé)
+  - [x] Hiển thị cảnh báo nếu trùng lịch (message box chi tiết)
 
-**2.4 — UcStaffManagement**
-- [ ] Tạo `UcStaffManagement.cs`
-  - [ ] DataGridView danh sách nhân viên
-  - [ ] Dialog thêm/sửa (tên, username, password, phone, role)
-  - [ ] Toggle active/inactive
-  - [ ] Reset mật khẩu
+**2.4 — UcStaffManagement** ✅
+- [x] Tạo `UcStaffManagement.cs`
+  - [x] DataGridView danh sách nhân viên
+  - [x] `DlgStaffEdit.cs` — Dialog thêm nhân viên (tên, username, password, phone, role)
+  - [x] Toggle active/inactive (không cho khóa bản thân)
+  - [x] Reset mật khẩu (tự động đặt thành {username}123)
 
-### Phase 3: Module Bán Vé — Core
+### Phase 3: Module Bán Vé — Core ⬅️ TIẾP THEO
 
 **3.1 — UcNowShowing**
 - [ ] Hiển thị phim đang chiếu dạng Card (poster + tên + thời lượng)

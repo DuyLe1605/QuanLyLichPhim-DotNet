@@ -258,15 +258,32 @@ public class FrmMain : Form
     {
         pnlContent.Controls.Clear();
 
-        var lbl = new Label
+        UserControl? uc = module switch
         {
-            Text = $"📌 {module}\n\nModule đang được phát triển...\n(Phase 2)",
-            Font = new Font("Segoe UI", 18),
-            ForeColor = Color.FromArgb(100, 100, 130),
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleCenter
+            "Movies" => new Admin.UcMovieManagement(),
+            "Rooms" => new Admin.UcRoomManagement(),
+            "Showtimes" => new Admin.UcShowtimeManagement(),
+            "Staff" => new Admin.UcStaffManagement(),
+            _ => null
         };
-        pnlContent.Controls.Add(lbl);
+
+        if (uc != null)
+        {
+            uc.Dock = DockStyle.Fill;
+            pnlContent.Controls.Add(uc);
+        }
+        else
+        {
+            var lbl = new Label
+            {
+                Text = $"📌 {module}\n\nĐang phát triển... (Phase 3+)",
+                Font = new Font("Segoe UI", 18),
+                ForeColor = Color.FromArgb(100, 100, 130),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            pnlContent.Controls.Add(lbl);
+        }
     }
 
     private void ShowWelcomeScreen()
