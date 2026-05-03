@@ -264,6 +264,7 @@ public class FrmMain : Form
             "Rooms" => new Admin.UcRoomManagement(),
             "Showtimes" => new Admin.UcShowtimeManagement(),
             "Staff" => new Admin.UcStaffManagement(),
+            "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
         };
 
@@ -276,7 +277,7 @@ public class FrmMain : Form
         {
             var lbl = new Label
             {
-                Text = $"📌 {module}\n\nĐang phát triển... (Phase 3+)",
+                Text = $"📌 {module}\n\nĐang phát triển...",
                 Font = new Font("Segoe UI", 18),
                 ForeColor = Color.FromArgb(100, 100, 130),
                 Dock = DockStyle.Fill,
@@ -284,6 +285,35 @@ public class FrmMain : Form
             };
             pnlContent.Controls.Add(lbl);
         }
+    }
+
+    /// <summary>
+    /// Tạo module bán vé với luồng: NowShowing → SeatSelection → Checkout → NowShowing.
+    /// </summary>
+    private Staff.UcNowShowing CreateNowShowingModule()
+    {
+        var ucNowShowing = new Staff.UcNowShowing();
+
+        ucNowShowing.ShowtimeSelected += async (showtime) =>
+        {
+            // Chuyển sang chọn ghế
+            pnlContent.Controls.Clear();
+
+            var ucSeatSelection = new Staff.UcSeatSelection();
+            ucSeatSelection.Dock = DockStyle.Fill;
+            pnlContent.Controls.Add(ucSeatSelection);
+
+            // Quay lại NowShowing
+            ucSeatSelection.BackRequested += () => LoadModule("NowShowing");
+
+            // Thanh toán xong → quay lại NowShowing
+            ucSeatSelection.CheckoutCompleted += () => LoadModule("NowShowing");
+
+            // Load dữ liệu suất chiếu
+            await ucSeatSelection.LoadShowtimeAsync(showtime);
+        };
+
+        return ucNowShowing;
     }
 
     private void ShowWelcomeScreen()

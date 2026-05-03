@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Dự án:** Bài Tập Lớn .NET — WinForms C# (.NET 10)
-> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 2 hoàn thành)
+> **Ngày tạo:** 03/05/2026 | **Cập nhật:** 03/05/2026 (Phase 3 hoàn thành)
 
 ---
 
@@ -189,14 +189,14 @@ BaiTapLon/
     │   ├── MovieService.cs                 ✅ Phase 2
     │   ├── RoomService.cs                  ✅ Phase 2
     │   ├── ShowtimeService.cs              ✅ Phase 2
-    │   ├── TicketService.cs                🔲 Phase 3
-    │   ├── InvoiceService.cs               🔲 Phase 3
+    │   ├── TicketService.cs                ✅ Phase 3
+    │   ├── InvoiceService.cs               ✅ Phase 3
     │   ├── SnackService.cs                 🔲 Phase 5
     │   └── ReportService.cs                🔲 Phase 4
     │
     ├── Forms/
     │   ├── FrmLogin.cs                     ✅ (dark theme, borderless)
-    │   ├── FrmMain.cs                      ✅ (sidebar + header + content + LoadModule)
+    │   ├── FrmMain.cs                      ✅ (sidebar + header + content + Staff flow)
     │   ├── Admin/
     │   │   ├── UcMovieManagement.cs        ✅ Phase 2 (DataGridView + search + genre filter)
     │   │   ├── DlgMovieEdit.cs             ✅ Phase 2 (poster + CheckedListBox thể loại)
@@ -208,11 +208,10 @@ BaiTapLon/
     │   │   ├── DlgStaffEdit.cs             ✅ Phase 2 (thêm nhân viên)
     │   │   └── UcDashboard.cs              🔲 Phase 4
     │   ├── Staff/
-    │   │   ├── UcNowShowing.cs             🔲 Phase 3
-    │   │   ├── UcSeatSelection.cs          🔲 Phase 3
-    │   │   └── UcCheckout.cs               🔲 Phase 3
+    │   │   ├── UcNowShowing.cs             ✅ Phase 3 (movie cards + suất chiếu)
+    │   │   └── UcSeatSelection.cs          ✅ Phase 3 (seat map + checkout)
     │   └── Controls/
-    │       └── SeatMapControl.cs           🔲 Phase 3 (Custom GDI+)
+    │       └── SeatMapControl.cs           ✅ Phase 3 (Custom GDI+ seat map)
     │
     ├── Helpers/
     │   ├── AppConfig.cs                    ✅
@@ -369,30 +368,43 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
   - [x] Toggle active/inactive (không cho khóa bản thân)
   - [x] Reset mật khẩu (tự động đặt thành {username}123)
 
-### Phase 3: Module Bán Vé — Core ⬅️ TIẾP THEO
+### Phase 3: Module Bán Vé — Core ✅ HOÀN THÀNH (03/05/2026)
 
-**3.1 — UcNowShowing**
-- [ ] Hiển thị phim đang chiếu dạng Card (poster + tên + thời lượng)
-- [ ] Click phim → hiển thị suất chiếu trong ngày
-- [ ] Chọn suất → chuyển sang chọn ghế
+**3.1 — TicketService + InvoiceService** ✅
+- [x] Tạo `TicketService.cs` (GetSoldSeatIds, CountSold)
+- [x] Tạo `InvoiceService.cs` (CreateAsync — transaction + double-check ghế đã bán)
 
-**3.2 — SeatMapControl (Custom GDI+)**
-- [ ] Tạo `SeatMapControl : Control`
-- [ ] Vẽ ghế bằng GDI+ (OnPaint)
-- [ ] Màu sắc: Trống/Đang chọn/Đã bán/VIP/Couple
-- [ ] Click chọn/bỏ chọn ghế
-- [ ] Hover tooltip (tên ghế + giá)
-- [ ] Event `SeatSelectionChanged`
-- [ ] Vẽ "Màn hình" ở trên cùng + legend
+**3.2 — UcNowShowing** ✅
+- [x] Hiển thị phim đang chiếu dạng Card (poster + tên + thời lượng + thể loại)
+- [x] Click phim → hiển thị suất chiếu trong ngày (panel phải)
+- [x] Suất chiếu button: giờ, phòng, ghế còn/tổng, giá
+- [x] Chọn suất → event `ShowtimeSelected` → chuyển sang chọn ghế
 
-**3.3 — UcSeatSelection + UcCheckout**
-- [ ] Tích hợp SeatMapControl
-- [ ] Hiển thị tổng tiền realtime
-- [ ] Thanh toán: nhập tiền khách, tính tiền thối
-- [ ] Lưu Invoice + Tickets vào DB
-- [ ] `InvoiceService.cs`
+**3.3 — SeatMapControl (Custom GDI+)** ✅
+- [x] Tạo `SeatMapControl : Control` — double buffered, anti-aliased
+- [x] Vẽ ghế bằng GDI+ (OnPaint) — rounded rectangles
+- [x] Màu sắc: Trống/Đang chọn/Đã bán/VIP/Couple (5 màu)
+- [x] Click chọn/bỏ chọn ghế
+- [x] Hover tooltip (tên ghế + loại + giá)
+- [x] Event `SeatSelectionChanged`
+- [x] Vẽ "MÀN HÌNH" gradient ở trên cùng + legend ở dưới
+- [x] Row labels (A, B, C...) bên trái, auto-center
 
-### Phase 4: Thống Kê & Báo Cáo
+**3.4 — UcSeatSelection (Seat Map + Checkout)** ✅
+- [x] Bên trái: SeatMapControl (scrollable, auto-center)
+- [x] Bên phải: thông tin phim/suất chiếu + ghế đã chọn + tổng tiền realtime
+- [x] Thông tin khách hàng (tên, SĐT — optional)
+- [x] Thanh toán: nhập tiền nhận, tính tiền thối
+- [x] Validation đầy đủ + dialog xác nhận chi tiết
+- [x] Lưu Invoice + Tickets vào DB (transaction)
+- [x] Nút Quay lại + event `BackRequested`
+- [x] Event `CheckoutCompleted` → quay lại NowShowing
+
+**3.5 — Tích hợp FrmMain** ✅
+- [x] `LoadModule("NowShowing")` và `LoadModule("SellTicket")` → UcNowShowing
+- [x] Luồng navigation: NowShowing → SeatSelection → Checkout → NowShowing
+
+### Phase 4: Thống Kê & Báo Cáo ⬅️ TIẾP THEO
 
 - [ ] `ReportService.cs` (queries tổng hợp)
 - [ ] `UcDashboard.cs` + LiveCharts2
