@@ -434,6 +434,30 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
   - [x] Doanh thu theo ngày (định dạng bảng + tổng cộng)
   - [x] Footer với số trang
 
+### Phase 4.5: UI/Layout & Admin Polish ✅ HOÀN THÀNH (03/05/2026)
+
+- [x] Tách layout dùng chung cho Admin theo mindset component giống React:
+  - [x] `Forms/Admin/Shared/AdminTheme.cs` — design tokens: màu, font, trạng thái nút/grid
+  - [x] `Forms/Admin/Shared/AdminControls.cs` — factory cho toolbar, button, input, combobox, date picker, DataGridView
+  - [x] `Forms/Admin/Shared/AdminLayouts.cs` — page layout title + toolbar + content fill
+- [x] Refactor các màn quản lý dùng shared layout:
+  - [x] `UcMovieManagement`
+  - [x] `UcRoomManagement`
+  - [x] `UcShowtimeManagement`
+  - [x] `UcStaffManagement`
+- [x] Fix lỗi layout chồng chéo bằng `TableLayoutPanel`, `FlowLayoutPanel`, `Dock=Fill`, toolbar có wrap.
+- [x] Thêm `Forms/Controls/SeatLayoutPreviewControl.cs` — preview sơ đồ ghế read-only kiểu rạp phim:
+  - [x] Vẽ màn hình, hàng ghế, nhãn hàng trái/phải, số ghế thực tế
+  - [x] Màu phân biệt ghế thường, VIP, ghế đôi
+  - [x] Preview live trong `DlgRoomEdit` khi cấu hình hàng ghế
+  - [x] Preview bên phải trong `UcRoomManagement` khi chọn phòng
+- [x] Hoàn thiện quản lý lịch chiếu:
+  - [x] Thêm nút Sửa lịch chiếu + double-click để sửa
+  - [x] `DlgShowtimeEdit` hỗ trợ cả thêm mới và sửa
+  - [x] Sau khi thêm/sửa lịch chiếu, tự chuyển filter sang ngày của lịch vừa lưu và reload danh sách
+  - [x] `ShowtimeService.GetByIdAsync()` để load lịch chiếu đang sửa
+- [x] Build kiểm tra thành công ra `C:\tmp\BaiTapLonBuild` vì app đang chạy khóa output `bin`.
+
 ### Phase 5: Module Bắp Nước ⬅️ TIẾP THEO
 
 - [ ] `SnackService.cs` (CRUD đồ ăn)

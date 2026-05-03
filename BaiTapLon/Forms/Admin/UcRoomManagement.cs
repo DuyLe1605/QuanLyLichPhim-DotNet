@@ -1,11 +1,14 @@
 using BaiTapLon.Models;
 using BaiTapLon.Services;
+using BaiTapLon.Forms.Controls;
 
 namespace BaiTapLon.Forms.Admin;
 
 public class UcRoomManagement : UserControl
 {
     private DataGridView dgvRooms = null!;
+    private SeatLayoutPreviewControl seatPreview = null!;
+    private List<Room> _rooms = new();
 
     public UcRoomManagement()
     {
@@ -15,40 +18,48 @@ public class UcRoomManagement : UserControl
 
     private void InitUI()
     {
-        this.Dock = DockStyle.Fill;
-        this.BackColor = Color.FromArgb(18, 18, 30);
-        this.Padding = new Padding(5);
+        AdminControls.ConfigurePage(this);
 
-        // === Top Panel ===
-        var pnlTop = new Panel { Dock = DockStyle.Top, Height = 100 };
-        this.Controls.Add(pnlTop);
+        dgvRooms = AdminControls.CreateGrid();
+        dgvRooms.SelectionChanged += (s, e) => UpdateSeatPreview();
 
-        pnlTop.Controls.Add(new Label
+        seatPreview = new SeatLayoutPreviewControl
         {
-            Text = "🏠  Quản Lý Phòng Chiếu",
-            Font = new Font("Segoe UI", 18, FontStyle.Bold),
-            ForeColor = Color.FromArgb(210, 210, 230),
-            Location = new Point(5, 5),
-            AutoSize = true
-        });
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty
+        };
+        seatPreview.ClearPreview();
 
-        // Buttons — row 2, below the title
-        int btnY = 55;
-        var btnAdd = Btn("➕ Thêm phòng", Color.FromArgb(60, 160, 60), new Point(5, btnY));
-        btnAdd.Click += BtnAdd_Click;
-        pnlTop.Controls.Add(btnAdd);
+        var previewHost = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = AdminTheme.PageBack,
+            Padding = new Padding(10, 0, 0, 0)
+        };
+        previewHost.Controls.Add(seatPreview);
 
-        var btnEdit = Btn("✏️ Sửa", Color.FromArgb(60, 120, 200), new Point(160, btnY));
-        btnEdit.Click += BtnEdit_Click;
-        pnlTop.Controls.Add(btnEdit);
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
+        content.Controls.Add(dgvRooms, 0, 0);
+        content.Controls.Add(previewHost, 1, 0);
 
-        var btnDel = Btn("🗑️ Xóa", Color.FromArgb(200, 60, 60), new Point(285, btnY));
-        btnDel.Click += BtnDel_Click;
-        pnlTop.Controls.Add(btnDel);
+        var toolbar = AdminControls.CreateToolbar(
+            AdminControls.CreateButton("➕ Thêm phòng", AdminTheme.ButtonSuccess, 145, BtnAdd_Click),
+            AdminControls.CreateButton("✏️ Sửa", AdminTheme.ButtonPrimary, 100, BtnEdit_Click),
+            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDel_Click)
+        );
 
-        // === DataGridView ===
-        dgvRooms = StyledGrid();
-        this.Controls.Add(dgvRooms);
+        Controls.Add(AdminLayouts.CreateManagementPage("🏠  Quản Lý Phòng Chiếu", toolbar, content));
     }
 
     private async Task LoadDataAsync()
@@ -56,23 +67,46 @@ public class UcRoomManagement : UserControl
         try
         {
             using var ctx = Program.CreateDbContext();
-            var rooms = await new RoomService(ctx).GetAllAsync();
-            dgvRooms.DataSource = rooms.Select(r => new
+            _rooms = await new RoomService(ctx).GetAllAsync();
+            dgvRooms.DataSource = _rooms.Select(r => new
             {
                 r.Id,
                 Tên = r.Name,
                 Loại = r.Type,
                 Hàng = r.Rows,
-                Cột = r.Columns,
+                CộtMax = r.Columns,
                 TổngGhế = r.TotalSeats,
                 TrạngThái = r.IsActive ? "Hoạt động" : "Ẩn"
             }).ToList();
             if (dgvRooms.Columns.Contains("Id")) dgvRooms.Columns["Id"].Visible = false;
+            UpdateSeatPreview();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
         }
+    }
+
+    private void UpdateSeatPreview()
+    {
+        if (seatPreview == null) return;
+
+        int? id = GetCurrentRoomId();
+        var room = id.HasValue ? _rooms.FirstOrDefault(r => r.Id == id.Value) : null;
+        if (room == null)
+        {
+            seatPreview.ClearPreview();
+            return;
+        }
+
+        seatPreview.SetSeats(room.Seats, $"{room.Name} - {room.TotalSeats} ghế");
+    }
+
+    private int? GetCurrentRoomId()
+    {
+        if (dgvRooms.CurrentRow == null) return null;
+        if (!dgvRooms.Columns.Contains("Id")) return null;
+        return dgvRooms.CurrentRow.Cells["Id"].Value is int id ? id : null;
     }
 
     private async void BtnAdd_Click(object? s, EventArgs e)
@@ -112,52 +146,4 @@ public class UcRoomManagement : UserControl
         if (ok) await LoadDataAsync();
     }
 
-    private static Button Btn(string t, Color c, Point loc)
-    {
-        var b = new Button
-        {
-            Text = t,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Size = new Size(140, 34),
-            Location = loc,
-            BackColor = c,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        b.FlatAppearance.BorderSize = 0;
-        return b;
-    }
-
-    private static DataGridView StyledGrid()
-    {
-        var d = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            BackgroundColor = Color.FromArgb(22, 22, 38),
-            GridColor = Color.FromArgb(40, 40, 60),
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false,
-            ReadOnly = true,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            RowHeadersVisible = false,
-            EnableHeadersVisualStyles = false,
-            Font = new Font("Segoe UI", 10)
-        };
-        d.RowTemplate.Height = 40;
-        d.DefaultCellStyle.BackColor = Color.FromArgb(22, 22, 38);
-        d.DefaultCellStyle.ForeColor = Color.FromArgb(200, 200, 220);
-        d.DefaultCellStyle.SelectionBackColor = Color.FromArgb(60, 50, 120);
-        d.DefaultCellStyle.SelectionForeColor = Color.White;
-        d.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(28, 28, 48);
-        d.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 160, 190);
-        d.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        d.ColumnHeadersHeight = 42;
-        d.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(26, 26, 42);
-        return d;
-    }
 }

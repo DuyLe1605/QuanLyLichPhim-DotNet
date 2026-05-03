@@ -15,40 +15,17 @@ public class UcStaffManagement : UserControl
 
     private void InitUI()
     {
-        this.Dock = DockStyle.Fill;
-        this.BackColor = Color.FromArgb(18, 18, 30);
-        this.Padding = new Padding(5);
+        AdminControls.ConfigurePage(this);
 
-        // === Top Panel ===
-        var pnlTop = new Panel { Dock = DockStyle.Top, Height = 100 };
-        this.Controls.Add(pnlTop);
+        dgv = AdminControls.CreateGrid();
 
-        pnlTop.Controls.Add(new Label
-        {
-            Text = "👥  Quản Lý Nhân Viên",
-            Font = new Font("Segoe UI", 18, FontStyle.Bold),
-            ForeColor = Color.FromArgb(210, 210, 230),
-            Location = new Point(5, 5),
-            AutoSize = true
-        });
+        var toolbar = AdminControls.CreateToolbar(
+            AdminControls.CreateButton("➕ Thêm NV", AdminTheme.ButtonSuccess, 130, BtnAdd_Click),
+            AdminControls.CreateButton("🔑 Reset MK", AdminTheme.ButtonWarning, 130, BtnReset_Click),
+            AdminControls.CreateButton("🔄 Khóa/Mở", AdminTheme.ButtonPrimary, 130, BtnToggle_Click)
+        );
 
-        // Buttons — row 2
-        int btnY = 55;
-        var btnAdd = Btn("➕ Thêm NV", Color.FromArgb(60, 160, 60), new Point(5, btnY));
-        btnAdd.Click += BtnAdd_Click;
-        pnlTop.Controls.Add(btnAdd);
-
-        var btnReset = Btn("🔑 Reset MK", Color.FromArgb(200, 150, 30), new Point(160, btnY));
-        btnReset.Click += BtnReset_Click;
-        pnlTop.Controls.Add(btnReset);
-
-        var btnToggle = Btn("🔄 Khóa/Mở", Color.FromArgb(60, 120, 200), new Point(315, btnY));
-        btnToggle.Click += BtnToggle_Click;
-        pnlTop.Controls.Add(btnToggle);
-
-        // === DataGridView ===
-        dgv = StyledGrid();
-        this.Controls.Add(dgv);
+        Controls.Add(AdminLayouts.CreateManagementPage("👥  Quản Lý Nhân Viên", toolbar, dgv));
     }
 
     private async Task LoadAsync()
@@ -124,55 +101,9 @@ public class UcStaffManagement : UserControl
         await LoadAsync();
     }
 
-    private static Button Btn(string t, Color c, Point loc)
-    {
-        var b = new Button
-        {
-            Text = t,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Size = new Size(145, 34),
-            Location = loc,
-            BackColor = c,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        b.FlatAppearance.BorderSize = 0;
-        return b;
-    }
-
-    private static DataGridView StyledGrid()
-    {
-        var d = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            BackgroundColor = Color.FromArgb(22, 22, 38),
-            GridColor = Color.FromArgb(40, 40, 60),
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false,
-            ReadOnly = true,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            RowHeadersVisible = false,
-            EnableHeadersVisualStyles = false,
-            Font = new Font("Segoe UI", 10)
-        };
-        d.RowTemplate.Height = 40;
-        d.DefaultCellStyle.BackColor = Color.FromArgb(22, 22, 38);
-        d.DefaultCellStyle.ForeColor = Color.FromArgb(200, 200, 220);
-        d.DefaultCellStyle.SelectionBackColor = Color.FromArgb(60, 50, 120);
-        d.DefaultCellStyle.SelectionForeColor = Color.White;
-        d.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(28, 28, 48);
-        d.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 160, 190);
-        d.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        d.ColumnHeadersHeight = 42;
-        d.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(26, 26, 42);
-        return d;
-    }
 }
+
+// ==================== DlgStaffEdit — TableLayoutPanel ====================
 
 public class DlgStaffEdit : Form
 {
@@ -187,46 +118,75 @@ public class DlgStaffEdit : Form
     public DlgStaffEdit()
     {
         this.Text = "Thêm nhân viên";
-        this.ClientSize = new Size(420, 320);
+        this.ClientSize = new Size(440, 340);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
         this.MinimizeBox = false;
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
+        this.Padding = new Padding(15);
 
-        int x1 = 20, x2 = 170, y = 25;
+        // === TableLayoutPanel (CSS Grid style) ===
+        var tbl = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 6,
+            BackColor = Color.Transparent
+        };
+        tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+        tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
+        for (int i = 0; i < 6; i++)
+            tbl.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
-        Lbl("Họ tên *", x1, y); txtName = Txt(x2, y); y += 45;
-        Lbl("Tên đăng nhập *", x1, y); txtUser = Txt(x2, y); y += 45;
-        Lbl("Mật khẩu *", x1, y); txtPw = Txt(x2, y); y += 45;
-        Lbl("Số điện thoại", x1, y); txtPhone = Txt(x2, y); y += 45;
-        Lbl("Vai trò", x1, y);
+        int row = 0;
+        AddFormRow(tbl, "Họ tên *", row++, out txtName);
+        AddFormRow(tbl, "Tên đăng nhập *", row++, out txtUser);
+        AddFormRow(tbl, "Mật khẩu *", row++, out txtPw);
+        AddFormRow(tbl, "Số điện thoại", row++, out txtPhone);
 
+        // Vai trò
+        tbl.Controls.Add(MakeLabel("Vai trò"), 0, row);
         cboRole = new ComboBox
         {
             Font = new Font("Segoe UI", 11),
-            Size = new Size(130, 30),
-            Location = new Point(x2, y),
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            DropDownStyle = ComboBoxStyle.DropDownList
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Margin = new Padding(0, 6, 0, 6)
         };
         cboRole.Items.AddRange(new[] { "Staff", "Admin" });
         cboRole.SelectedIndex = 0;
-        this.Controls.Add(cboRole);
+        tbl.Controls.Add(cboRole, 1, row);
+        row++;
 
+        // Buttons
+        var flpBtns = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            BackColor = Color.Transparent
+        };
+        var btnCancel = new Button
+        {
+            Text = "Hủy", Font = new Font("Segoe UI", 10),
+            Size = new Size(90, 36),
+            BackColor = Color.FromArgb(50, 50, 75), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat, DialogResult = DialogResult.Cancel,
+            Margin = new Padding(0, 4, 0, 0)
+        };
+        btnCancel.FlatAppearance.BorderSize = 0;
         var btnOk = new Button
         {
-            Text = "Tạo",
-            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            Text = "✅ Tạo", Font = new Font("Segoe UI", 11, FontStyle.Bold),
             Size = new Size(100, 36),
-            Location = new Point(170, 275),
-            BackColor = Color.FromArgb(80, 160, 80),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            DialogResult = DialogResult.OK
+            BackColor = Color.FromArgb(80, 160, 80), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat, DialogResult = DialogResult.OK,
+            Margin = new Padding(0, 4, 8, 0)
         };
         btnOk.FlatAppearance.BorderSize = 0;
         btnOk.Click += (s, e) =>
@@ -237,50 +197,37 @@ public class DlgStaffEdit : Form
                 this.DialogResult = DialogResult.None;
             }
         };
-        this.Controls.Add(btnOk);
+        flpBtns.Controls.Add(btnCancel);
+        flpBtns.Controls.Add(btnOk);
+        tbl.Controls.Add(flpBtns, 0, row);
+        tbl.SetColumnSpan(flpBtns, 2);
 
-        var btnC = new Button
-        {
-            Text = "Hủy",
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(80, 36),
-            Location = new Point(280, 275),
-            BackColor = Color.FromArgb(50, 50, 75),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            DialogResult = DialogResult.Cancel
-        };
-        btnC.FlatAppearance.BorderSize = 0;
-        this.Controls.Add(btnC);
-
+        this.Controls.Add(tbl);
         this.AcceptButton = btnOk;
-        this.CancelButton = btnC;
+        this.CancelButton = btnCancel;
     }
 
-    private void Lbl(string t, int x, int y)
+    private void AddFormRow(TableLayoutPanel tbl, string label, int row, out TextBox txt)
     {
-        this.Controls.Add(new Label
-        {
-            Text = t,
-            Font = new Font("Segoe UI", 10),
-            ForeColor = Color.FromArgb(160, 160, 185),
-            Location = new Point(x, y + 4),
-            AutoSize = true
-        });
-    }
-
-    private TextBox Txt(int x, int y)
-    {
-        var t = new TextBox
+        tbl.Controls.Add(MakeLabel(label), 0, row);
+        txt = new TextBox
         {
             Font = new Font("Segoe UI", 11),
-            Size = new Size(220, 30),
-            Location = new Point(x, y),
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(0, 6, 0, 6)
         };
-        this.Controls.Add(t);
-        return t;
+        tbl.Controls.Add(txt, 1, row);
     }
+
+    private static Label MakeLabel(string text) => new()
+    {
+        Text = text,
+        Font = new Font("Segoe UI", 10),
+        ForeColor = Color.FromArgb(160, 160, 185),
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleLeft
+    };
 }

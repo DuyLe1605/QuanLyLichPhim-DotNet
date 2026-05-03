@@ -37,7 +37,7 @@ public class DlgMovieEdit : Form
     private void InitializeComponent()
     {
         this.Text = _editMovie == null ? "Thêm phim mới" : "Sửa thông tin phim";
-        this.ClientSize = new Size(750, 590);
+        this.ClientSize = new Size(760, 620);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
@@ -45,144 +45,204 @@ public class DlgMovieEdit : Form
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
 
-        // ==== CỘT TRÁI: các field nhập liệu ====
-        int x1 = 20, x2 = 170, wField = 280, y = 20;
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent,
+            Padding = new Padding(18),
+            Margin = Padding.Empty
+        };
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58F));
+        this.Controls.Add(root);
 
-        AddLabel("Mã phim *", x1, y);
-        txtCode = AddTextBox(x2, y, 120);
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62F));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38F));
+        root.Controls.Add(content, 0, 0);
+
+        var formGrid = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 9,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 18, 0),
+            Padding = Padding.Empty
+        };
+        formGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+        formGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66F));
+        for (int i = 0; i < 8; i++)
+            formGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
+        formGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        content.Controls.Add(formGrid, 0, 0);
+
+        txtCode = MakeTextBox();
         txtCode.CharacterCasing = CharacterCasing.Upper;
-        y += 38;
+        txtCode.MaximumSize = new Size(160, 0);
+        AddFormRow(formGrid, "Mã phim *", txtCode, 0);
 
-        AddLabel("Tên phim *", x1, y);
-        txtTitle = AddTextBox(x2, y, wField); y += 38;
+        txtTitle = MakeTextBox();
+        AddFormRow(formGrid, "Tên phim *", txtTitle, 1);
 
-        AddLabel("Đạo diễn", x1, y);
-        txtDirector = AddTextBox(x2, y, wField); y += 38;
+        txtDirector = MakeTextBox();
+        AddFormRow(formGrid, "Đạo diễn", txtDirector, 2);
 
-        AddLabel("Diễn viên", x1, y);
-        txtActors = AddTextBox(x2, y, wField); y += 38;
+        txtActors = MakeTextBox();
+        AddFormRow(formGrid, "Diễn viên", txtActors, 3);
 
-        AddLabel("Thời lượng (phút) *", x1, y);
         nudDuration = new NumericUpDown
         {
-            Font = new Font("Segoe UI", 10), Size = new Size(100, 28),
-            Location = new Point(x2, y),
-            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
-            Minimum = 1, Maximum = 500, Value = 120, BorderStyle = BorderStyle.FixedSingle
+            Font = new Font("Segoe UI", 10),
+            Dock = DockStyle.Left,
+            Width = 120,
+            BackColor = Color.FromArgb(35, 35, 55),
+            ForeColor = Color.White,
+            Minimum = 1,
+            Maximum = 500,
+            Value = 120,
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(0, 6, 0, 6)
         };
-        this.Controls.Add(nudDuration); y += 38;
+        AddFormRow(formGrid, "Thời lượng (phút) *", nudDuration, 4);
 
-        AddLabel("Độ tuổi", x1, y);
         cboAgeRating = new ComboBox
         {
-            Font = new Font("Segoe UI", 10), Size = new Size(100, 28),
-            Location = new Point(x2, y),
-            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat, DropDownStyle = ComboBoxStyle.DropDownList
+            Font = new Font("Segoe UI", 10),
+            Dock = DockStyle.Left,
+            Width = 120,
+            BackColor = Color.FromArgb(35, 35, 55),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Margin = new Padding(0, 6, 0, 6)
         };
         cboAgeRating.Items.AddRange(new[] { "P", "C13", "C16", "C18" });
         cboAgeRating.SelectedIndex = 0;
-        this.Controls.Add(cboAgeRating); y += 38;
+        AddFormRow(formGrid, "Độ tuổi", cboAgeRating, 5);
 
-        AddLabel("Ngày khởi chiếu", x1, y);
         dtpRelease = new DateTimePicker
         {
-            Font = new Font("Segoe UI", 10), Size = new Size(160, 28),
-            Location = new Point(x2, y),
-            Format = DateTimePickerFormat.Short, CalendarForeColor = Color.Black
-        };
-        this.Controls.Add(dtpRelease); y += 38;
-
-        AddLabel("Link trailer", x1, y);
-        txtTrailer = AddTextBox(x2, y, wField); y += 38;
-
-        // Mô tả
-        AddLabel("Mô tả", x1, y);
-        txtDescription = new TextBox
-        {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(wField, 80),
-            Location = new Point(x2, y),
-            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle,
-            Multiline = true, ScrollBars = ScrollBars.Vertical
+            Dock = DockStyle.Fill,
+            Format = DateTimePickerFormat.Short,
+            CalendarForeColor = Color.Black,
+            Margin = new Padding(0, 6, 0, 6)
         };
-        this.Controls.Add(txtDescription);
+        AddFormRow(formGrid, "Ngày khởi chiếu", dtpRelease, 6);
 
-        // ==== CỘT PHẢI: poster + thể loại ====
-        int rx = 475;
+        txtTrailer = MakeTextBox();
+        AddFormRow(formGrid, "Link trailer", txtTrailer, 7);
+
+        txtDescription = MakeTextBox();
+        txtDescription.Multiline = true;
+        txtDescription.ScrollBars = ScrollBars.Vertical;
+        AddFormRow(formGrid, "Mô tả", txtDescription, 8);
+
+        var sidePanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        sidePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 235F));
+        sidePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+        sidePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
+        sidePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        content.Controls.Add(sidePanel, 1, 0);
 
         picPoster = new PictureBox
         {
-            Size = new Size(245, 195),
-            Location = new Point(rx, 20),
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(35, 35, 55),
             SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(0, 0, 0, 8)
         };
-        this.Controls.Add(picPoster);
+        sidePanel.Controls.Add(picPoster, 0, 0);
 
         var btnChoose = new Button
         {
-            Text = "📷 Chọn ảnh poster",
+            Text = "Chọn ảnh poster",
             Font = new Font("Segoe UI", 9),
-            Size = new Size(245, 28),
-            Location = new Point(rx, 220),
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(50, 50, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
+            Cursor = Cursors.Hand,
+            Margin = new Padding(0, 0, 0, 8)
         };
         btnChoose.FlatAppearance.BorderSize = 0;
         btnChoose.Click += BtnChoosePoster_Click;
-        this.Controls.Add(btnChoose);
+        sidePanel.Controls.Add(btnChoose, 0, 1);
 
-        // Thể loại
-        AddLabel("Thể loại:", rx, 258);
+        sidePanel.Controls.Add(MakeLabel("Thể loại"), 0, 2);
         clbGenres = new CheckedListBox
         {
             Font = new Font("Segoe UI", 9.5f),
-            Size = new Size(245, 195),
-            Location = new Point(rx, 280),
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.FromArgb(200, 200, 220),
             BorderStyle = BorderStyle.FixedSingle,
-            CheckOnClick = true
+            CheckOnClick = true,
+            Margin = Padding.Empty
         };
         foreach (var g in _genres) clbGenres.Items.Add(g.Name);
-        this.Controls.Add(clbGenres);
+        sidePanel.Controls.Add(clbGenres, 0, 3);
 
-        // ==== BUTTONS ====
+        var buttonBar = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, 10, 0, 0)
+        };
+        root.Controls.Add(buttonBar, 0, 1);
+
         var btnSave = new Button
         {
             Text = _editMovie == null ? "✅ Thêm phim" : "💾 Lưu",
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
             Size = new Size(140, 40),
-            Location = new Point(460, 540),
             BackColor = Color.FromArgb(80, 160, 80),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
-            DialogResult = DialogResult.OK
+            DialogResult = DialogResult.OK,
+            Margin = new Padding(8, 0, 0, 0)
         };
         btnSave.FlatAppearance.BorderSize = 0;
         btnSave.Click += BtnSave_Click;
-        this.Controls.Add(btnSave);
 
         var btnCancel = new Button
         {
             Text = "Hủy",
             Font = new Font("Segoe UI", 10),
             Size = new Size(100, 40),
-            Location = new Point(610, 540),
             BackColor = Color.FromArgb(50, 50, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
-            DialogResult = DialogResult.Cancel
+            DialogResult = DialogResult.Cancel,
+            Margin = Padding.Empty
         };
         btnCancel.FlatAppearance.BorderSize = 0;
-        this.Controls.Add(btnCancel);
+        buttonBar.Controls.Add(btnCancel);
+        buttonBar.Controls.Add(btnSave);
 
         this.AcceptButton = btnSave;
         this.CancelButton = btnCancel;
@@ -270,30 +330,29 @@ public class DlgMovieEdit : Form
         }
     }
 
-    private void AddLabel(string text, int x, int y)
+    private static void AddFormRow(TableLayoutPanel table, string label, Control editor, int row)
     {
-        this.Controls.Add(new Label
-        {
-            Text = text,
-            Font = new Font("Segoe UI", 10),
-            ForeColor = Color.FromArgb(160, 160, 185),
-            Location = new Point(x, y + 3),
-            AutoSize = true
-        });
+        table.Controls.Add(MakeLabel(label), 0, row);
+        table.Controls.Add(editor, 1, row);
     }
 
-    private TextBox AddTextBox(int x, int y, int width)
+    private static Label MakeLabel(string text) => new()
     {
-        var txt = new TextBox
-        {
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(width, 28),
-            Location = new Point(x, y),
-            BackColor = Color.FromArgb(35, 35, 55),
-            ForeColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-        this.Controls.Add(txt);
-        return txt;
-    }
+        Text = text,
+        Font = new Font("Segoe UI", 10),
+        ForeColor = Color.FromArgb(160, 160, 185),
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleLeft,
+        Margin = new Padding(0, 0, 10, 0)
+    };
+
+    private static TextBox MakeTextBox() => new()
+    {
+        Font = new Font("Segoe UI", 10),
+        Dock = DockStyle.Fill,
+        BackColor = Color.FromArgb(35, 35, 55),
+        ForeColor = Color.White,
+        BorderStyle = BorderStyle.FixedSingle,
+        Margin = new Padding(0, 6, 0, 6)
+    };
 }

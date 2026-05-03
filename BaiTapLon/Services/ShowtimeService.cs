@@ -31,6 +31,14 @@ public class ShowtimeService
         return await query.OrderBy(s => s.StartTime).ToListAsync();
     }
 
+    public async Task<Showtime?> GetByIdAsync(int id)
+    {
+        return await _context.Showtimes
+            .Include(s => s.Movie)
+            .Include(s => s.Room)
+            .FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
+    }
+
     public async Task<(bool Success, string Message)> CreateAsync(Showtime showtime)
     {
         // Lấy thời lượng phim

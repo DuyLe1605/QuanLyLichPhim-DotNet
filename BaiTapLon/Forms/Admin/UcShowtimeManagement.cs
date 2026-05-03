@@ -22,79 +22,33 @@ public class UcShowtimeManagement : UserControl
 
     private void InitUI()
     {
-        this.Dock = DockStyle.Fill;
-        this.BackColor = Color.FromArgb(18, 18, 30);
-        this.Padding = new Padding(5);
+        AdminControls.ConfigurePage(this);
 
-        var pnlTop = new Panel { Dock = DockStyle.Top, Height = 130 };
-        this.Controls.Add(pnlTop);
-
-        // Title
-        pnlTop.Controls.Add(new Label
-        {
-            Text = "📅  Quản Lý Lịch Chiếu",
-            Font = new Font("Segoe UI", 18, FontStyle.Bold),
-            ForeColor = Color.FromArgb(210, 210, 230),
-            Location = new Point(5, 5),
-            AutoSize = true
-        });
-
-        // === Row 2: Filters ===
-        int filterY = 50;
-
-        pnlTop.Controls.Add(new Label { Text = "Ngày:", Font = new Font("Segoe UI", 10), ForeColor = Color.FromArgb(150, 150, 180), Location = new Point(5, filterY + 4), AutoSize = true });
-        dtpDate = new DateTimePicker
-        {
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(140, 28),
-            Location = new Point(55, filterY),
-            Format = DateTimePickerFormat.Short
-        };
+        dtpDate = AdminControls.CreateDatePicker();
         dtpDate.ValueChanged += async (s, e) => { if (!_isLoading) await LoadDataAsync(); };
-        pnlTop.Controls.Add(dtpDate);
 
-        pnlTop.Controls.Add(new Label { Text = "Phim:", Font = new Font("Segoe UI", 10), ForeColor = Color.FromArgb(150, 150, 180), Location = new Point(210, filterY + 4), AutoSize = true });
-        cboMovie = new ComboBox
-        {
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(200, 28),
-            Location = new Point(260, filterY),
-            BackColor = Color.FromArgb(30, 30, 50),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
+        cboMovie = AdminControls.CreateComboBox(200);
         cboMovie.SelectedIndexChanged += async (s, e) => { if (!_isLoading) await LoadDataAsync(); };
-        pnlTop.Controls.Add(cboMovie);
 
-        pnlTop.Controls.Add(new Label { Text = "Phòng:", Font = new Font("Segoe UI", 10), ForeColor = Color.FromArgb(150, 150, 180), Location = new Point(480, filterY + 4), AutoSize = true });
-        cboRoom = new ComboBox
-        {
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(130, 28),
-            Location = new Point(535, filterY),
-            BackColor = Color.FromArgb(30, 30, 50),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
+        cboRoom = AdminControls.CreateComboBox(130);
         cboRoom.SelectedIndexChanged += async (s, e) => { if (!_isLoading) await LoadDataAsync(); };
-        pnlTop.Controls.Add(cboRoom);
 
-        // === Row 3: Buttons ===
-        int btnY = 90;
-        var btnAdd = Btn("➕ Thêm lịch", Color.FromArgb(60, 160, 60), new Point(5, btnY));
-        btnAdd.Size = new Size(145, 32);
-        btnAdd.Click += BtnAdd_Click;
-        pnlTop.Controls.Add(btnAdd);
+        dgv = AdminControls.CreateGrid();
+        dgv.DoubleClick += BtnEdit_Click;
 
-        var btnDel = Btn("🗑️ Xóa", Color.FromArgb(200, 60, 60), new Point(160, btnY));
-        btnDel.Click += BtnDel_Click;
-        pnlTop.Controls.Add(btnDel);
+        var toolbar = AdminControls.CreateToolbar(
+            AdminControls.CreateToolbarLabel("Ngày:", 48),
+            dtpDate,
+            AdminControls.CreateToolbarLabel("Phim:", 45),
+            cboMovie,
+            AdminControls.CreateToolbarLabel("Phòng:", 55),
+            cboRoom,
+            AdminControls.CreateButton("➕ Thêm lịch", AdminTheme.ButtonSuccess, 135, BtnAdd_Click),
+            AdminControls.CreateButton("✏️ Sửa", AdminTheme.ButtonPrimary, 100, BtnEdit_Click),
+            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDel_Click)
+        );
 
-        // === DataGridView ===
-        dgv = StyledGrid();
-        this.Controls.Add(dgv);
+        Controls.Add(AdminLayouts.CreateManagementPage("📅  Quản Lý Lịch Chiếu", toolbar, dgv));
     }
 
     private async Task LoadFiltersAndDataAsync()
@@ -158,66 +112,51 @@ public class UcShowtimeManagement : UserControl
         using var ctx = Program.CreateDbContext();
         var (ok, msg) = await new ShowtimeService(ctx).CreateAsync(dlg.ShowtimeData);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
-        if (ok) await LoadDataAsync();
+        if (ok)
+        {
+            dtpDate.Value = dlg.ShowtimeData.StartTime.Date;
+            await LoadDataAsync();
+        }
+    }
+
+    private async void BtnEdit_Click(object? s, EventArgs e)
+    {
+        int? id = GetCurrentShowtimeId();
+        if (!id.HasValue) return;
+
+        using var ctx = Program.CreateDbContext();
+        var service = new ShowtimeService(ctx);
+        var showtime = await service.GetByIdAsync(id.Value);
+        if (showtime == null) return;
+
+        using var dlg = new DlgShowtimeEdit(_movies, _rooms, showtime);
+        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+        var (ok, msg) = await service.UpdateAsync(dlg.ShowtimeData);
+        MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
+        if (ok)
+        {
+            dtpDate.Value = dlg.ShowtimeData.StartTime.Date;
+            await LoadDataAsync();
+        }
     }
 
     private async void BtnDel_Click(object? s, EventArgs e)
     {
-        if (dgv.CurrentRow == null) return;
-        int id = (int)dgv.CurrentRow.Cells["Id"].Value;
+        int? id = GetCurrentShowtimeId();
+        if (!id.HasValue) return;
         if (MessageBox.Show("Xóa lịch chiếu này?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         using var ctx = Program.CreateDbContext();
-        var (ok, msg) = await new ShowtimeService(ctx).DeleteAsync(id);
+        var (ok, msg) = await new ShowtimeService(ctx).DeleteAsync(id.Value);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
         if (ok) await LoadDataAsync();
     }
 
-    private static Button Btn(string t, Color c, Point loc)
+    private int? GetCurrentShowtimeId()
     {
-        var b = new Button
-        {
-            Text = t,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Size = new Size(120, 32),
-            Location = loc,
-            BackColor = c,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        b.FlatAppearance.BorderSize = 0;
-        return b;
+        if (dgv.CurrentRow == null) return null;
+        if (!dgv.Columns.Contains("Id")) return null;
+        return dgv.CurrentRow.Cells["Id"].Value is int id ? id : null;
     }
 
-    private static DataGridView StyledGrid()
-    {
-        var d = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            BackgroundColor = Color.FromArgb(22, 22, 38),
-            GridColor = Color.FromArgb(40, 40, 60),
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false,
-            ReadOnly = true,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            RowHeadersVisible = false,
-            EnableHeadersVisualStyles = false,
-            Font = new Font("Segoe UI", 10)
-        };
-        d.RowTemplate.Height = 40;
-        d.DefaultCellStyle.BackColor = Color.FromArgb(22, 22, 38);
-        d.DefaultCellStyle.ForeColor = Color.FromArgb(200, 200, 220);
-        d.DefaultCellStyle.SelectionBackColor = Color.FromArgb(60, 50, 120);
-        d.DefaultCellStyle.SelectionForeColor = Color.White;
-        d.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(28, 28, 48);
-        d.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 160, 190);
-        d.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        d.ColumnHeadersHeight = 42;
-        d.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(26, 26, 42);
-        return d;
-    }
 }

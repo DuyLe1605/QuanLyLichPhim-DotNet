@@ -1,4 +1,5 @@
 using BaiTapLon.Models;
+using BaiTapLon.Forms.Controls;
 
 namespace BaiTapLon.Forms.Admin;
 
@@ -22,6 +23,7 @@ public class DlgRoomEdit : Form
     private ComboBox cboType = null!;
     private DataGridView dgvRows = null!;
     private Label lblSummary = null!;
+    private SeatLayoutPreviewControl seatPreview = null!;
 
     public Room RoomData { get; private set; } = new();
     public List<RowConfig> RowConfigs { get; private set; } = new();
@@ -39,7 +41,7 @@ public class DlgRoomEdit : Form
     {
         bool isNew = _edit == null;
         this.Text = isNew ? "Thêm phòng chiếu" : "Sửa phòng";
-        this.ClientSize = new Size(620, 560);
+        this.ClientSize = new Size(980, 600);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
@@ -52,6 +54,7 @@ public class DlgRoomEdit : Form
         // === Room info ===
         Lbl("Tên phòng *", x1, y);
         txtName = Txt(x2, y, 200);
+        txtName.TextChanged += (s, e) => UpdateSeatPreview();
         y += 42;
 
         Lbl("Loại phòng", x1, y);
@@ -176,6 +179,23 @@ public class DlgRoomEdit : Form
         this.Controls.Add(dgvRows);
         y += 240;
 
+        this.Controls.Add(new Label
+        {
+            Text = "Preview sơ đồ ghế",
+            Font = new Font("Segoe UI", 12, FontStyle.Bold),
+            ForeColor = Color.FromArgb(100, 80, 255),
+            Location = new Point(620, 20),
+            AutoSize = true
+        });
+
+        seatPreview = new SeatLayoutPreviewControl
+        {
+            Location = new Point(620, 55),
+            Size = new Size(330, 480),
+            Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom
+        };
+        this.Controls.Add(seatPreview);
+
         // Summary
         lblSummary = new Label
         {
@@ -291,6 +311,24 @@ public class DlgRoomEdit : Form
                 totalSeats += seats;
         }
         lblSummary.Text = $"Tổng: {dgvRows.Rows.Count} hàng, {totalSeats} ghế";
+        UpdateSeatPreview();
+    }
+
+    private void UpdateSeatPreview()
+    {
+        if (seatPreview == null) return;
+
+        var rows = new List<SeatLayoutPreviewControl.SeatPreviewRow>();
+        for (int i = 0; i < dgvRows.Rows.Count; i++)
+        {
+            var row = dgvRows.Rows[i];
+            string label = row.Cells["colLabel"].Value?.ToString() ?? ((char)('A' + i)).ToString();
+            int.TryParse(row.Cells["colSeats"].Value?.ToString(), out int seats);
+            string type = row.Cells["colType"].Value?.ToString() ?? "Standard";
+            rows.Add(new SeatLayoutPreviewControl.SeatPreviewRow(label, Math.Max(0, seats), type));
+        }
+
+        seatPreview.SetRows(rows, $"Sơ đồ {txtName.Text.Trim()}");
     }
 
     private void BtnOk_Click(object? s, EventArgs e)

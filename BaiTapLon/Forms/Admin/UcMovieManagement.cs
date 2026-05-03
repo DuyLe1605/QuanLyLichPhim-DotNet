@@ -8,10 +8,9 @@ public class UcMovieManagement : UserControl
     private DataGridView dgvMovies = null!;
     private TextBox txtSearch = null!;
     private ComboBox cboGenre = null!;
-    private Label lblTitle = null!;
 
     private List<Genre> _genres = new();
-    private bool _isLoading = false; // Chống re-entrancy
+    private bool _isLoading = false;
 
     public UcMovieManagement()
     {
@@ -21,103 +20,30 @@ public class UcMovieManagement : UserControl
 
     private void InitializeComponent()
     {
-        this.Dock = DockStyle.Fill;
-        this.BackColor = Color.FromArgb(18, 18, 30);
-        this.Padding = new Padding(5);
+        AdminControls.ConfigurePage(this);
 
-        // === Top Panel ===
-        var pnlTop = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 100,
-            BackColor = Color.Transparent
-        };
-        this.Controls.Add(pnlTop);
-
-        // Title
-        lblTitle = new Label
-        {
-            Text = "🎬  Quản Lý Phim",
-            Font = new Font("Segoe UI", 18, FontStyle.Bold),
-            ForeColor = Color.FromArgb(210, 210, 230),
-            Location = new Point(5, 5),
-            AutoSize = true
-        };
-        pnlTop.Controls.Add(lblTitle);
-
-        // === Row 2: Search + Filter + Buttons ===
-        int row2Y = 50;
-
-        txtSearch = new TextBox
-        {
-            PlaceholderText = "🔍 Tìm kiếm theo tên phim, đạo diễn...",
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(280, 28),
-            Location = new Point(5, row2Y),
-            BackColor = Color.FromArgb(30, 30, 50),
-            ForeColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
-        };
+        txtSearch = AdminControls.CreateSearchBox("🔍 Tìm mã, tên phim, đạo diễn...");
         txtSearch.TextChanged += async (s, e) => await LoadDataAsync();
-        pnlTop.Controls.Add(txtSearch);
 
-        cboGenre = new ComboBox
-        {
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(160, 28),
-            Location = new Point(295, row2Y),
-            BackColor = Color.FromArgb(30, 30, 50),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
+        cboGenre = AdminControls.CreateComboBox();
         cboGenre.SelectedIndexChanged += async (s, e) =>
         {
             if (!_isLoading) await LoadDataAsync();
         };
-        pnlTop.Controls.Add(cboGenre);
 
-        // Buttons
-        var btnRefresh = MakeButton("🔄", Color.FromArgb(50, 50, 75), new Point(468, row2Y));
-        btnRefresh.Size = new Size(34, 34);
-        btnRefresh.Click += async (s, e) => await LoadDataAsync();
-        pnlTop.Controls.Add(btnRefresh);
-
-        var btnAdd = MakeButton("➕ Thêm", Color.FromArgb(60, 160, 60), new Point(515, row2Y));
-        btnAdd.Click += BtnAdd_Click;
-        pnlTop.Controls.Add(btnAdd);
-
-        var btnEdit = MakeButton("✏️ Sửa", Color.FromArgb(60, 120, 200), new Point(640, row2Y));
-        btnEdit.Click += BtnEdit_Click;
-        pnlTop.Controls.Add(btnEdit);
-
-        var btnDelete = MakeButton("🗑️ Xóa", Color.FromArgb(200, 60, 60), new Point(755, row2Y));
-        btnDelete.Click += BtnDelete_Click;
-        pnlTop.Controls.Add(btnDelete);
-
-        // === DataGridView ===
-        dgvMovies = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            BackgroundColor = Color.FromArgb(22, 22, 38),
-            GridColor = Color.FromArgb(40, 40, 60),
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false,
-            ReadOnly = true,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            RowHeadersVisible = false,
-            EnableHeadersVisualStyles = false,
-            RowTemplate = { Height = 40 },
-            Font = new Font("Segoe UI", 10)
-        };
-        StyleGrid(dgvMovies);
+        dgvMovies = AdminControls.CreateGrid();
         dgvMovies.DoubleClick += BtnEdit_Click;
-        this.Controls.Add(dgvMovies);
+
+        var toolbar = AdminControls.CreateToolbar(
+            txtSearch,
+            cboGenre,
+            AdminControls.CreateButton("🔄", AdminTheme.ButtonNeutral, 36, async (s, e) => await LoadDataAsync()),
+            AdminControls.CreateButton("➕ Thêm", AdminTheme.ButtonSuccess, 110, BtnAdd_Click),
+            AdminControls.CreateButton("✏️ Sửa", AdminTheme.ButtonPrimary, 100, BtnEdit_Click),
+            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDelete_Click)
+        );
+
+        Controls.Add(AdminLayouts.CreateManagementPage("🎬  Quản Lý Phim", toolbar, dgvMovies));
     }
 
     private async Task LoadDataAsync()
@@ -130,7 +56,6 @@ public class UcMovieManagement : UserControl
             using var context = Program.CreateDbContext();
             var service = new MovieService(context);
 
-            // Load genres cho filter (chỉ lần đầu)
             if (_genres.Count == 0)
             {
                 _genres = await service.GetAllGenresAsync();
@@ -224,37 +149,4 @@ public class UcMovieManagement : UserControl
         }
     }
 
-    private static Button MakeButton(string text, Color bg, Point loc)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Size = new Size(110, 34),
-            Location = loc,
-            BackColor = bg,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderSize = 0;
-        return btn;
-    }
-
-    private static void StyleGrid(DataGridView dgv)
-    {
-        dgv.DefaultCellStyle.BackColor = Color.FromArgb(22, 22, 38);
-        dgv.DefaultCellStyle.ForeColor = Color.FromArgb(200, 200, 220);
-        dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(60, 50, 120);
-        dgv.DefaultCellStyle.SelectionForeColor = Color.White;
-        dgv.DefaultCellStyle.Padding = new Padding(5, 0, 5, 0);
-
-        dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(28, 28, 48);
-        dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 160, 190);
-        dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        dgv.ColumnHeadersDefaultCellStyle.Padding = new Padding(5, 0, 5, 0);
-        dgv.ColumnHeadersHeight = 42;
-
-        dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(26, 26, 42);
-    }
 }
