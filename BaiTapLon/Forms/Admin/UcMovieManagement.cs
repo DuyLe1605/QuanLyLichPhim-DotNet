@@ -8,13 +8,10 @@ public class UcMovieManagement : UserControl
     private DataGridView dgvMovies = null!;
     private TextBox txtSearch = null!;
     private ComboBox cboGenre = null!;
-    private Button btnAdd = null!;
-    private Button btnEdit = null!;
-    private Button btnDelete = null!;
-    private Button btnRefresh = null!;
     private Label lblTitle = null!;
 
     private List<Genre> _genres = new();
+    private bool _isLoading = false; // Chống re-entrancy
 
     public UcMovieManagement()
     {
@@ -28,15 +25,16 @@ public class UcMovieManagement : UserControl
         this.BackColor = Color.FromArgb(18, 18, 30);
         this.Padding = new Padding(5);
 
-        // === Header ===
+        // === Top Panel ===
         var pnlTop = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 110,
+            Height = 100,
             BackColor = Color.Transparent
         };
         this.Controls.Add(pnlTop);
 
+        // Title
         lblTitle = new Label
         {
             Text = "🎬  Quản Lý Phim",
@@ -47,13 +45,15 @@ public class UcMovieManagement : UserControl
         };
         pnlTop.Controls.Add(lblTitle);
 
-        // Search + Filter row
+        // === Row 2: Search + Filter + Buttons ===
+        int row2Y = 50;
+
         txtSearch = new TextBox
         {
             PlaceholderText = "🔍 Tìm kiếm theo tên phim, đạo diễn...",
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(350, 30),
-            Location = new Point(5, 55),
+            Font = new Font("Segoe UI", 10),
+            Size = new Size(280, 28),
+            Location = new Point(5, row2Y),
             BackColor = Color.FromArgb(30, 30, 50),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle
@@ -63,34 +63,37 @@ public class UcMovieManagement : UserControl
 
         cboGenre = new ComboBox
         {
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(180, 30),
-            Location = new Point(370, 55),
+            Font = new Font("Segoe UI", 10),
+            Size = new Size(160, 28),
+            Location = new Point(295, row2Y),
             BackColor = Color.FromArgb(30, 30, 50),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        cboGenre.SelectedIndexChanged += async (s, e) => await LoadDataAsync();
+        cboGenre.SelectedIndexChanged += async (s, e) =>
+        {
+            if (!_isLoading) await LoadDataAsync();
+        };
         pnlTop.Controls.Add(cboGenre);
 
-        // Action buttons
-        btnAdd = MakeButton("➕ Thêm phim", Color.FromArgb(60, 160, 60), new Point(600, 52));
+        // Buttons
+        var btnRefresh = MakeButton("🔄", Color.FromArgb(50, 50, 75), new Point(468, row2Y));
+        btnRefresh.Size = new Size(34, 34);
+        btnRefresh.Click += async (s, e) => await LoadDataAsync();
+        pnlTop.Controls.Add(btnRefresh);
+
+        var btnAdd = MakeButton("➕ Thêm", Color.FromArgb(60, 160, 60), new Point(515, row2Y));
         btnAdd.Click += BtnAdd_Click;
         pnlTop.Controls.Add(btnAdd);
 
-        btnEdit = MakeButton("✏️ Sửa", Color.FromArgb(60, 120, 200), new Point(745, 52));
+        var btnEdit = MakeButton("✏️ Sửa", Color.FromArgb(60, 120, 200), new Point(640, row2Y));
         btnEdit.Click += BtnEdit_Click;
         pnlTop.Controls.Add(btnEdit);
 
-        btnDelete = MakeButton("🗑️ Xóa", Color.FromArgb(200, 60, 60), new Point(860, 52));
+        var btnDelete = MakeButton("🗑️ Xóa", Color.FromArgb(200, 60, 60), new Point(755, row2Y));
         btnDelete.Click += BtnDelete_Click;
         pnlTop.Controls.Add(btnDelete);
-
-        btnRefresh = MakeButton("🔄", Color.FromArgb(50, 50, 75), new Point(560, 52));
-        btnRefresh.Size = new Size(30, 34);
-        btnRefresh.Click += async (s, e) => await LoadDataAsync();
-        pnlTop.Controls.Add(btnRefresh);
 
         // === DataGridView ===
         dgvMovies = new DataGridView
@@ -119,12 +122,15 @@ public class UcMovieManagement : UserControl
 
     private async Task LoadDataAsync()
     {
+        if (_isLoading) return;
+        _isLoading = true;
+
         try
         {
             using var context = Program.CreateDbContext();
             var service = new MovieService(context);
 
-            // Load genres cho filter
+            // Load genres cho filter (chỉ lần đầu)
             if (_genres.Count == 0)
             {
                 _genres = await service.GetAllGenresAsync();
@@ -160,6 +166,10 @@ public class UcMovieManagement : UserControl
         catch (Exception ex)
         {
             MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 

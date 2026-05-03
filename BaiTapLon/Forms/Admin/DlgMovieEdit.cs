@@ -3,7 +3,7 @@ using BaiTapLon.Models;
 namespace BaiTapLon.Forms.Admin;
 
 /// <summary>
-/// Dialog thêm/sửa phim.
+/// Dialog thêm/sửa phim — layout 2 cột sạch sẽ, không chồng lấn.
 /// </summary>
 public class DlgMovieEdit : Form
 {
@@ -17,7 +17,6 @@ public class DlgMovieEdit : Form
     private DateTimePicker dtpRelease = null!;
     private CheckedListBox clbGenres = null!;
     private PictureBox picPoster = null!;
-    private Button btnChoosePoster = null!;
     private byte[]? _posterData;
 
     public Movie MovieData { get; private set; } = new();
@@ -37,7 +36,7 @@ public class DlgMovieEdit : Form
     private void InitializeComponent()
     {
         this.Text = _editMovie == null ? "Thêm phim mới" : "Sửa thông tin phim";
-        this.ClientSize = new Size(680, 600);
+        this.ClientSize = new Size(750, 560);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
@@ -45,126 +44,116 @@ public class DlgMovieEdit : Form
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
 
-        int x1 = 20, x2 = 200, w2 = 260, y = 20;
+        // ==== CỘT TRÁI: các field nhập liệu ====
+        int x1 = 20, x2 = 170, wField = 280, y = 20;
 
-        // Poster bên phải
-        picPoster = new PictureBox
-        {
-            Size = new Size(170, 240),
-            Location = new Point(490, 20),
-            BackColor = Color.FromArgb(35, 35, 55),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-        this.Controls.Add(picPoster);
-
-        btnChoosePoster = new Button
-        {
-            Text = "Chọn ảnh poster",
-            Font = new Font("Segoe UI", 9),
-            Size = new Size(170, 30),
-            Location = new Point(490, 265),
-            BackColor = Color.FromArgb(50, 50, 75),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        btnChoosePoster.FlatAppearance.BorderSize = 0;
-        btnChoosePoster.Click += BtnChoosePoster_Click;
-        this.Controls.Add(btnChoosePoster);
-
-        // Fields bên trái
         AddLabel("Tên phim *", x1, y);
-        txtTitle = AddTextBox(x2, y, w2); y += 42;
+        txtTitle = AddTextBox(x2, y, wField); y += 40;
 
         AddLabel("Đạo diễn", x1, y);
-        txtDirector = AddTextBox(x2, y, w2); y += 42;
+        txtDirector = AddTextBox(x2, y, wField); y += 40;
 
         AddLabel("Diễn viên", x1, y);
-        txtActors = AddTextBox(x2, y, w2); y += 42;
+        txtActors = AddTextBox(x2, y, wField); y += 40;
 
         AddLabel("Thời lượng (phút) *", x1, y);
         nudDuration = new NumericUpDown
         {
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(120, 30),
+            Font = new Font("Segoe UI", 10), Size = new Size(100, 28),
             Location = new Point(x2, y),
-            BackColor = Color.FromArgb(35, 35, 55),
-            ForeColor = Color.White,
-            Minimum = 1, Maximum = 500, Value = 120,
-            BorderStyle = BorderStyle.FixedSingle
+            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
+            Minimum = 1, Maximum = 500, Value = 120, BorderStyle = BorderStyle.FixedSingle
         };
-        this.Controls.Add(nudDuration);
-        y += 42;
+        this.Controls.Add(nudDuration); y += 40;
 
         AddLabel("Độ tuổi", x1, y);
         cboAgeRating = new ComboBox
         {
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(120, 30),
+            Font = new Font("Segoe UI", 10), Size = new Size(100, 28),
             Location = new Point(x2, y),
-            BackColor = Color.FromArgb(35, 35, 55),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            DropDownStyle = ComboBoxStyle.DropDownList
+            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat, DropDownStyle = ComboBoxStyle.DropDownList
         };
         cboAgeRating.Items.AddRange(new[] { "P", "C13", "C16", "C18" });
         cboAgeRating.SelectedIndex = 0;
-        this.Controls.Add(cboAgeRating);
-        y += 42;
+        this.Controls.Add(cboAgeRating); y += 40;
 
         AddLabel("Ngày khởi chiếu", x1, y);
         dtpRelease = new DateTimePicker
         {
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(w2, 30),
+            Font = new Font("Segoe UI", 10), Size = new Size(160, 28),
             Location = new Point(x2, y),
-            Format = DateTimePickerFormat.Short,
-            CalendarForeColor = Color.Black
+            Format = DateTimePickerFormat.Short, CalendarForeColor = Color.Black
         };
-        this.Controls.Add(dtpRelease);
-        y += 42;
+        this.Controls.Add(dtpRelease); y += 40;
 
         AddLabel("Link trailer", x1, y);
-        txtTrailer = AddTextBox(x2, y, w2); y += 42;
+        txtTrailer = AddTextBox(x2, y, wField); y += 40;
 
         // Mô tả (multiline)
         AddLabel("Mô tả", x1, y);
         txtDescription = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(440, 70),
+            Size = new Size(wField, 80),
             Location = new Point(x2, y),
-            BackColor = Color.FromArgb(35, 35, 55),
-            ForeColor = Color.White,
+            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
-            Multiline = true,
-            ScrollBars = ScrollBars.Vertical
+            Multiline = true, ScrollBars = ScrollBars.Vertical
         };
         this.Controls.Add(txtDescription);
 
-        // Thể loại bên phải dưới poster
-        AddLabel("Thể loại", 490, 310);
+        // ==== CỘT PHẢI: poster + thể loại ====
+        int rx = 475;
+
+        // Poster
+        picPoster = new PictureBox
+        {
+            Size = new Size(245, 200),
+            Location = new Point(rx, 20),
+            BackColor = Color.FromArgb(35, 35, 55),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        this.Controls.Add(picPoster);
+
+        var btnChoose = new Button
+        {
+            Text = "📷 Chọn ảnh poster",
+            Font = new Font("Segoe UI", 9),
+            Size = new Size(245, 30),
+            Location = new Point(rx, 225),
+            BackColor = Color.FromArgb(50, 50, 75),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand
+        };
+        btnChoose.FlatAppearance.BorderSize = 0;
+        btnChoose.Click += BtnChoosePoster_Click;
+        this.Controls.Add(btnChoose);
+
+        // Thể loại
+        AddLabel("Thể loại:", rx, 268);
         clbGenres = new CheckedListBox
         {
-            Font = new Font("Segoe UI", 10),
-            Size = new Size(170, 140),
-            Location = new Point(490, 335),
+            Font = new Font("Segoe UI", 9.5f),
+            Size = new Size(245, 190),
+            Location = new Point(rx, 290),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.FromArgb(200, 200, 220),
-            BorderStyle = BorderStyle.None,
+            BorderStyle = BorderStyle.FixedSingle,
             CheckOnClick = true
         };
         foreach (var g in _genres) clbGenres.Items.Add(g.Name);
         this.Controls.Add(clbGenres);
 
-        // Buttons
+        // ==== BUTTONS ====
         var btnSave = new Button
         {
-            Text = _editMovie == null ? "Thêm phim" : "Lưu",
+            Text = _editMovie == null ? "✅ Thêm phim" : "💾 Lưu",
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
             Size = new Size(140, 40),
-            Location = new Point(380, 548),
+            Location = new Point(460, 510),
             BackColor = Color.FromArgb(80, 160, 80),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -178,9 +167,9 @@ public class DlgMovieEdit : Form
         var btnCancel = new Button
         {
             Text = "Hủy",
-            Font = new Font("Segoe UI", 11),
+            Font = new Font("Segoe UI", 10),
             Size = new Size(100, 40),
-            Location = new Point(530, 548),
+            Location = new Point(610, 510),
             BackColor = Color.FromArgb(50, 50, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -215,7 +204,6 @@ public class DlgMovieEdit : Form
             _posterData = _editMovie.Poster;
         }
 
-        // Check thể loại
         foreach (var mg in _editMovie.MovieGenres)
         {
             int idx = _genres.FindIndex(g => g.Id == mg.GenreId);
@@ -269,26 +257,24 @@ public class DlgMovieEdit : Form
         }
     }
 
-    private Label AddLabel(string text, int x, int y)
+    private void AddLabel(string text, int x, int y)
     {
-        var lbl = new Label
+        this.Controls.Add(new Label
         {
             Text = text,
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(160, 160, 185),
-            Location = new Point(x, y + 4),
+            Location = new Point(x, y + 3),
             AutoSize = true
-        };
-        this.Controls.Add(lbl);
-        return lbl;
+        });
     }
 
     private TextBox AddTextBox(int x, int y, int width)
     {
         var txt = new TextBox
         {
-            Font = new Font("Segoe UI", 11),
-            Size = new Size(width, 30),
+            Font = new Font("Segoe UI", 10),
+            Size = new Size(width, 28),
             Location = new Point(x, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,

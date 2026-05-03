@@ -21,9 +21,6 @@ public class ReportService
 
     // ==================== QUERIES ====================
 
-    /// <summary>
-    /// Tổng quan dashboard.
-    /// </summary>
     public async Task<DashboardStats> GetStatsAsync()
     {
         int movies = await _context.Movies.CountAsync(m => m.IsActive);
@@ -38,66 +35,60 @@ public class ReportService
     }
 
     /// <summary>
-    /// Doanh thu theo ngày trong khoảng thời gian.
+    /// Doanh thu theo ngày — project trước, group trên client để tránh LINQ translation error.
     /// </summary>
     public async Task<List<RevenueByDate>> GetRevenueByDateAsync(DateTime from, DateTime to)
     {
-        return await _context.Invoices
+        var rawData = await _context.Invoices
             .Where(i => i.CreatedAt.Date >= from.Date && i.CreatedAt.Date <= to.Date)
-            .GroupBy(i => i.CreatedAt.Date)
-            .Select(g => new RevenueByDate(
-                g.Key,
-                g.Sum(i => i.TotalAmount),
-                g.Sum(i => i.Tickets.Count)))
-            .OrderBy(r => r.Date)
+            .Select(i => new { Date = i.CreatedAt.Date, i.TotalAmount, TicketCount = i.Tickets.Count })
             .ToListAsync();
+
+        return rawData
+            .GroupBy(x => x.Date)
+            .Select(g => new RevenueByDate(g.Key, g.Sum(x => x.TotalAmount), g.Sum(x => x.TicketCount)))
+            .OrderBy(r => r.Date)
+            .ToList();
     }
 
     /// <summary>
-    /// Doanh thu theo tháng trong một năm.
+    /// Doanh thu theo tháng — project trước, group trên client.
     /// </summary>
     public async Task<List<RevenueByMonth>> GetRevenueByMonthAsync(int year)
     {
-        return await _context.Invoices
+        var rawData = await _context.Invoices
             .Where(i => i.CreatedAt.Year == year)
-            .GroupBy(i => new { i.CreatedAt.Month, i.CreatedAt.Year })
-            .Select(g => new RevenueByMonth(
-                g.Key.Month, g.Key.Year,
-                g.Sum(i => i.TotalAmount),
-                g.Sum(i => i.Tickets.Count)))
-            .OrderBy(r => r.Month)
+            .Select(i => new { i.CreatedAt.Month, i.CreatedAt.Year, i.TotalAmount, TicketCount = i.Tickets.Count })
             .ToListAsync();
+
+        return rawData
+            .GroupBy(x => new { x.Month, x.Year })
+            .Select(g => new RevenueByMonth(g.Key.Month, g.Key.Year, g.Sum(x => x.TotalAmount), g.Sum(x => x.TicketCount)))
+            .OrderBy(r => r.Month)
+            .ToList();
     }
 
-    /// <summary>
-    /// Top N phim ăn khách nhất.
-    /// </summary>
     public async Task<List<TopMovie>> GetTopMoviesAsync(int topN = 5, DateTime? from = null, DateTime? to = null)
     {
-        var query = _context.Tickets
-            .Include(t => t.Showtime).ThenInclude(s => s.Movie)
-            .Include(t => t.Invoice)
-            .AsNoTracking();
+        var query = _context.Tickets.AsNoTracking().AsQueryable();
 
         if (from.HasValue)
             query = query.Where(t => t.Invoice.CreatedAt.Date >= from.Value.Date);
         if (to.HasValue)
             query = query.Where(t => t.Invoice.CreatedAt.Date <= to.Value.Date);
 
-        return await query
-            .GroupBy(t => t.Showtime.Movie.Title)
-            .Select(g => new TopMovie(
-                g.Key,
-                g.Count(),
-                g.Sum(t => t.Price)))
+        var rawData = await query
+            .Select(t => new { MovieTitle = t.Showtime.Movie.Title, t.Price })
+            .ToListAsync();
+
+        return rawData
+            .GroupBy(t => t.MovieTitle)
+            .Select(g => new TopMovie(g.Key, g.Count(), g.Sum(t => t.Price)))
             .OrderByDescending(m => m.TicketCount)
             .Take(topN)
-            .ToListAsync();
+            .ToList();
     }
 
-    /// <summary>
-    /// Tỷ lệ lấp đầy phòng (dựa trên suất chiếu trong khoảng thời gian).
-    /// </summary>
     public async Task<List<RoomOccupancy>> GetRoomOccupancyAsync(DateTime? from = null, DateTime? to = null)
     {
         var rooms = await _context.Rooms

@@ -168,7 +168,7 @@ public class FrmMain : Form
         {
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(18, 18, 30),
-            Padding = new Padding(30)
+            Padding = new Padding(10)
         };
         this.Controls.Add(pnlContent);
         pnlContent.BringToFront();
