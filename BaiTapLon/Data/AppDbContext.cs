@@ -19,6 +19,13 @@ public class AppDbContext : DbContext
     public DbSet<Snack> Snacks => Set<Snack>();
     public DbSet<InvoiceSnack> InvoiceSnacks => Set<InvoiceSnack>();
 
+    // ===== Phase 7: CRM, Shift, Voucher, Booking =====
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Voucher> Vouchers => Set<Voucher>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<PointTransaction> PointTransactions => Set<PointTransaction>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -74,7 +81,27 @@ public class AppDbContext : DbContext
             .HasForeignKey(i => i.UserId);
 
         modelBuilder.Entity<Invoice>()
+            .HasOne(i => i.Customer)
+            .WithMany(c => c.Invoices)
+            .HasForeignKey(i => i.CustomerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Invoice>()
+            .HasOne(i => i.Shift)
+            .WithMany(s => s.Invoices)
+            .HasForeignKey(i => i.ShiftId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Invoice>()
+            .HasOne(i => i.Voucher)
+            .WithMany(v => v.Invoices)
+            .HasForeignKey(i => i.VoucherId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Invoice>()
             .Property(i => i.TotalAmount).HasPrecision(12, 2);
+        modelBuilder.Entity<Invoice>()
+            .Property(i => i.DiscountAmount).HasPrecision(12, 2);
         modelBuilder.Entity<Invoice>()
             .Property(i => i.ReceivedAmount).HasPrecision(12, 2);
         modelBuilder.Entity<Invoice>()
@@ -97,6 +124,12 @@ public class AppDbContext : DbContext
             .HasOne(t => t.Invoice)
             .WithMany(i => i.Tickets)
             .HasForeignKey(t => t.InvoiceId);
+
+        modelBuilder.Entity<Ticket>()
+            .HasOne(t => t.Booking)
+            .WithMany(b => b.Tickets)
+            .HasForeignKey(t => t.BookingId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Ticket>()
             .Property(t => t.Price).HasPrecision(12, 2);
@@ -126,6 +159,84 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<InvoiceSnack>()
             .Property(ins => ins.UnitPrice).HasPrecision(12, 2);
+
+        // ===== Customer =====
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.Email).IsUnique();
+
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.MemberCode).IsUnique();
+
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.Phone);
+
+        modelBuilder.Entity<Customer>()
+            .Property(c => c.TotalSpent).HasPrecision(14, 2);
+
+        // ===== Voucher =====
+        modelBuilder.Entity<Voucher>()
+            .HasIndex(v => v.Code).IsUnique();
+
+        modelBuilder.Entity<Voucher>()
+            .Property(v => v.Value).HasPrecision(12, 2);
+
+        modelBuilder.Entity<Voucher>()
+            .Property(v => v.MaxDiscount).HasPrecision(12, 2);
+
+        // ===== Booking =====
+        modelBuilder.Entity<Booking>()
+            .HasIndex(b => b.BookingCode).IsUnique();
+
+        modelBuilder.Entity<Booking>()
+            .HasOne(b => b.Customer)
+            .WithMany(c => c.Bookings)
+            .HasForeignKey(b => b.CustomerId);
+
+        modelBuilder.Entity<Booking>()
+            .HasOne(b => b.Showtime)
+            .WithMany()
+            .HasForeignKey(b => b.ShowtimeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Booking>()
+            .HasOne(b => b.Voucher)
+            .WithMany(v => v.Bookings)
+            .HasForeignKey(b => b.VoucherId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.TotalAmount).HasPrecision(12, 2);
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.DiscountAmount).HasPrecision(12, 2);
+
+        // ===== PointTransaction =====
+        modelBuilder.Entity<PointTransaction>()
+            .HasOne(pt => pt.Customer)
+            .WithMany(c => c.PointTransactions)
+            .HasForeignKey(pt => pt.CustomerId);
+
+        modelBuilder.Entity<PointTransaction>()
+            .HasOne(pt => pt.Invoice)
+            .WithMany(i => i.PointTransactions)
+            .HasForeignKey(pt => pt.InvoiceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // ===== Shift =====
+        modelBuilder.Entity<Shift>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.OpeningCash).HasPrecision(12, 2);
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.ClosingCash).HasPrecision(12, 2);
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.ExpectedCash).HasPrecision(12, 2);
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.CashDifference).HasPrecision(12, 2);
 
         // ===== Unique constraints =====
         modelBuilder.Entity<User>()
