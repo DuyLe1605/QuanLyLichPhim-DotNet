@@ -116,7 +116,7 @@ public class DlgRoomEdit : Form
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
-            Enabled = isNew
+            Enabled = true
         };
         btnAddRow.FlatAppearance.BorderSize = 0;
         btnAddRow.Click += BtnAddRow_Click;
@@ -132,7 +132,7 @@ public class DlgRoomEdit : Form
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
-            Enabled = isNew
+            Enabled = true
         };
         btnRemoveRow.FlatAppearance.BorderSize = 0;
         btnRemoveRow.Click += BtnRemoveRow_Click;
@@ -148,7 +148,7 @@ public class DlgRoomEdit : Form
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
-            Enabled = isNew
+            Enabled = true
         };
         btnBuilder.FlatAppearance.BorderSize = 0;
         btnBuilder.Click += BtnSeatBuilder_Click;
@@ -171,8 +171,8 @@ public class DlgRoomEdit : Form
             EnableHeadersVisualStyles = false,
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
             Font = new Font("Segoe UI", 10),
-            ReadOnly = !isNew,
-            EditMode = isNew ? DataGridViewEditMode.EditOnEnter : DataGridViewEditMode.EditProgrammatically
+            ReadOnly = false,
+            EditMode = DataGridViewEditMode.EditOnEnter
         };
         dgvRows.RowTemplate.Height = 32;
         StyleGrid(dgvRows);
@@ -229,7 +229,8 @@ public class DlgRoomEdit : Form
         {
             Location = new Point(690, 55),
             Size = new Size(390, 520),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom
+            Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom,
+            ShowLegend = false
         };
         this.Controls.Add(seatPreview);
 

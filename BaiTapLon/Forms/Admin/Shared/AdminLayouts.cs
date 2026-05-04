@@ -34,6 +34,23 @@ public static class AdminLayouts
         return layout;
     }
 
+    public static Control CreatePagedGridContent(DataGridView grid, AdminPaginationBar pagination)
+    {
+        var panel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+
+        grid.Dock = DockStyle.Fill;
+        pagination.Dock = DockStyle.Bottom;
+        panel.Controls.Add(grid);
+        panel.Controls.Add(pagination);
+        return panel;
+    }
+
     private static Panel CreateHeader(string title, Control toolbar)
     {
         var header = new Panel

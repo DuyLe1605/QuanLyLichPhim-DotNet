@@ -6,10 +6,12 @@ namespace BaiTapLon.Forms.Admin;
 public class UcMovieManagement : UserControl
 {
     private DataGridView dgvMovies = null!;
+    private AdminPaginationBar pagination = null!;
     private TextBox txtSearch = null!;
     private ComboBox cboGenre = null!;
 
     private List<Genre> _genres = new();
+    private List<Movie> _movies = new();
     private bool _isLoading = false;
 
     public UcMovieManagement()
@@ -33,6 +35,8 @@ public class UcMovieManagement : UserControl
 
         dgvMovies = AdminControls.CreateGrid();
         dgvMovies.DoubleClick += BtnEdit_Click;
+        pagination = new AdminPaginationBar();
+        pagination.PaginationChanged += (s, e) => BindMoviePage();
 
         var toolbar = AdminControls.CreateToolbar(
             txtSearch,
@@ -43,7 +47,10 @@ public class UcMovieManagement : UserControl
             AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDelete_Click)
         );
 
-        Controls.Add(AdminLayouts.CreateManagementPage("🎬  Quản Lý Phim", toolbar, dgvMovies));
+        Controls.Add(AdminLayouts.CreateManagementPage(
+            "🎬  Quản Lý Phim",
+            toolbar,
+            AdminLayouts.CreatePagedGridContent(dgvMovies, pagination)));
     }
 
     private async Task LoadDataAsync()
@@ -69,11 +76,28 @@ public class UcMovieManagement : UserControl
             if (cboGenre.SelectedIndex > 0)
                 genreId = _genres[cboGenre.SelectedIndex - 1].Id;
 
-            var movies = await service.SearchAsync(txtSearch.Text, genreId);
+            _movies = await service.SearchAsync(txtSearch.Text, genreId);
+            pagination.SetTotalItems(_movies.Count, resetPage: true);
+            BindMoviePage();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
 
-            dgvMovies.DataSource = null;
-            dgvMovies.Columns.Clear();
-            dgvMovies.DataSource = movies.Select(m => new
+    private void BindMoviePage()
+    {
+        dgvMovies.DataSource = null;
+        dgvMovies.Columns.Clear();
+        dgvMovies.DataSource = _movies
+            .Skip(pagination.Skip)
+            .Take(pagination.PageSize)
+            .Select(m => new
             {
                 m.Id,
                 MãPhim = m.Code,
@@ -86,16 +110,16 @@ public class UcMovieManagement : UserControl
                 TrạngThái = m.IsActive ? "Đang chiếu" : "Đã ẩn"
             }).ToList();
 
-            AdminControls.HideColumn(dgvMovies, "Id");
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        AdminControls.HideColumn(dgvMovies, "Id");
+        AdminControls.SetColumnWidths(dgvMovies,
+            ("MãPhim", 100),
+            ("TênPhim", 260),
+            ("ĐạoDiễn", 180),
+            ("ThờiLượng", 110),
+            ("ĐộTuổi", 90),
+            ("ThểLoại", 220),
+            ("NgàyKhởiChiếu", 140),
+            ("TrạngThái", 120));
     }
 
     private async void BtnAdd_Click(object? sender, EventArgs e)

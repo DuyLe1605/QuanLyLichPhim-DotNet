@@ -137,32 +137,16 @@ public class FrmMain : Form
 
         var lblUserInfo = new Label
         {
-            Text = $"👤  {SessionManager.CurrentUser?.FullName ?? "User"}",
-            Font = new Font("Segoe UI", 11),
-            ForeColor = Color.FromArgb(190, 190, 210),
-            AutoSize = true,
-            Location = new Point(20, 17)
-        };
-        pnlHeader.Controls.Add(lblUserInfo);
-
-        var btnLogout = new Button
-        {
-            Text = "🚪 Đăng xuất",
+            Text = $"{SessionManager.CurrentUser?.FullName ?? "User"}  ·  {SessionManager.CurrentUser?.Role ?? ""}",
             Font = new Font("Segoe UI", 10),
-            Size = new Size(140, 36),
-            BackColor = Color.FromArgb(50, 50, 70),
-            ForeColor = Color.FromArgb(210, 210, 230),
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand,
+            ForeColor = Color.FromArgb(160, 160, 185),
+            AutoSize = true,
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
-        btnLogout.FlatAppearance.BorderColor = Color.FromArgb(65, 65, 90);
-        btnLogout.FlatAppearance.BorderSize = 1;
-        btnLogout.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 50, 50);
-        btnLogout.Click += BtnLogout_Click;
-        pnlHeader.Controls.Add(btnLogout);
-        pnlHeader.Resize += (s, e) => btnLogout.Location = new Point(pnlHeader.Width - 165, 10);
-        btnLogout.Location = new Point(pnlHeader.Width - 165, 10);
+        pnlHeader.Controls.Add(lblUserInfo);
+        pnlHeader.Resize += (s, e) => lblUserInfo.Location = new Point(
+            Math.Max(20, pnlHeader.ClientSize.Width - lblUserInfo.Width - 24), 18);
+        lblUserInfo.Location = new Point(Math.Max(20, pnlHeader.ClientSize.Width - lblUserInfo.Width - 24), 18);
 
         // ===== Content =====
         pnlContent = new Panel

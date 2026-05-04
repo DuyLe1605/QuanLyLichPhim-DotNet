@@ -1,3 +1,4 @@
+using BaiTapLon.Models;
 using BaiTapLon.Services;
 using BaiTapLon.Helpers;
 
@@ -6,6 +7,8 @@ namespace BaiTapLon.Forms.Admin;
 public class UcStaffManagement : UserControl
 {
     private DataGridView dgv = null!;
+    private AdminPaginationBar pagination = null!;
+    private List<User> _users = new();
 
     public UcStaffManagement()
     {
@@ -18,6 +21,8 @@ public class UcStaffManagement : UserControl
         AdminControls.ConfigurePage(this);
 
         dgv = AdminControls.CreateGrid();
+        pagination = new AdminPaginationBar();
+        pagination.PaginationChanged += (s, e) => BindStaffPage();
 
         var toolbar = AdminControls.CreateToolbar(
             AdminControls.CreateButton("➕ Thêm NV", AdminTheme.ButtonSuccess, 130, BtnAdd_Click),
@@ -25,7 +30,10 @@ public class UcStaffManagement : UserControl
             AdminControls.CreateButton("🔄 Khóa/Mở", AdminTheme.ButtonPrimary, 130, BtnToggle_Click)
         );
 
-        Controls.Add(AdminLayouts.CreateManagementPage("👥  Quản Lý Nhân Viên", toolbar, dgv));
+        Controls.Add(AdminLayouts.CreateManagementPage(
+            "👥  Quản Lý Nhân Viên",
+            toolbar,
+            AdminLayouts.CreatePagedGridContent(dgv, pagination)));
     }
 
     private async Task LoadAsync()
@@ -33,10 +41,26 @@ public class UcStaffManagement : UserControl
         try
         {
             using var ctx = Program.CreateDbContext();
-            var users = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            _users = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
                 .ToListAsync(ctx.Users.OrderBy(u => u.Id));
 
-            dgv.DataSource = users.Select(u => new
+            pagination.SetTotalItems(_users.Count, resetPage: true);
+            BindStaffPage();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
+        }
+    }
+
+    private void BindStaffPage()
+    {
+        dgv.DataSource = null;
+        dgv.Columns.Clear();
+        dgv.DataSource = _users
+            .Skip(pagination.Skip)
+            .Take(pagination.PageSize)
+            .Select(u => new
             {
                 u.Id,
                 HọTên = u.FullName,
@@ -46,12 +70,15 @@ public class UcStaffManagement : UserControl
                 TrạngThái = u.IsActive ? "✅ Hoạt động" : "❌ Đã khóa",
                 NgàyTạo = u.CreatedAt.ToString("dd/MM/yyyy")
             }).ToList();
-            AdminControls.HideColumn(dgv, "Id");
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
-        }
+
+        AdminControls.HideColumn(dgv, "Id");
+        AdminControls.SetColumnWidths(dgv,
+            ("HọTên", 220),
+            ("TàiKhoản", 170),
+            ("VaiTrò", 120),
+            ("SĐT", 140),
+            ("TrạngThái", 150),
+            ("NgàyTạo", 120));
     }
 
     private async void BtnAdd_Click(object? s, EventArgs e)

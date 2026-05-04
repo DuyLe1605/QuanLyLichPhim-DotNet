@@ -6,12 +6,14 @@ namespace BaiTapLon.Forms.Admin;
 public class UcShowtimeManagement : UserControl
 {
     private DataGridView dgv = null!;
+    private AdminPaginationBar pagination = null!;
     private DateTimePicker dtpDate = null!;
     private ComboBox cboMovie = null!;
     private ComboBox cboRoom = null!;
 
     private List<Movie> _movies = new();
     private List<Room> _rooms = new();
+    private List<Showtime> _showtimes = new();
     private bool _isLoading = false;
 
     public UcShowtimeManagement()
@@ -35,6 +37,8 @@ public class UcShowtimeManagement : UserControl
 
         dgv = AdminControls.CreateGrid();
         dgv.DoubleClick += BtnEdit_Click;
+        pagination = new AdminPaginationBar();
+        pagination.PaginationChanged += (s, e) => BindShowtimePage();
 
         var toolbar = AdminControls.CreateToolbar(
             AdminControls.CreateToolbarLabel("Ngày:", 48),
@@ -48,7 +52,10 @@ public class UcShowtimeManagement : UserControl
             AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDel_Click)
         );
 
-        Controls.Add(AdminLayouts.CreateManagementPage("📅  Quản Lý Lịch Chiếu", toolbar, dgv));
+        Controls.Add(AdminLayouts.CreateManagementPage(
+            "📅  Quản Lý Lịch Chiếu",
+            toolbar,
+            AdminLayouts.CreatePagedGridContent(dgv, pagination)));
     }
 
     private async Task LoadFiltersAndDataAsync()
@@ -86,8 +93,24 @@ public class UcShowtimeManagement : UserControl
             int? mId = cboMovie.SelectedIndex > 0 ? _movies[cboMovie.SelectedIndex - 1].Id : null;
             int? rId = cboRoom.SelectedIndex > 0 ? _rooms[cboRoom.SelectedIndex - 1].Id : null;
 
-            var list = await new ShowtimeService(ctx).GetAllAsync(dtpDate.Value.Date, mId, rId);
-            dgv.DataSource = list.Select(s => new
+            _showtimes = await new ShowtimeService(ctx).GetAllAsync(dtpDate.Value.Date, mId, rId);
+            pagination.SetTotalItems(_showtimes.Count, resetPage: true);
+            BindShowtimePage();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
+        }
+    }
+
+    private void BindShowtimePage()
+    {
+        dgv.DataSource = null;
+        dgv.Columns.Clear();
+        dgv.DataSource = _showtimes
+            .Skip(pagination.Skip)
+            .Take(pagination.PageSize)
+            .Select(s => new
             {
                 s.Id,
                 Phim = s.Movie.Title,
@@ -97,12 +120,15 @@ public class UcShowtimeManagement : UserControl
                 Ngày = s.StartTime.ToString("dd/MM/yyyy"),
                 GiáVé = s.BasePrice.ToString("N0") + " đ"
             }).ToList();
-            AdminControls.HideColumn(dgv, "Id");
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
-        }
+
+        AdminControls.HideColumn(dgv, "Id");
+        AdminControls.SetColumnWidths(dgv,
+            ("Phim", 280),
+            ("Phòng", 150),
+            ("BắtĐầu", 110),
+            ("KếtThúc", 110),
+            ("Ngày", 120),
+            ("GiáVé", 130));
     }
 
     private async void BtnAdd_Click(object? s, EventArgs e)

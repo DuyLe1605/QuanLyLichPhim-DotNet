@@ -7,6 +7,7 @@ namespace BaiTapLon.Forms.Admin;
 public class UcRoomManagement : UserControl
 {
     private DataGridView dgvRooms = null!;
+    private AdminPaginationBar pagination = null!;
     private List<Room> _rooms = new();
 
     public UcRoomManagement()
@@ -22,6 +23,8 @@ public class UcRoomManagement : UserControl
         dgvRooms = AdminControls.CreateGrid();
         dgvRooms.CellContentClick += DgvRooms_CellContentClick;
         dgvRooms.DoubleClick += (s, e) => ShowSeatPreview();
+        pagination = new AdminPaginationBar();
+        pagination.PaginationChanged += (s, e) => BindRoomPage();
 
         var toolbar = AdminControls.CreateToolbar(
             AdminControls.CreateButton("+ Thêm phòng", AdminTheme.ButtonSuccess, 145, BtnAdd_Click),
@@ -30,7 +33,10 @@ public class UcRoomManagement : UserControl
             AdminControls.CreateButton("Xóa", AdminTheme.ButtonDanger, 100, BtnDel_Click)
         );
 
-        Controls.Add(AdminLayouts.CreateManagementPage("Quản Lý Phòng Chiếu", toolbar, dgvRooms));
+        Controls.Add(AdminLayouts.CreateManagementPage(
+            "Quản Lý Phòng Chiếu",
+            toolbar,
+            AdminLayouts.CreatePagedGridContent(dgvRooms, pagination)));
     }
 
     private async Task LoadDataAsync()
@@ -40,9 +46,23 @@ public class UcRoomManagement : UserControl
             using var ctx = Program.CreateDbContext();
             _rooms = await new RoomService(ctx).GetAllAsync();
 
-            dgvRooms.DataSource = null;
-            dgvRooms.Columns.Clear();
-            dgvRooms.DataSource = _rooms.Select(r => new
+            pagination.SetTotalItems(_rooms.Count, resetPage: true);
+            BindRoomPage();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void BindRoomPage()
+    {
+        dgvRooms.DataSource = null;
+        dgvRooms.Columns.Clear();
+        dgvRooms.DataSource = _rooms
+            .Skip(pagination.Skip)
+            .Take(pagination.PageSize)
+            .Select(r => new
             {
                 r.Id,
                 Tên = r.Name,
@@ -53,16 +73,15 @@ public class UcRoomManagement : UserControl
                 TrạngThái = r.IsActive ? "Hoạt động" : "Ẩn"
             }).ToList();
 
-            var idColumn = dgvRooms.Columns["Id"];
-            if (idColumn != null)
-                idColumn.Visible = false;
-
-            AddViewColumn();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        AdminControls.HideColumn(dgvRooms, "Id");
+        AdminControls.SetColumnWidths(dgvRooms,
+            ("Tên", 180),
+            ("Loại", 140),
+            ("Hàng", 90),
+            ("CộtMax", 100),
+            ("TổngGhế", 110),
+            ("TrạngThái", 130));
+        AddViewColumn();
     }
 
     private void AddViewColumn()
@@ -85,7 +104,7 @@ public class UcRoomManagement : UserControl
 
     private void DgvRooms_CellContentClick(object? sender, DataGridViewCellEventArgs e)
     {
-        if (e.RowIndex < 0) return;
+        if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
         if (dgvRooms.Columns[e.ColumnIndex].Name != "ViewLayout") return;
 
         dgvRooms.CurrentCell = dgvRooms.Rows[e.RowIndex].Cells[e.ColumnIndex];
@@ -104,9 +123,7 @@ public class UcRoomManagement : UserControl
 
     private int? GetCurrentRoomId()
     {
-        if (dgvRooms.CurrentRow == null) return null;
-        if (!dgvRooms.Columns.Contains("Id")) return null;
-        return dgvRooms.CurrentRow.Cells["Id"].Value is int id ? id : null;
+        return AdminControls.GetCurrentIntValue(dgvRooms, "Id");
     }
 
     private async void BtnAdd_Click(object? s, EventArgs e)
@@ -134,7 +151,7 @@ public class UcRoomManagement : UserControl
         if (dlg.ShowDialog() != DialogResult.OK) return;
 
         dlg.RoomData.Id = id.Value;
-        var (ok, msg) = await svc.UpdateAsync(dlg.RoomData);
+        var (ok, msg) = await svc.UpdateAsync(dlg.RoomData, dlg.RowConfigs, dlg.SeatLayoutItems);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
         if (ok) await LoadDataAsync();
     }

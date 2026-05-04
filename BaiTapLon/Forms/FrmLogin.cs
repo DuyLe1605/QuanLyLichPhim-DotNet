@@ -152,11 +152,13 @@ public class FrmLogin : Form
             Font = new Font("Segoe UI", 9),
             ForeColor = Color.FromArgb(130, 130, 155),
             Location = new Point(40, y),
-            AutoSize = true
+            AutoSize = false,
+            Size = new Size(340, 30),
+            TextAlign = ContentAlignment.MiddleLeft
         };
         chkShowPassword.CheckedChanged += (s, e) => txtPassword.UseSystemPasswordChar = !chkShowPassword.Checked;
         pnlMain.Controls.Add(chkShowPassword);
-        y += 35;
+        y += 42;
 
         // Error
         lblError = new Label
@@ -177,8 +179,8 @@ public class FrmLogin : Form
         btnLogin = new Button
         {
             Text = "ĐĂNG NHẬP",
-            Font = new Font("Segoe UI", 13, FontStyle.Bold),
-            Size = new Size(340, 50),
+            Font = new Font("Segoe UI", 12, FontStyle.Bold),
+            Size = new Size(340, 52),
             Location = new Point(40, y),
             BackColor = Color.FromArgb(100, 80, 255),
             ForeColor = Color.White,

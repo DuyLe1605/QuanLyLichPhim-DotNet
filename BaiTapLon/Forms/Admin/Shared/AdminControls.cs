@@ -110,7 +110,9 @@ public static class AdminControls
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
             AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            AllowUserToResizeColumns = true,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
+            ScrollBars = ScrollBars.Both,
             RowHeadersVisible = false,
             EnableHeadersVisualStyles = false,
             RowTemplate = { Height = 40 },
@@ -132,6 +134,18 @@ public static class AdminControls
         grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(5, 0, 5, 0);
         grid.ColumnHeadersHeight = 42;
         return grid;
+    }
+
+    public static void SetColumnWidths(DataGridView grid, params (string ColumnName, int Width)[] columns)
+    {
+        foreach (var (columnName, width) in columns)
+        {
+            var column = grid.Columns[columnName];
+            if (column == null) continue;
+
+            column.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+            column.Width = width;
+        }
     }
 
     public static void HideColumn(DataGridView grid, string columnName)

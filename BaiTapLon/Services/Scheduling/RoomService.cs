@@ -106,6 +106,121 @@ public class RoomService
         return (true, "Cập nhật phòng thành công!");
     }
 
+    public async Task<(bool Success, string Message)> UpdateAsync(
+        Room room,
+        List<RowConfig> rowConfigs,
+        List<SeatLayoutItem>? seatLayoutItems = null)
+    {
+        if (string.IsNullOrWhiteSpace(room.Name))
+            return (false, "Tên phòng không được để trống!");
+
+        if (rowConfigs.Count == 0 && (seatLayoutItems == null || seatLayoutItems.Count == 0))
+            return (false, "Chưa có hàng ghế nào!");
+
+        var existing = await _context.Rooms
+            .Include(r => r.Seats)
+            .ThenInclude(s => s.Tickets)
+            .FirstOrDefaultAsync(r => r.Id == room.Id);
+
+        if (existing == null)
+            return (false, "Phòng không tồn tại!");
+
+        var desiredSeats = BuildDesiredSeats(rowConfigs, seatLayoutItems);
+        var desiredKeys = desiredSeats.Select(s => (s.RowLabel, s.SeatNumber)).ToHashSet();
+
+        var seatsToRemove = existing.Seats
+            .Where(s => !desiredKeys.Contains((s.RowLabel, s.SeatNumber)))
+            .ToList();
+
+        if (seatsToRemove.Any(s => s.Tickets.Count > 0))
+            return (false, "Không thể xóa ghế đã phát sinh vé. Chỉ nên đổi loại ghế/hệ số giá cho phòng đã bán vé.");
+
+        existing.Name = room.Name;
+        existing.Type = room.Type;
+        existing.Rows = desiredSeats.Count == 0 ? 0 : desiredSeats.Max(s => s.GridRow) + 1;
+        existing.Columns = desiredSeats.Count == 0 ? 0 : desiredSeats.Max(s => s.GridColumn + Math.Max(1, s.GridSpan));
+        existing.TotalSeats = desiredSeats.Count;
+
+        foreach (var seat in seatsToRemove)
+            _context.Seats.Remove(seat);
+
+        foreach (var desired in desiredSeats)
+        {
+            var seat = existing.Seats.FirstOrDefault(s =>
+                s.RowLabel == desired.RowLabel && s.SeatNumber == desired.SeatNumber);
+
+            if (seat == null)
+            {
+                _context.Seats.Add(new Seat
+                {
+                    RoomId = existing.Id,
+                    RowLabel = desired.RowLabel,
+                    SeatNumber = desired.SeatNumber,
+                    GridRow = desired.GridRow,
+                    GridColumn = desired.GridColumn,
+                    GridSpan = desired.GridSpan,
+                    Type = desired.SeatType,
+                    PriceMultiplier = desired.PriceMultiplier
+                });
+                continue;
+            }
+
+            seat.GridRow = desired.GridRow;
+            seat.GridColumn = desired.GridColumn;
+            seat.GridSpan = desired.GridSpan;
+            seat.Type = desired.SeatType;
+            seat.PriceMultiplier = desired.PriceMultiplier;
+        }
+
+        await _context.SaveChangesAsync();
+        return (true, "Cập nhật phòng và sơ đồ ghế thành công!");
+    }
+
+    private static List<SeatLayoutItem> BuildDesiredSeats(List<RowConfig> rowConfigs, List<SeatLayoutItem>? seatLayoutItems)
+    {
+        if (seatLayoutItems is { Count: > 0 })
+        {
+            return seatLayoutItems
+                .OrderBy(s => s.GridRow)
+                .ThenBy(s => s.GridColumn)
+                .Select(s => new SeatLayoutItem
+                {
+                    RowLabel = s.RowLabel,
+                    SeatNumber = s.SeatNumber,
+                    GridRow = s.GridRow,
+                    GridColumn = s.GridColumn,
+                    GridSpan = Math.Max(1, s.GridSpan),
+                    SeatType = s.SeatType,
+                    PriceMultiplier = s.PriceMultiplier
+                })
+                .ToList();
+        }
+
+        var seats = new List<SeatLayoutItem>();
+        for (int rowIndex = 0; rowIndex < rowConfigs.Count; rowIndex++)
+        {
+            var config = rowConfigs[rowIndex];
+            var seatCount = Math.Clamp(config.SeatCount, 1, 30);
+            var multiplier = config.PriceMultiplier <= 0 ? 1.0m : config.PriceMultiplier;
+
+            for (int columnIndex = 0; columnIndex < seatCount; columnIndex++)
+            {
+                seats.Add(new SeatLayoutItem
+                {
+                    RowLabel = config.RowLabel,
+                    SeatNumber = columnIndex + 1,
+                    GridRow = rowIndex,
+                    GridColumn = columnIndex,
+                    GridSpan = 1,
+                    SeatType = config.SeatType,
+                    PriceMultiplier = multiplier
+                });
+            }
+        }
+
+        return seats;
+    }
+
     public async Task<(bool Success, string Message)> SoftDeleteAsync(int id)
     {
         var room = await _context.Rooms.FindAsync(id);

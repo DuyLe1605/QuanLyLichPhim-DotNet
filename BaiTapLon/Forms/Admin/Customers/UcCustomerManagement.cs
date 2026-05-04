@@ -7,8 +7,10 @@ namespace BaiTapLon.Forms.Admin;
 public class UcCustomerManagement : UserControl
 {
     private DataGridView dgv = null!;
+    private AdminPaginationBar pagination = null!;
     private TextBox txtSearch = null!;
     private ComboBox cboTier = null!;
+    private List<Models.Customer> _customers = new();
 
     // Panel chi tiết bên phải
     private Panel pnlDetail = null!;
@@ -45,6 +47,8 @@ public class UcCustomerManagement : UserControl
 
         dgv = AdminControls.CreateGrid();
         dgv.SelectionChanged += DgvSelectionChanged;
+        pagination = new AdminPaginationBar();
+        pagination.PaginationChanged += (s, e) => BindCustomerPage();
 
         // === Layout: trái = grid, phải = detail ===
         var splitContainer = new SplitContainer
@@ -56,8 +60,7 @@ public class UcCustomerManagement : UserControl
         splitContainer.HandleCreated += (s, e) => ApplyCustomerSplitLayout(splitContainer);
         splitContainer.Resize += (s, e) => ApplyCustomerSplitLayout(splitContainer);
 
-        dgv.Dock = DockStyle.Fill;
-        splitContainer.Panel1.Controls.Add(dgv);
+        splitContainer.Panel1.Controls.Add(AdminLayouts.CreatePagedGridContent(dgv, pagination));
 
         pnlDetail = CreateDetailPanel();
         splitContainer.Panel2.Controls.Add(pnlDetail);
@@ -208,7 +211,24 @@ public class UcCustomerManagement : UserControl
                 ).ToList();
             }
 
-            dgv.DataSource = customers.Select(c => new
+            _customers = customers;
+            pagination.SetTotalItems(_customers.Count, resetPage: true);
+            BindCustomerPage();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
+        }
+    }
+
+    private void BindCustomerPage()
+    {
+        dgv.DataSource = null;
+        dgv.Columns.Clear();
+        dgv.DataSource = _customers
+            .Skip(pagination.Skip)
+            .Take(pagination.PageSize)
+            .Select(c => new
             {
                 c.Id,
                 MãTV = c.MemberCode,
@@ -222,12 +242,17 @@ public class UcCustomerManagement : UserControl
                 NgàyĐK = c.CreatedAt.ToString("dd/MM/yyyy")
             }).ToList();
 
-            AdminControls.HideColumn(dgv, "Id");
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
-        }
+        AdminControls.HideColumn(dgv, "Id");
+        AdminControls.SetColumnWidths(dgv,
+            ("MãTV", 120),
+            ("HọTên", 190),
+            ("SĐT", 120),
+            ("Email", 230),
+            ("Hạng", 130),
+            ("Điểm", 90),
+            ("TổngChi", 130),
+            ("TrạngThái", 130),
+            ("NgàyĐK", 110));
     }
 
     private async void DgvSelectionChanged(object? sender, EventArgs e)
@@ -317,9 +342,9 @@ public class UcCustomerManagement : UserControl
 
     private static void ApplyCustomerSplitLayout(SplitContainer splitContainer)
     {
-        const int preferredLeftWidth = 650;
         const int desiredLeftMin = 360;
         const int desiredRightMin = 260;
+        const int preferredRightWidth = 340;
 
         var availableWidth = splitContainer.ClientSize.Width - splitContainer.SplitterWidth;
         if (availableWidth <= 50)
@@ -340,6 +365,7 @@ public class UcCustomerManagement : UserControl
         if (maxDistance < leftMin)
             return;
 
+        var preferredLeftWidth = Math.Max(650, splitContainer.ClientSize.Width - splitContainer.SplitterWidth - preferredRightWidth);
         splitContainer.SplitterDistance = Math.Clamp(preferredLeftWidth, leftMin, maxDistance);
         splitContainer.Panel1MinSize = leftMin;
         splitContainer.Panel2MinSize = rightMin;

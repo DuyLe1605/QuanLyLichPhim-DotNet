@@ -35,6 +35,10 @@ public class SeatLayoutPreviewControl : Control
         }
     }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    [Browsable(false)]
+    public bool ShowLegend { get; set; } = true;
+
     public SeatLayoutPreviewControl()
     {
         DoubleBuffered = true;
@@ -121,7 +125,8 @@ public class SeatLayoutPreviewControl : Control
 
         DrawScreen(g, startX + RowLabelWidth, gridWidth);
         DrawSeats(g, rows, startX, gridWidth);
-        DrawLegend(g);
+        if (ShowLegend)
+            DrawLegend(g);
     }
 
     private void DrawTitle(Graphics g)
@@ -153,7 +158,7 @@ public class SeatLayoutPreviewControl : Control
     private void DrawSeats(Graphics g, List<IGrouping<int, PreviewSeat>> rows, int startX, int gridWidth)
     {
         using var rowFont = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-        using var seatFont = new Font("Segoe UI", 6.4f, FontStyle.Bold);
+        using var seatFont = new Font("Segoe UI", 7f, FontStyle.Bold);
         using var rowBrush = new SolidBrush(MutedText);
         var textFormat = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
 
@@ -184,7 +189,7 @@ public class SeatLayoutPreviewControl : Control
                 g.DrawPath(highlightPen, path);
 
                 using var seatTextBrush = new SolidBrush(Color.White);
-                g.DrawString($"{seat.RowLabel}{seat.SeatNumber}", seatFont, seatTextBrush, rect, textFormat);
+                g.DrawString(seat.SeatNumber.ToString(), seatFont, seatTextBrush, rect, textFormat);
             }
         }
     }
