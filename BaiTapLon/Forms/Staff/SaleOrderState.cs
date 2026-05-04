@@ -11,6 +11,7 @@ public class SaleOrderState
     public List<SeatMapControl.SeatInfo> Seats { get; init; } = new();
     public string? CustomerName { get; init; }
     public string? CustomerPhone { get; init; }
+    public int? CustomerId { get; init; } // Khách hàng thành viên (Phase 8)
     public decimal TicketTotal { get; init; }
 }
 

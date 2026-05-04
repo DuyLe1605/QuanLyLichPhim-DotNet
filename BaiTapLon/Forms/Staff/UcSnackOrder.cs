@@ -584,6 +584,7 @@ public class UcSnackOrder : UserControl
         var invoice = new Invoice
         {
             UserId = SessionManager.CurrentUser!.Id,
+            CustomerId = _state.CustomerId, // Liên kết khách hàng thành viên
             CustomerName = string.IsNullOrWhiteSpace(_state.CustomerName) ? null : _state.CustomerName,
             CustomerPhone = string.IsNullOrWhiteSpace(_state.CustomerPhone) ? null : _state.CustomerPhone,
             TotalAmount = total,
@@ -614,12 +615,31 @@ public class UcSnackOrder : UserControl
 
         if (ok)
         {
+            // Tích điểm cho khách hàng thành viên
+            string pointMsg = "";
+            if (_state.CustomerId.HasValue)
+            {
+                try
+                {
+                    using var pointCtx = Program.CreateDbContext();
+                    var pointSvc = new PointService(pointCtx);
+                    int earnedPoints = await pointSvc.EarnPointsAsync(_state.CustomerId.Value, invoiceId, total);
+
+                    var custSvc = new CustomerService(pointCtx);
+                    await custSvc.AddSpendingAsync(_state.CustomerId.Value, total);
+
+                    if (earnedPoints > 0)
+                        pointMsg = $"\n🎁 Tích được {earnedPoints:N0} điểm thưởng!";
+                }
+                catch { /* Không block checkout nếu tích điểm lỗi */ }
+            }
+
             MessageBox.Show(
                 $"{msg}\n\n" +
                 $"Ghế: {seatList}\n" +
                 $"Bắp nước: {_cart.Values.Sum(i => i.LineTotal):N0} đ\n" +
                 $"Tổng: {total:N0} đ\n" +
-                $"Tiền thối: {change:N0} đ",
+                $"Tiền thối: {change:N0} đ{pointMsg}",
                 "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
             CheckoutCompleted?.Invoke();
         }

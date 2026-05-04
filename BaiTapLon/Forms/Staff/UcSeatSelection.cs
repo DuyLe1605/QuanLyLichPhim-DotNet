@@ -3,6 +3,7 @@ using BaiTapLon.Models;
 using BaiTapLon.Services;
 using BaiTapLon.Helpers;
 using BaiTapLon.Forms.Controls;
+using BaiTapLon.Forms.Admin;
 
 namespace BaiTapLon.Forms.Staff;
 
@@ -25,6 +26,8 @@ public class UcSeatSelection : UserControl
     private Label lblChange = null!;
     private Button btnCheckout = null!;
     private Button btnBack = null!;
+    private Label lblMemberInfo = null!;
+    private int? _customerId = null;
 
     private Showtime _showtime = null!;
     private Room _room = null!;
@@ -222,15 +225,44 @@ public class UcSeatSelection : UserControl
         txtCustomerPhone = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(195, 28),
+            Size = new Size(150, 28),
             Location = new Point(85, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
-            PlaceholderText = "(không bắt buộc)"
+            PlaceholderText = "SĐT/Mã TV"
         };
+        txtCustomerPhone.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) await LookupCustomerAsync(); };
         pnlRight.Controls.Add(txtCustomerPhone);
-        y += 42;
+
+        var btnLookup = new Button
+        {
+            Text = "🔍",
+            Font = new Font("Segoe UI", 10),
+            Size = new Size(42, 28),
+            Location = new Point(238, y),
+            BackColor = Color.FromArgb(60, 120, 200),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand
+        };
+        btnLookup.FlatAppearance.BorderSize = 0;
+        btnLookup.Click += async (s, e) => await LookupCustomerAsync();
+        pnlRight.Controls.Add(btnLookup);
+        y += 32;
+
+        // Member info label
+        lblMemberInfo = new Label
+        {
+            Text = "",
+            Font = new Font("Segoe UI", 9),
+            ForeColor = Color.FromArgb(80, 220, 120),
+            Location = new Point(15, y),
+            Size = new Size(280, 20),
+            Visible = false
+        };
+        pnlRight.Controls.Add(lblMemberInfo);
+        y += 25;
 
         // Separator
         pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(280, 1), BackColor = Color.FromArgb(50, 50, 75) });
@@ -405,7 +437,60 @@ public class UcSeatSelection : UserControl
             Seats = selected.ToList(),
             CustomerName = string.IsNullOrWhiteSpace(txtCustomerName.Text) ? null : txtCustomerName.Text.Trim(),
             CustomerPhone = string.IsNullOrWhiteSpace(txtCustomerPhone.Text) ? null : txtCustomerPhone.Text.Trim(),
+            CustomerId = _customerId,
             TicketTotal = total
         });
+    }
+
+    /// <summary>
+    /// Tra cứu khách hàng thành viên theo SĐT hoặc mã thành viên.
+    /// </summary>
+    private async Task LookupCustomerAsync()
+    {
+        string input = txtCustomerPhone.Text.Trim();
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            _customerId = null;
+            lblMemberInfo.Visible = false;
+            return;
+        }
+
+        try
+        {
+            using var ctx = Program.CreateDbContext();
+            var svc = new CustomerService(ctx);
+
+            // Thử tìm theo mã thành viên trước, rồi theo SĐT
+            var customer = await svc.GetByMemberCodeAsync(input)
+                        ?? await svc.GetByPhoneAsync(input);
+
+            if (customer != null)
+            {
+                _customerId = customer.Id;
+                txtCustomerName.Text = customer.FullName;
+                string tierIcon = customer.Tier switch
+                {
+                    "Diamond" => "💎",
+                    "VIP" => "⭐",
+                    _ => "🎫"
+                };
+                lblMemberInfo.Text = $"{tierIcon} {customer.Tier} | {customer.TotalPoints:N0} điểm";
+                lblMemberInfo.ForeColor = Color.FromArgb(80, 220, 120);
+                lblMemberInfo.Visible = true;
+            }
+            else
+            {
+                _customerId = null;
+                lblMemberInfo.Text = "⚠ Không tìm thấy thành viên";
+                lblMemberInfo.ForeColor = Color.FromArgb(255, 180, 60);
+                lblMemberInfo.Visible = true;
+            }
+        }
+        catch
+        {
+            lblMemberInfo.Text = "⚠ Lỗi tra cứu";
+            lblMemberInfo.ForeColor = Color.FromArgb(255, 90, 90);
+            lblMemberInfo.Visible = true;
+        }
     }
 }

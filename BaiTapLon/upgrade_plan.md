@@ -228,26 +228,35 @@ flowchart TD
 
 ---
 
-## Phase 8: CRM & Loyalty + Admin UI (2-3 ngày)
+## Phase 8: CRM & Loyalty + Admin UI ✅ HOÀN THÀNH (04/05/2026)
 
-**8.1 — PointService**
-- [ ] `EarnPointsAsync(customerId, invoiceId, amount)` — tích điểm theo hạng (Standard: 1%, VIP: 1.5%, Diamond: 2%)
-- [ ] `RedeemPointsAsync(customerId, points)` — đổi điểm (1000 điểm = 10,000đ)
-- [ ] `GetHistoryAsync(customerId)` — lịch sử tích/đổi
-- [ ] `GetBalanceAsync(customerId)` — điểm hiện tại
+**8.1 — PointService** ✅
+- [x] `EarnPointsAsync(customerId, invoiceId, amount)` — tích điểm theo hạng (Standard: 1%, VIP: 1.5%, Diamond: 2%)
+- [x] `RedeemPointsAsync(customerId, points)` — đổi điểm (1000 điểm = 10,000đ, bội số 100)
+- [x] `GetHistoryAsync(customerId)` — lịch sử tích/đổi
+- [x] `GetBalanceAsync(customerId)` — điểm hiện tại
+- [x] `GetSummaryAsync(customerId)` — tổng hợp: đã tích / đã đổi / còn lại
 
-**8.2 — BarcodeHelper**
-- [ ] Sinh mã QR dạng hình ảnh từ chuỗi MemberCode (dùng `QRCoder`)
-- [ ] Dùng cho: thẻ thành viên, mã đặt vé, voucher
+**8.2 — BarcodeHelper** ✅
+- [x] `GenerateQrCode(content)` — sinh QR dạng Bitmap bằng `QRCoder` (PngByteQRCode)
+- [x] `GenerateQrCode(content, width, height)` — QR kích thước cố định
+- [x] `GenerateBookingCode()` — sinh mã BK-XXXXXX
 
-**8.3 — Admin: UcCustomerManagement**
-- [ ] DataGridView: Tên, SĐT, Email, Hạng, Điểm, Tổng chi tiêu, Ngày ĐK
-- [ ] Tìm kiếm + lọc theo hạng (Standard/VIP/Diamond)
-- [ ] Click vào KH → xem chi tiết: lịch sử mua vé, tích điểm, tổng chi
-- [ ] Nút: Nâng/hạ hạng thủ công, Khóa tài khoản
+**8.3 — Admin: UcCustomerManagement** ✅
+- [x] DataGridView: Mã TV, Tên, SĐT, Email, Hạng (icon), Điểm, Tổng chi, Trạng thái, Ngày ĐK
+- [x] Tìm kiếm (tên/SĐT/email/mã TV) + lọc theo hạng (Standard/VIP/Diamond)
+- [x] Split layout: grid trái + detail phải (QR code, thông tin, thống kê, lịch sử điểm)
+- [x] Hiển thị progress bar đến hạng tiếp theo
+- [x] Nút Khóa/Mở tài khoản
+- [x] Tích hợp vào `FrmMain` sidebar: "👤 Khách hàng" → `LoadModule("Customers")`
 
-**8.4 — Staff: Bán hàng có định danh KH**
-- [ ] `UcSeatSelection` / `UcSnackOrder`: thêm ô "SĐT/Mã thành viên"
+**8.4 — Staff: Bán hàng có định danh KH** ✅
+- [x] `UcSeatSelection`: ô SĐT/Mã TV + nút 🔍 tra cứu + Enter để lookup
+- [x] Auto-lookup: tìm theo MemberCode trước, rồi theo SĐT → hiển thị tên + hạng + điểm
+- [x] `SaleOrderState` thêm `CustomerId` truyền qua checkout flow
+- [x] `UcSnackOrder` checkout: Invoice lưu `CustomerId`, tự động gọi `PointService.EarnPointsAsync()`
+- [x] `CustomerService.AddSpendingAsync()` cập nhật TotalSpent + auto nâng hạng
+- [x] Thông báo checkout hiển thị "🎁 Tích được X điểm thưởng!"
 - [ ] Khi nhập → auto-lookup `CustomerService.GetByPhoneAsync()` → hiển thị tên + hạng + điểm
 - [ ] Sau checkout: tự động gọi `PointService.EarnPointsAsync()`
 - [ ] Invoice lưu `CustomerId` thay vì chỉ CustomerName/Phone dạng string

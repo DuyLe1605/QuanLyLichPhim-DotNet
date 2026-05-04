@@ -189,6 +189,7 @@ public class FrmMain : Form
             AddMenuButton("📅  Lịch chiếu", yPos, "Showtimes"); yPos += 48;
             AddMenuButton("🍿  Bắp nước", yPos, "Snacks"); yPos += 48;
             AddMenuButton("👥  Nhân viên", yPos, "Staff"); yPos += 48;
+            AddMenuButton("👤  Khách hàng", yPos, "Customers"); yPos += 48;
         }
         else
         {
@@ -268,6 +269,7 @@ public class FrmMain : Form
             "Showtimes" => new Admin.UcShowtimeManagement(),
             "Snacks" => new Admin.UcSnackManagement(),
             "Staff" => new Admin.UcStaffManagement(),
+            "Customers" => new Admin.UcCustomerManagement(),
             "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
         };
