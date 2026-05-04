@@ -38,9 +38,10 @@ public class DlgMovieEdit : Form
     {
         this.Text = _editMovie == null ? "Thêm phim mới" : "Sửa thông tin phim";
         this.ClientSize = new Size(760, 620);
+        this.MinimumSize = new Size(720, 560);
         this.StartPosition = FormStartPosition.CenterParent;
-        this.FormBorderStyle = FormBorderStyle.FixedDialog;
-        this.MaximizeBox = false;
+        this.FormBorderStyle = FormBorderStyle.Sizable;
+        this.MaximizeBox = true;
         this.MinimizeBox = false;
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
@@ -89,7 +90,6 @@ public class DlgMovieEdit : Form
 
         txtCode = MakeTextBox();
         txtCode.CharacterCasing = CharacterCasing.Upper;
-        txtCode.MaximumSize = new Size(160, 0);
         AddFormRow(formGrid, "Mã phim *", txtCode, 0);
 
         txtTitle = MakeTextBox();
@@ -104,8 +104,7 @@ public class DlgMovieEdit : Form
         nudDuration = new NumericUpDown
         {
             Font = new Font("Segoe UI", 10),
-            Dock = DockStyle.Left,
-            Width = 120,
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             Minimum = 1,
@@ -119,8 +118,7 @@ public class DlgMovieEdit : Form
         cboAgeRating = new ComboBox
         {
             Font = new Font("Segoe UI", 10),
-            Dock = DockStyle.Left,
-            Width = 120,
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,

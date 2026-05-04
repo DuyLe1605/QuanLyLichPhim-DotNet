@@ -2,52 +2,52 @@ namespace BaiTapLon.Forms.Admin;
 
 public static class AdminLayouts
 {
-    public static TableLayoutPanel CreateManagementPage(string title, Control toolbar, Control content)
+    public static Panel CreateManagementPage(string title, Control toolbar, Control content)
     {
-        var layout = new TableLayoutPanel
+        var layout = new Panel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
             BackColor = Color.Transparent,
             Margin = Padding.Empty,
             Padding = Padding.Empty
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 120F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-        layout.Controls.Add(CreateHeader(title, toolbar), 0, 0);
-        layout.Controls.Add(content, 0, 1);
+        var pnlHeader = CreateHeader(title, toolbar);
+        content.Dock = DockStyle.Fill;
+
+        layout.Controls.Add(content);
+        layout.Controls.Add(pnlHeader);
+        pnlHeader.BringToFront();
         return layout;
     }
 
-    private static TableLayoutPanel CreateHeader(string title, Control toolbar)
+    private static Panel CreateHeader(string title, Control toolbar)
     {
-        var header = new TableLayoutPanel
+        var header = new Panel
         {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
+            Name = "pnlHeader",
+            Dock = DockStyle.Top,
+            Height = 120,
             BackColor = Color.Transparent,
             Padding = new Padding(0, 0, 0, 5),
             Margin = Padding.Empty
         };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
-        header.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-        header.Controls.Add(new Label
+        var titleLabel = new Label
         {
             Text = title,
             Font = AdminTheme.TitleFont,
             ForeColor = AdminTheme.TitleText,
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            Height = 50,
             TextAlign = ContentAlignment.MiddleLeft,
             Margin = Padding.Empty
-        }, 0, 0);
+        };
 
-        header.Controls.Add(toolbar, 0, 1);
+        toolbar.Dock = DockStyle.Fill;
+        header.Controls.Add(toolbar);
+        header.Controls.Add(titleLabel);
+        titleLabel.BringToFront();
         return header;
     }
 }

@@ -98,6 +98,10 @@ public class AppDbContext : DbContext
 
         // ===== Snack =====
         modelBuilder.Entity<Snack>()
+            .Property(s => s.ImagePath)
+            .HasMaxLength(260);
+
+        modelBuilder.Entity<Snack>()
             .Property(s => s.Price).HasPrecision(12, 2);
 
         // ===== InvoiceSnack =====
@@ -152,13 +156,13 @@ public class AppDbContext : DbContext
 
         // Sample Snacks
         modelBuilder.Entity<Snack>().HasData(
-            new Snack { Id = 1, Name = "Bắp rang bơ (Nhỏ)", Price = 49000, Category = "Food" },
-            new Snack { Id = 2, Name = "Bắp rang bơ (Lớn)", Price = 69000, Category = "Food" },
-            new Snack { Id = 3, Name = "Coca-Cola", Price = 29000, Category = "Drink" },
-            new Snack { Id = 4, Name = "Pepsi", Price = 29000, Category = "Drink" },
-            new Snack { Id = 5, Name = "Nước suối", Price = 15000, Category = "Drink" },
-            new Snack { Id = 6, Name = "Combo Couple (2 Bắp + 2 Nước)", Price = 129000, Category = "Combo" },
-            new Snack { Id = 7, Name = "Combo Single (1 Bắp + 1 Nước)", Price = 69000, Category = "Combo" }
+            new Snack { Id = 1, Name = "Bắp rang bơ (Nhỏ)", Price = 49000, Category = "Food", ImagePath = "popcorn-small.png" },
+            new Snack { Id = 2, Name = "Bắp rang bơ (Lớn)", Price = 69000, Category = "Food", ImagePath = "popcorn-large.png" },
+            new Snack { Id = 3, Name = "Coca-Cola", Price = 29000, Category = "Drink", ImagePath = "coca-cola.png" },
+            new Snack { Id = 4, Name = "Pepsi", Price = 29000, Category = "Drink", ImagePath = "pepsi.png" },
+            new Snack { Id = 5, Name = "Nước suối", Price = 15000, Category = "Drink", ImagePath = "water.png" },
+            new Snack { Id = 6, Name = "Combo Couple (2 Bắp + 2 Nước)", Price = 129000, Category = "Combo", ImagePath = "combo-couple.png" },
+            new Snack { Id = 7, Name = "Combo Single (1 Bắp + 1 Nước)", Price = 69000, Category = "Combo", ImagePath = "combo-single.png" }
         );
     }
 

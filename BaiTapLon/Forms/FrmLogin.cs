@@ -192,17 +192,17 @@ public class FrmLogin : Form
         y += 65;
 
         // Hint
-        var lblHint = new Label
-        {
-            Text = "Admin: admin / admin123\nStaff: staff / staff123",
-            Font = new Font("Segoe UI", 9),
-            ForeColor = Color.FromArgb(85, 85, 110),
-            AutoSize = false,
-            Size = new Size(340, 40),
-            Location = new Point(40, y),
-            TextAlign = ContentAlignment.MiddleCenter
-        };
-        pnlMain.Controls.Add(lblHint);
+        // var lblHint = new Label
+        // {
+        //     Text = "Admin: admin / admin123\nStaff: staff / staff123",
+        //     Font = new Font("Segoe UI", 9),
+        //     ForeColor = Color.FromArgb(85, 85, 110),
+        //     AutoSize = false,
+        //     Size = new Size(340, 40),
+        //     Location = new Point(40, y),
+        //     TextAlign = ContentAlignment.MiddleCenter
+        // };
+        // pnlMain.Controls.Add(lblHint);
 
         this.AcceptButton = btnLogin;
     }

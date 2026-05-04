@@ -6,6 +6,7 @@ public class Snack
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public string Category { get; set; } = "Food"; // "Food", "Drink", "Combo"
+    public string? ImagePath { get; set; }
     public bool IsActive { get; set; } = true;
 
     // Navigation

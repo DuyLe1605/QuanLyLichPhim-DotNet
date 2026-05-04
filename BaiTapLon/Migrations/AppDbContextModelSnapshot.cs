@@ -231,6 +231,10 @@ namespace BaiTapLon.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<string>("ImagePath")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -2545,6 +2549,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 1,
                             Category = "Food",
+                            ImagePath = "popcorn-small.png",
                             IsActive = true,
                             Name = "Bắp rang bơ (Nhỏ)",
                             Price = 49000m
@@ -2553,6 +2558,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 2,
                             Category = "Food",
+                            ImagePath = "popcorn-large.png",
                             IsActive = true,
                             Name = "Bắp rang bơ (Lớn)",
                             Price = 69000m
@@ -2561,6 +2567,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 3,
                             Category = "Drink",
+                            ImagePath = "coca-cola.png",
                             IsActive = true,
                             Name = "Coca-Cola",
                             Price = 29000m
@@ -2569,6 +2576,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 4,
                             Category = "Drink",
+                            ImagePath = "pepsi.png",
                             IsActive = true,
                             Name = "Pepsi",
                             Price = 29000m
@@ -2577,6 +2585,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 5,
                             Category = "Drink",
+                            ImagePath = "water.png",
                             IsActive = true,
                             Name = "Nước suối",
                             Price = 15000m
@@ -2585,6 +2594,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 6,
                             Category = "Combo",
+                            ImagePath = "combo-couple.png",
                             IsActive = true,
                             Name = "Combo Couple (2 Bắp + 2 Nước)",
                             Price = 129000m
@@ -2593,6 +2603,7 @@ namespace BaiTapLon.Migrations
                         {
                             Id = 7,
                             Category = "Combo",
+                            ImagePath = "combo-single.png",
                             IsActive = true,
                             Name = "Combo Single (1 Bắp + 1 Nước)",
                             Price = 69000m

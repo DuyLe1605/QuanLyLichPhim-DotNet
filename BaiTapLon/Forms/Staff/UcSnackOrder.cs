@@ -1,6 +1,7 @@
 using BaiTapLon.Helpers;
 using BaiTapLon.Models;
 using BaiTapLon.Services;
+using System.Drawing.Drawing2D;
 
 namespace BaiTapLon.Forms.Staff;
 
@@ -185,6 +186,10 @@ public class UcSnackOrder : UserControl
         dgvCart.DefaultCellStyle.ForeColor = Color.FromArgb(220, 220, 235);
         dgvCart.DefaultCellStyle.SelectionBackColor = Color.FromArgb(70, 60, 110);
         dgvCart.DefaultCellStyle.SelectionForeColor = Color.White;
+        dgvCart.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(32, 32, 50);
+        dgvCart.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(220, 220, 235);
+        dgvCart.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(70, 60, 110);
+        dgvCart.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.White;
         dgvCart.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(35, 35, 55);
         dgvCart.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(180, 180, 205);
         dgvCart.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9, FontStyle.Bold);
@@ -259,18 +264,107 @@ public class UcSnackOrder : UserControl
         var card = new Panel
         {
             Width = 178,
-            Height = 164,
+            Height = 210,
             Margin = new Padding(0, 0, 12, 12),
             BackColor = Color.FromArgb(30, 30, 48),
             Cursor = Cursors.Hand,
-            Tag = snack
+            Tag = snack,
+            Padding = new Padding(10)
         };
         card.Paint += (s, e) =>
         {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var path = CreateRoundRectPath(new Rectangle(0, 0, card.Width - 1, card.Height - 1), 10);
             using var pen = new Pen(Color.FromArgb(55, 55, 78));
-            e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
+            e.Graphics.DrawPath(pen, path);
+        };
+        card.Resize += (s, e) =>
+        {
+            using var path = CreateRoundRectPath(new Rectangle(0, 0, card.Width, card.Height), 10);
+            card.Region = new Region(path);
         };
         card.Click += SnackCard_Click;
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 3,
+            ColumnCount = 1,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+            Tag = snack,
+            Cursor = Cursors.Hand
+        };
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30F));
+        layout.Click += SnackCard_Click;
+
+        var imageHost = CreateSnackImageHost(snack);
+
+        var name = new Label
+        {
+            Text = snack.Name,
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(235, 235, 245),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = Padding.Empty,
+            Tag = snack,
+            Cursor = Cursors.Hand
+        };
+        name.Click += SnackCard_Click;
+
+        var price = new Label
+        {
+            Text = $"{snack.Price:N0} đ",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(80, 220, 120),
+            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            TextAlign = ContentAlignment.BottomLeft,
+            Margin = Padding.Empty,
+            Tag = snack,
+            Cursor = Cursors.Hand
+        };
+        price.Click += SnackCard_Click;
+
+        layout.Controls.Add(imageHost, 0, 0);
+        layout.Controls.Add(name, 0, 1);
+        layout.Controls.Add(price, 0, 2);
+        card.Controls.Add(layout);
+        return card;
+    }
+
+    private Control CreateSnackImageHost(Snack snack)
+    {
+        var imageHost = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(24, 24, 40),
+            Margin = new Padding(0, 0, 0, 8),
+            Tag = snack,
+            Cursor = Cursors.Hand
+        };
+        imageHost.Click += SnackCard_Click;
+
+        var image = LoadSnackImage(snack);
+        if (image != null)
+        {
+            var pic = new PictureBox
+            {
+                Image = image,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(24, 24, 40),
+                Tag = snack,
+                Cursor = Cursors.Hand
+            };
+            pic.Click += SnackCard_Click;
+            imageHost.Controls.Add(pic);
+            return imageHost;
+        }
 
         var color = snack.Category switch
         {
@@ -280,7 +374,7 @@ public class UcSnackOrder : UserControl
             _ => Color.FromArgb(100, 100, 130)
         };
 
-        var icon = new Label
+        var placeholder = new Label
         {
             Text = snack.Category switch
             {
@@ -289,8 +383,7 @@ public class UcSnackOrder : UserControl
                 "Combo" => "COMBO",
                 _ => "ITEM"
             },
-            Dock = DockStyle.Top,
-            Height = 54,
+            Dock = DockStyle.Fill,
             BackColor = color,
             ForeColor = Color.White,
             Font = new Font("Segoe UI", 12, FontStyle.Bold),
@@ -298,36 +391,49 @@ public class UcSnackOrder : UserControl
             Tag = snack,
             Cursor = Cursors.Hand
         };
-        icon.Click += SnackCard_Click;
+        placeholder.Click += SnackCard_Click;
+        imageHost.Controls.Add(placeholder);
+        return imageHost;
+    }
 
-        var name = new Label
+    private static Image? LoadSnackImage(Snack snack)
+    {
+        if (string.IsNullOrWhiteSpace(snack.ImagePath)) return null;
+
+        var candidates = new[]
         {
-            Text = snack.Name,
-            Location = new Point(10, 68),
-            Size = new Size(158, 44),
-            ForeColor = Color.FromArgb(235, 235, 245),
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Tag = snack,
-            Cursor = Cursors.Hand
+            Path.Combine(Application.StartupPath, "Resources", "Snacks", snack.ImagePath),
+            Path.Combine(Application.StartupPath, "Resources", snack.ImagePath)
         };
-        name.Click += SnackCard_Click;
 
-        var price = new Label
+        foreach (var path in candidates)
         {
-            Text = $"{snack.Price:N0} đ",
-            Location = new Point(10, 118),
-            Size = new Size(158, 28),
-            ForeColor = Color.FromArgb(80, 220, 120),
-            Font = new Font("Segoe UI", 11, FontStyle.Bold),
-            Tag = snack,
-            Cursor = Cursors.Hand
-        };
-        price.Click += SnackCard_Click;
+            if (!File.Exists(path)) continue;
 
-        card.Controls.Add(price);
-        card.Controls.Add(name);
-        card.Controls.Add(icon);
-        return card;
+            try
+            {
+                using var source = Image.FromFile(path);
+                return new Bitmap(source);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private static GraphicsPath CreateRoundRectPath(Rectangle bounds, int radius)
+    {
+        var path = new GraphicsPath();
+        var diameter = radius * 2;
+        path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     private void SnackCard_Click(object? sender, EventArgs e)
@@ -359,7 +465,7 @@ public class UcSnackOrder : UserControl
             .ToList();
 
         if (dgvCart.Columns.Contains("Id"))
-            dgvCart.Columns["Id"].Visible = false;
+            dgvCart.Columns["Id"]!.Visible = false;
 
         var minus = new DataGridViewButtonColumn
         {

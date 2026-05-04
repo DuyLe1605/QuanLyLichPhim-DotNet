@@ -122,12 +122,15 @@ public static class AdminControls
         grid.DefaultCellStyle.SelectionBackColor = AdminTheme.GridSelection;
         grid.DefaultCellStyle.SelectionForeColor = Color.White;
         grid.DefaultCellStyle.Padding = new Padding(5, 0, 5, 0);
+        grid.AlternatingRowsDefaultCellStyle.BackColor = AdminTheme.GridAltBack;
+        grid.AlternatingRowsDefaultCellStyle.ForeColor = AdminTheme.Text;
+        grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = AdminTheme.GridSelection;
+        grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.White;
         grid.ColumnHeadersDefaultCellStyle.BackColor = AdminTheme.GridHeaderBack;
         grid.ColumnHeadersDefaultCellStyle.ForeColor = AdminTheme.MutedText;
         grid.ColumnHeadersDefaultCellStyle.Font = AdminTheme.BodyBoldFont;
         grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(5, 0, 5, 0);
         grid.ColumnHeadersHeight = 42;
-        grid.AlternatingRowsDefaultCellStyle.BackColor = AdminTheme.GridAltBack;
         return grid;
     }
 }
