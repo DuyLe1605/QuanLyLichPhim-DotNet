@@ -6,6 +6,9 @@ public class Seat
     public int RoomId { get; set; }
     public string RowLabel { get; set; } = string.Empty; // "A", "B", "C"...
     public int SeatNumber { get; set; } // 1, 2, 3...
+    public int GridRow { get; set; }
+    public int GridColumn { get; set; }
+    public int GridSpan { get; set; } = 1;
     public string Type { get; set; } = "Standard"; // "Standard", "VIP", "Couple"
     public decimal PriceMultiplier { get; set; } = 1.0m; // 1.0, 1.5, 2.0
 

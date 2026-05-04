@@ -86,20 +86,23 @@ public class SeatMapControl : Control
             Id = s.Id,
             RowLabel = s.RowLabel,
             SeatNumber = s.SeatNumber,
+            GridRow = s.GridRow,
+            GridColumn = s.GridColumn,
+            GridSpan = Math.Max(1, s.GridSpan),
             Type = s.Type,
             PriceMultiplier = s.PriceMultiplier
         }).ToList();
 
         _soldSeatIds = soldIds;
         _selectedSeatIds.Clear();
-        _rows = rows;
-        _maxCols = cols;
+        _rows = Math.Max(rows, _seats.Count == 0 ? rows : _seats.Max(s => s.GridRow) + 1);
+        _maxCols = Math.Max(cols, _seats.Count == 0 ? cols : _seats.Max(s => s.GridColumn + Math.Max(1, s.GridSpan)));
         BasePrice = basePrice;
 
         // Build seats-per-row map
         _seatsPerRow = _seats
             .GroupBy(s => s.RowLabel)
-            .ToDictionary(g => g.Key, g => g.Max(s => s.SeatNumber));
+            .ToDictionary(g => g.Key, g => g.Count());
 
         // Auto-size control
         int w = RowLabelWidth + _maxCols * (CellSize + Gap) + Gap + RowLabelWidth + 20;
@@ -143,13 +146,19 @@ public class SeatMapControl : Control
         using var fontSeat = new Font("Segoe UI", 7.5f, FontStyle.Bold);
         using var fontRow = new Font("Segoe UI", 9f, FontStyle.Bold);
 
+        var seatsByGridRow = _seats
+            .GroupBy(s => s.GridRow)
+            .ToDictionary(gp => gp.Key, gp => gp.OrderBy(s => s.GridColumn).ToList());
+
         for (int r = 0; r < _rows; r++)
         {
-            string rowLabel = ((char)('A' + r)).ToString();
-            int rowSeatCount = _seatsPerRow.GetValueOrDefault(rowLabel, _maxCols);
+            if (!seatsByGridRow.TryGetValue(r, out var rowSeats) || rowSeats.Count == 0)
+                continue;
+
+            string rowLabel = rowSeats.First().RowLabel;
 
             // Offset X để căn giữa hàng ngắn hơn
-            int rowOffsetX = (_maxCols - rowSeatCount) * (CellSize + Gap) / 2;
+            int rowOffsetX = 0;
 
             // Row label bên trái
             var rowRectL = new RectangleF(
@@ -166,14 +175,13 @@ public class SeatMapControl : Control
             g.DrawString(rowLabel, fontRow, rowBrush, rowRectR,
                 new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
 
-            for (int c = 0; c < rowSeatCount; c++)
+            foreach (var seat in rowSeats)
             {
-                var seat = _seats.FirstOrDefault(s => s.RowLabel == rowLabel && s.SeatNumber == c + 1);
-                if (seat == null) continue;
-
-                float x = offsetX + RowLabelWidth + rowOffsetX + c * (CellSize + Gap);
+                int c = seat.SeatNumber - 1;
+                int span = Math.Max(1, seat.GridSpan);
+                float x = offsetX + RowLabelWidth + rowOffsetX + seat.GridColumn * (CellSize + Gap);
                 float y = ScreenMarginTop + r * (CellSize + Gap);
-                var rect = new RectangleF(x, y, CellSize, CellSize);
+                var rect = new RectangleF(x, y, span * CellSize + (span - 1) * Gap, CellSize);
 
                 // Xác định màu
                 Color fillColor = GetSeatColor(seat);
@@ -200,6 +208,7 @@ public class SeatMapControl : Control
 
                 // Text (số ghế)
                 string seatText = _soldSeatIds.Contains(seat.Id) ? "✕" : (c + 1).ToString();
+                seatText = _soldSeatIds.Contains(seat.Id) ? "×" : $"{seat.RowLabel}{seat.SeatNumber}";
                 Color textColor = _soldSeatIds.Contains(seat.Id)
                     ? Color.FromArgb(70, 70, 80)
                     : Color.White;
@@ -326,21 +335,15 @@ public class SeatMapControl : Control
         int totalWidth = RowLabelWidth + gridWidth + RowLabelWidth;
         int offsetX = Math.Max(0, (this.Width - totalWidth) / 2);
 
-        for (int r = 0; r < _rows; r++)
+        foreach (var seat in _seats)
         {
-            string rowLabel = ((char)('A' + r)).ToString();
-            int rowSeatCount = _seatsPerRow.GetValueOrDefault(rowLabel, _maxCols);
-            int rowOffsetX = (_maxCols - rowSeatCount) * (CellSize + Gap) / 2;
-
-            for (int c = 0; c < rowSeatCount; c++)
+            int span = Math.Max(1, seat.GridSpan);
+            float x = offsetX + RowLabelWidth + seat.GridColumn * (CellSize + Gap);
+            float y = ScreenMarginTop + seat.GridRow * (CellSize + Gap);
+            var rect = new RectangleF(x, y, span * CellSize + (span - 1) * Gap, CellSize);
+            if (rect.Contains(pt))
             {
-                float x = offsetX + RowLabelWidth + rowOffsetX + c * (CellSize + Gap);
-                float y = ScreenMarginTop + r * (CellSize + Gap);
-                var rect = new RectangleF(x, y, CellSize, CellSize);
-                if (rect.Contains(pt))
-                {
-                    return _seats.FirstOrDefault(s => s.RowLabel == rowLabel && s.SeatNumber == c + 1);
-                }
+                return seat;
             }
         }
         return null;
@@ -381,6 +384,9 @@ public class SeatMapControl : Control
         public int Id { get; set; }
         public string RowLabel { get; set; } = "";
         public int SeatNumber { get; set; }
+        public int GridRow { get; set; }
+        public int GridColumn { get; set; }
+        public int GridSpan { get; set; } = 1;
         public string Type { get; set; } = "Standard";
         public decimal PriceMultiplier { get; set; } = 1.0m;
     }

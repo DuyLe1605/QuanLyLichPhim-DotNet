@@ -201,7 +201,8 @@ BaiTapLon/
     │   │   ├── UcMovieManagement.cs        ✅ Phase 2
     │   │   ├── DlgMovieEdit.cs             ✅ Phase 2
     │   │   ├── UcRoomManagement.cs         ✅ Phase 2
-    │   │   ├── DlgRoomEdit.cs              ✅ Phase 2
+    │   │   ├── DlgRoomEdit.cs              ✅ Phase 2 + Phase 5.5
+    │   │   ├── DlgSeatBuilder.cs           ✅ Phase 5.5 (custom seat map grid)
     │   │   ├── UcShowtimeManagement.cs     ✅ Phase 2
     │   │   ├── DlgShowtimeEdit.cs          ✅ Phase 2
     │   │   ├── UcStaffManagement.cs        ✅ Phase 2
@@ -356,6 +357,11 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
     - [x] Mỗi hàng: Label (A-Z), Số ghế (variable), Loại (Standard/VIP/Couple), Hệ số giá
     - [x] Nút Thêm hàng / Xóa hàng + tổng kết realtime
     - [x] Hỗ trợ số ghế khác nhau mỗi hàng (VD: hàng A=10, hàng B=12)
+  - [x] `DlgSeatBuilder.cs` — Seat Map Builder dạng lưới cho phòng có lối đi/khoảng trống/ghế đôi
+    - [x] Lưu tọa độ `GridRow`, `GridColumn`, `GridSpan` cho từng ghế
+    - [x] Toolbar chọn `Standard`, `VIP`, `Couple`, `Xóa/Lối đi`
+    - [x] Auto-label khi lưu: quét trái sang phải, bỏ ô trống, sinh mã ghế A1, A2...
+    - [x] Tương thích chế độ nhanh `RowConfig` cũ
 
 **2.3 — ShowtimeService + UcShowtimeManagement ⭐** ✅
 - [x] Tạo `ShowtimeService.cs`
@@ -452,6 +458,7 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 - [x] Fix lỗi layout chồng chéo bằng `TableLayoutPanel`, `FlowLayoutPanel`, `Dock=Fill`, toolbar có wrap.
 - [x] Thêm `Forms/Controls/SeatLayoutPreviewControl.cs` — preview sơ đồ ghế read-only kiểu rạp phim:
   - [x] Vẽ màn hình, hàng ghế, nhãn hàng trái/phải, số ghế thực tế
+  - [x] Hiển thị mã ghế đầy đủ trong ô (`H4`, `J9`) và đọc tọa độ grid custom
   - [x] Màu phân biệt ghế thường, VIP, ghế đôi
   - [x] Preview live trong `DlgRoomEdit` khi cấu hình hàng ghế
   - [x] Preview bên phải trong `UcRoomManagement` khi chọn phòng
@@ -523,6 +530,12 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 - [x] Chống race condition bán ghế trong `InvoiceService.CreateAsync()`:
   - [x] Double-check ghế đã bán trong transaction trước khi lưu invoice/tickets/snacks
   - [x] Thêm unique index `(ShowtimeId, SeatId)` và transaction `Serializable` để chặn commit trùng khi 2 máy bán cùng ghế sát thời điểm
+- [x] Seat Map Builder thực tế cho phòng chiếu không đều:
+  - [x] `Seat` có `GridRow`, `GridColumn`, `GridSpan`
+  - [x] Migration `AddSeatGridCoordinates`
+  - [x] `SeatMapControl` render/hit-test theo tọa độ grid thay vì ma trận đều
+  - [x] `DlgRoomEdit` mở builder từ cấu hình hàng hiện tại và lưu custom layout
+  - [x] `RoomService.CreateAsync()` hỗ trợ tạo ghế từ custom layout hoặc `RowConfig`
 
 ### Phase 6: Hoàn Thiện & Polish
 

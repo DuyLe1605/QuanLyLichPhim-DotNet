@@ -25,25 +25,56 @@ public class RoomService
     /// <summary>
     /// Tạo phòng với cấu hình ghế theo từng hàng (variable columns per row).
     /// </summary>
-    public async Task<(bool Success, string Message)> CreateAsync(Room room, List<RowConfig> rowConfigs)
+    public async Task<(bool Success, string Message)> CreateAsync(Room room, List<RowConfig> rowConfigs, List<SeatLayoutItem>? seatLayoutItems = null)
     {
         if (string.IsNullOrWhiteSpace(room.Name))
             return (false, "Tên phòng không được để trống!");
 
-        if (rowConfigs.Count == 0)
+        if (rowConfigs.Count == 0 && (seatLayoutItems == null || seatLayoutItems.Count == 0))
             return (false, "Chưa có hàng ghế nào!");
 
         // Tính lại TotalSeats & Columns từ RowConfigs
-        room.TotalSeats = rowConfigs.Sum(r => r.SeatCount);
-        room.Rows = rowConfigs.Count;
-        room.Columns = rowConfigs.Max(r => r.SeatCount);
+        if (seatLayoutItems is { Count: > 0 })
+        {
+            room.TotalSeats = seatLayoutItems.Count;
+            room.Rows = seatLayoutItems.Max(s => s.GridRow) + 1;
+            room.Columns = seatLayoutItems.Max(s => s.GridColumn + Math.Max(1, s.GridSpan));
+        }
+        else
+        {
+            room.TotalSeats = rowConfigs.Sum(r => r.SeatCount);
+            room.Rows = rowConfigs.Count;
+            room.Columns = rowConfigs.Max(r => r.SeatCount);
+        }
 
         _context.Rooms.Add(room);
         await _context.SaveChangesAsync();
 
         // Tạo ghế theo từng hàng
-        foreach (var config in rowConfigs)
+        if (seatLayoutItems is { Count: > 0 })
         {
+            foreach (var item in seatLayoutItems)
+            {
+                _context.Seats.Add(new Seat
+                {
+                    RoomId = room.Id,
+                    RowLabel = item.RowLabel,
+                    SeatNumber = item.SeatNumber,
+                    GridRow = item.GridRow,
+                    GridColumn = item.GridColumn,
+                    GridSpan = Math.Max(1, item.GridSpan),
+                    Type = item.SeatType,
+                    PriceMultiplier = item.PriceMultiplier
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return (true, $"Táº¡o phÃ²ng thÃ nh cÃ´ng! ({room.Rows} hÃ ng, {room.TotalSeats} gháº¿)");
+        }
+
+        for (int rowIndex = 0; rowIndex < rowConfigs.Count; rowIndex++)
+        {
+            var config = rowConfigs[rowIndex];
             for (int c = 1; c <= config.SeatCount; c++)
             {
                 _context.Seats.Add(new Seat
@@ -51,6 +82,9 @@ public class RoomService
                     RoomId = room.Id,
                     RowLabel = config.RowLabel,
                     SeatNumber = c,
+                    GridRow = rowIndex,
+                    GridColumn = c - 1,
+                    GridSpan = 1,
                     Type = config.SeatType,
                     PriceMultiplier = config.PriceMultiplier
                 });

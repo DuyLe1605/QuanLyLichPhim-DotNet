@@ -48,12 +48,14 @@ public class SeatLayoutPreviewControl : Control
     {
         _seats.Clear();
         int id = 1;
+        int gridRow = 0;
         foreach (var row in rows.Where(r => r.SeatCount > 0).OrderBy(r => r.RowLabel))
         {
             for (int i = 1; i <= row.SeatCount; i++)
             {
-                _seats.Add(new PreviewSeat(id++, row.RowLabel, i, row.SeatType));
+                _seats.Add(new PreviewSeat(id++, row.RowLabel, i, row.SeatType, gridRow, i - 1, 1));
             }
+            gridRow++;
         }
 
         if (!string.IsNullOrWhiteSpace(title))
@@ -69,7 +71,7 @@ public class SeatLayoutPreviewControl : Control
         _seats.AddRange(seats
             .OrderBy(s => s.RowLabel)
             .ThenBy(s => s.SeatNumber)
-            .Select(s => new PreviewSeat(s.Id, s.RowLabel, s.SeatNumber, s.Type)));
+            .Select(s => new PreviewSeat(s.Id, s.RowLabel, s.SeatNumber, s.Type, s.GridRow, s.GridColumn, Math.Max(1, s.GridSpan))));
 
         if (!string.IsNullOrWhiteSpace(title))
             _title = title;
@@ -111,14 +113,14 @@ public class SeatLayoutPreviewControl : Control
             return;
         }
 
-        var rows = _seats.GroupBy(s => s.RowLabel).OrderBy(gp => gp.Key).ToList();
-        int maxSeats = rows.Max(gp => gp.Max(s => s.SeatNumber));
-        int gridWidth = maxSeats * SeatW + Math.Max(0, maxSeats - 1) * Gap;
+        var rows = _seats.GroupBy(s => s.GridRow).OrderBy(gp => gp.Key).ToList();
+        int maxColumns = _seats.Max(s => s.GridColumn + Math.Max(1, s.GridSpan));
+        int gridWidth = maxColumns * SeatW + Math.Max(0, maxColumns - 1) * Gap;
         int totalWidth = RowLabelWidth + gridWidth + RowLabelWidth;
         int startX = Math.Max(12, (Width - totalWidth) / 2);
 
         DrawScreen(g, startX + RowLabelWidth, gridWidth);
-        DrawSeats(g, rows, maxSeats, startX, gridWidth);
+        DrawSeats(g, rows, startX, gridWidth);
         DrawLegend(g);
     }
 
@@ -148,7 +150,7 @@ public class SeatLayoutPreviewControl : Control
             new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
     }
 
-    private void DrawSeats(Graphics g, List<IGrouping<string, PreviewSeat>> rows, int maxSeats, int startX, int gridWidth)
+    private void DrawSeats(Graphics g, List<IGrouping<int, PreviewSeat>> rows, int startX, int gridWidth)
     {
         using var rowFont = new Font("Segoe UI", 8.5f, FontStyle.Bold);
         using var seatFont = new Font("Segoe UI", 6.4f, FontStyle.Bold);
@@ -157,11 +159,8 @@ public class SeatLayoutPreviewControl : Control
 
         for (int r = 0; r < rows.Count; r++)
         {
-            var row = rows[r].OrderBy(s => s.SeatNumber).ToList();
-            string rowLabel = rows[r].Key;
-            int rowSeatCount = row.Count;
-            int rowGridWidth = rowSeatCount * SeatW + Math.Max(0, rowSeatCount - 1) * Gap;
-            int rowStartX = startX + RowLabelWidth + (gridWidth - rowGridWidth) / 2;
+            var row = rows[r].OrderBy(s => s.GridColumn).ToList();
+            string rowLabel = row.First().RowLabel;
             int y = SeatsTop + r * (SeatH + Gap);
 
             var leftLabel = new RectangleF(startX, y, RowLabelWidth - 4, SeatH);
@@ -169,10 +168,14 @@ public class SeatLayoutPreviewControl : Control
             g.DrawString(rowLabel, rowFont, rowBrush, leftLabel, textFormat);
             g.DrawString(rowLabel, rowFont, rowBrush, rightLabel, textFormat);
 
-            for (int c = 0; c < row.Count; c++)
+            foreach (var seat in row)
             {
-                var seat = row[c];
-                var rect = new RectangleF(rowStartX + c * (SeatW + Gap), y, SeatW, SeatH);
+                int span = Math.Max(1, seat.GridSpan);
+                var rect = new RectangleF(
+                    startX + RowLabelWidth + seat.GridColumn * (SeatW + Gap),
+                    y,
+                    span * SeatW + (span - 1) * Gap,
+                    SeatH);
                 using var seatBrush = new SolidBrush(GetSeatColor(seat.Type));
                 using var path = RoundedRect(rect, 4);
                 g.FillPath(seatBrush, path);
@@ -214,9 +217,9 @@ public class SeatLayoutPreviewControl : Control
     {
         if (_seats.Count == 0) return;
 
-        var rows = _seats.GroupBy(s => s.RowLabel).ToList();
-        int maxSeats = rows.Max(g => g.Count());
-        int width = RowLabelWidth * 2 + maxSeats * (SeatW + Gap) + 40;
+        var rows = _seats.GroupBy(s => s.GridRow).ToList();
+        int maxColumns = _seats.Max(s => s.GridColumn + Math.Max(1, s.GridSpan));
+        int width = RowLabelWidth * 2 + maxColumns * (SeatW + Gap) + 40;
         int height = SeatsTop + rows.Count * (SeatH + Gap) + 54;
         MinimumSize = new Size(Math.Max(280, width), Math.Max(260, height));
     }
@@ -242,5 +245,5 @@ public class SeatLayoutPreviewControl : Control
 
     public record SeatPreviewRow(string RowLabel, int SeatCount, string SeatType);
 
-    private record PreviewSeat(int Id, string RowLabel, int SeatNumber, string Type);
+    private record PreviewSeat(int Id, string RowLabel, int SeatNumber, string Type, int GridRow, int GridColumn, int GridSpan);
 }

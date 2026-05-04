@@ -212,6 +212,9 @@ public class AppDbContext : DbContext
                     RoomId = roomId,
                     RowLabel = rowLabel,
                     SeatNumber = c,
+                    GridRow = r,
+                    GridColumn = c - 1,
+                    GridSpan = 1,
                     Type = seatType,
                     PriceMultiplier = multiplier
                 });

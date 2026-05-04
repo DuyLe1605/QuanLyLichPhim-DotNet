@@ -14,6 +14,17 @@ public class RowConfig
     public decimal PriceMultiplier { get; set; } = 1.0m;
 }
 
+public class SeatLayoutItem
+{
+    public string RowLabel { get; set; } = "A";
+    public int SeatNumber { get; set; }
+    public int GridRow { get; set; }
+    public int GridColumn { get; set; }
+    public int GridSpan { get; set; } = 1;
+    public string SeatType { get; set; } = "Standard";
+    public decimal PriceMultiplier { get; set; } = 1.0m;
+}
+
 /// <summary>
 /// Dialog tạo/sửa phòng chiếu — cấu hình ghế theo từng hàng.
 /// </summary>
@@ -25,9 +36,11 @@ public class DlgRoomEdit : Form
     private Label lblSummary = null!;
     private SeatLayoutPreviewControl seatPreview = null!;
     private ErrorProvider errorProvider = null!;
+    private List<SeatLayoutItem> _customSeatLayout = new();
 
     public Room RoomData { get; private set; } = new();
     public List<RowConfig> RowConfigs { get; private set; } = new();
+    public List<SeatLayoutItem> SeatLayoutItems { get; private set; } = new();
 
     private readonly Room? _edit;
 
@@ -42,9 +55,10 @@ public class DlgRoomEdit : Form
     {
         bool isNew = _edit == null;
         this.Text = isNew ? "Thêm phòng chiếu" : "Sửa phòng";
-        this.ClientSize = new Size(980, 600);
+        this.ClientSize = new Size(1120, 640);
+        this.MinimumSize = new Size(1080, 620);
         this.StartPosition = FormStartPosition.CenterParent;
-        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = false;
         this.MinimizeBox = false;
         this.BackColor = Color.FromArgb(24, 24, 40);
@@ -123,13 +137,29 @@ public class DlgRoomEdit : Form
         btnRemoveRow.FlatAppearance.BorderSize = 0;
         btnRemoveRow.Click += BtnRemoveRow_Click;
         this.Controls.Add(btnRemoveRow);
+
+        var btnBuilder = new Button
+        {
+            Text = "Thiết kế sơ đồ",
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            Size = new Size(140, 30),
+            Location = new Point(290, y),
+            BackColor = Color.FromArgb(80, 60, 200),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            Enabled = isNew
+        };
+        btnBuilder.FlatAppearance.BorderSize = 0;
+        btnBuilder.Click += BtnSeatBuilder_Click;
+        this.Controls.Add(btnBuilder);
         y += 38;
 
         // === DataGridView for row configs ===
         dgvRows = new DataGridView
         {
             Location = new Point(x1, y),
-            Size = new Size(575, 230),
+            Size = new Size(520, 260),
             BackgroundColor = Color.FromArgb(26, 26, 44),
             GridColor = Color.FromArgb(45, 45, 65),
             BorderStyle = BorderStyle.FixedSingle,
@@ -184,21 +214,21 @@ public class DlgRoomEdit : Form
         });
 
         this.Controls.Add(dgvRows);
-        y += 240;
+        y += 270;
 
         this.Controls.Add(new Label
         {
             Text = "Preview sơ đồ ghế",
             Font = new Font("Segoe UI", 12, FontStyle.Bold),
             ForeColor = Color.FromArgb(100, 80, 255),
-            Location = new Point(620, 20),
+            Location = new Point(690, 20),
             AutoSize = true
         });
 
         seatPreview = new SeatLayoutPreviewControl
         {
-            Location = new Point(620, 55),
-            Size = new Size(330, 480),
+            Location = new Point(690, 55),
+            Size = new Size(390, 520),
             Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom
         };
         this.Controls.Add(seatPreview);
@@ -309,6 +339,63 @@ public class DlgRoomEdit : Form
         UpdateSummary();
     }
 
+    private void BtnSeatBuilder_Click(object? s, EventArgs e)
+    {
+        using var dlg = new DlgSeatBuilder(BuildLayoutItemsFromGrid());
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        _customSeatLayout = dlg.SeatLayoutItems;
+        ApplyLayoutSummaryToGrid(_customSeatLayout);
+        UpdateSummary();
+    }
+
+    private List<SeatLayoutItem> BuildLayoutItemsFromGrid()
+    {
+        var items = new List<SeatLayoutItem>();
+        for (int r = 0; r < dgvRows.Rows.Count; r++)
+        {
+            var row = dgvRows.Rows[r];
+            string label = row.Cells["colLabel"].Value?.ToString() ?? ((char)('A' + r)).ToString();
+            int.TryParse(row.Cells["colSeats"].Value?.ToString(), out int seats);
+            if (seats <= 0) seats = 10;
+
+            string type = row.Cells["colType"].Value?.ToString() ?? "Standard";
+            decimal.TryParse(row.Cells["colMultiplier"].Value?.ToString(), out decimal mult);
+            if (mult <= 0) mult = type switch
+            {
+                "VIP" => 1.5m,
+                "Couple" => 2.0m,
+                _ => 1.0m
+            };
+
+            for (int c = 0; c < seats; c++)
+            {
+                items.Add(new SeatLayoutItem
+                {
+                    RowLabel = label,
+                    SeatNumber = c + 1,
+                    GridRow = r,
+                    GridColumn = c,
+                    GridSpan = 1,
+                    SeatType = type,
+                    PriceMultiplier = mult
+                });
+            }
+        }
+
+        return items;
+    }
+
+    private void ApplyLayoutSummaryToGrid(List<SeatLayoutItem> items)
+    {
+        dgvRows.Rows.Clear();
+        foreach (var group in items.GroupBy(i => i.RowLabel).OrderBy(g => g.Min(i => i.GridRow)))
+        {
+            var first = group.OrderBy(i => i.GridColumn).First();
+            dgvRows.Rows.Add(group.Key, group.Count(), first.SeatType, first.PriceMultiplier);
+        }
+    }
+
     private void UpdateSummary()
     {
         int totalSeats = 0;
@@ -324,6 +411,22 @@ public class DlgRoomEdit : Form
     private void UpdateSeatPreview()
     {
         if (seatPreview == null) return;
+
+        if (_customSeatLayout.Count > 0)
+        {
+            var previewSeats = _customSeatLayout.Select((item, index) => new Seat
+            {
+                Id = index + 1,
+                RowLabel = item.RowLabel,
+                SeatNumber = item.SeatNumber,
+                Type = item.SeatType,
+                GridRow = item.GridRow,
+                GridColumn = item.GridColumn,
+                GridSpan = item.GridSpan
+            });
+            seatPreview.SetSeats(previewSeats, $"Sơ đồ {txtName.Text.Trim()}");
+            return;
+        }
 
         var rows = new List<SeatLayoutPreviewControl.SeatPreviewRow>();
         for (int i = 0; i < dgvRows.Rows.Count; i++)
@@ -367,40 +470,65 @@ public class DlgRoomEdit : Form
 
         // Build RowConfigs
         RowConfigs.Clear();
+        SeatLayoutItems.Clear();
         int totalSeats = 0;
         int maxCols = 0;
 
-        for (int i = 0; i < dgvRows.Rows.Count; i++)
+        if (_customSeatLayout.Count > 0)
         {
-            var row = dgvRows.Rows[i];
-            string label = row.Cells["colLabel"].Value?.ToString() ?? ((char)('A' + i)).ToString();
-            int seats = 10;
-            int.TryParse(row.Cells["colSeats"].Value?.ToString(), out seats);
-            string type = row.Cells["colType"].Value?.ToString() ?? "Standard";
-            decimal mult = 1.0m;
-            decimal.TryParse(row.Cells["colMultiplier"].Value?.ToString(), out mult);
+            SeatLayoutItems = _customSeatLayout
+                .OrderBy(i => i.GridRow)
+                .ThenBy(i => i.GridColumn)
+                .ToList();
 
-            if (seats < 1) seats = 1;
-            if (seats > 30) seats = 30;
-            if (mult <= 0) mult = 1.0m;
-
-            RowConfigs.Add(new RowConfig
+            totalSeats = SeatLayoutItems.Count;
+            maxCols = SeatLayoutItems.Max(i => i.GridColumn + Math.Max(1, i.GridSpan));
+            RowConfigs = SeatLayoutItems
+                .GroupBy(i => i.RowLabel)
+                .OrderBy(g => g.Min(i => i.GridRow))
+                .Select(g => new RowConfig
+                {
+                    RowLabel = g.Key,
+                    SeatCount = g.Count(),
+                    SeatType = g.First().SeatType,
+                    PriceMultiplier = g.First().PriceMultiplier
+                })
+                .ToList();
+        }
+        else
+        {
+            for (int i = 0; i < dgvRows.Rows.Count; i++)
             {
-                RowLabel = label,
-                SeatCount = seats,
-                SeatType = type,
-                PriceMultiplier = mult
-            });
+                var row = dgvRows.Rows[i];
+                string label = row.Cells["colLabel"].Value?.ToString() ?? ((char)('A' + i)).ToString();
+                int seats = 10;
+                int.TryParse(row.Cells["colSeats"].Value?.ToString(), out seats);
+                string type = row.Cells["colType"].Value?.ToString() ?? "Standard";
+                decimal mult = 1.0m;
+                decimal.TryParse(row.Cells["colMultiplier"].Value?.ToString(), out mult);
 
-            totalSeats += seats;
-            if (seats > maxCols) maxCols = seats;
+                if (seats < 1) seats = 1;
+                if (seats > 30) seats = 30;
+                if (mult <= 0) mult = 1.0m;
+
+                RowConfigs.Add(new RowConfig
+                {
+                    RowLabel = label,
+                    SeatCount = seats,
+                    SeatType = type,
+                    PriceMultiplier = mult
+                });
+
+                totalSeats += seats;
+                if (seats > maxCols) maxCols = seats;
+            }
         }
 
         RoomData = new Room
         {
             Name = txtName.Text.Trim(),
             Type = cboType.SelectedItem?.ToString() ?? "2D",
-            Rows = RowConfigs.Count,
+            Rows = SeatLayoutItems.Count > 0 ? SeatLayoutItems.Max(i => i.GridRow) + 1 : RowConfigs.Count,
             Columns = maxCols,
             TotalSeats = totalSeats,
             IsActive = true
