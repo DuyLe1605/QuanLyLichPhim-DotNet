@@ -5,6 +5,10 @@ namespace BaiTapLon.Forms;
 public class FrmMain : Form
 {
     private Panel pnlSidebar = null!;
+    private Panel pnlSidebarMenu = null!;
+    private Panel pnlSidebarFooter = null!;
+    private Panel pnlUserDropdown = null!;
+    private Button btnUserNav = null!;
     private Panel pnlHeader = null!;
     private Panel pnlContent = null!;
     private Panel pnlTitleBar = null!;
@@ -28,6 +32,7 @@ public class FrmMain : Form
         this.FormBorderStyle = FormBorderStyle.None;
         this.BackColor = Color.FromArgb(18, 18, 30);
         this.DoubleBuffered = true;
+        this.WindowState = FormWindowState.Maximized;
 
         // ===== Title Bar =====
         pnlTitleBar = new Panel
@@ -124,6 +129,27 @@ public class FrmMain : Form
         var sep = new Panel { Size = new Size(200, 1), Location = new Point(25, 132), BackColor = Color.FromArgb(40, 40, 60) };
         pnlSidebar.Controls.Add(sep);
 
+        pnlSidebarFooter = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 100,
+            BackColor = Color.FromArgb(20, 20, 35),
+            Padding = new Padding(0, 0, 0, 8)
+        };
+        pnlSidebar.Controls.Add(pnlSidebarFooter);
+
+        pnlSidebarMenu = new Panel
+        {
+            Location = new Point(0, 145),
+            Size = new Size(250, Math.Max(120, pnlSidebar.ClientSize.Height - 245)),
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            BackColor = Color.Transparent,
+            AutoScroll = true,
+            Padding = new Padding(0, 10, 0, 10)
+        };
+        pnlSidebar.Controls.Add(pnlSidebarMenu);
+        pnlSidebar.Resize += (s, e) => ResizeSidebarMenu();
+
         // ===== Header =====
         pnlHeader = new Panel
         {
@@ -163,46 +189,165 @@ public class FrmMain : Form
 
     private void SetupMenuByRole()
     {
-        int yPos = 155;
-
         if (SessionManager.IsAdmin)
         {
-            AddMenuButton("📊  Tổng quan", yPos, "Dashboard"); yPos += 48;
-            AddMenuButton("🎬  Quản lý phim", yPos, "Movies"); yPos += 48;
-            AddMenuButton("🏠  Phòng chiếu", yPos, "Rooms"); yPos += 48;
-            AddMenuButton("📅  Lịch chiếu", yPos, "Showtimes"); yPos += 48;
-            AddMenuButton("🍿  Bắp nước", yPos, "Snacks"); yPos += 48;
-            AddMenuButton("👥  Nhân viên", yPos, "Staff"); yPos += 48;
-            AddMenuButton("👤  Khách hàng", yPos, "Customers"); yPos += 48;
+            AddMenuButton("📊  Tổng quan", "Dashboard");
+            AddMenuButton("🎬  Quản lý phim", "Movies");
+            AddMenuButton("🏠  Phòng chiếu", "Rooms");
+            AddMenuButton("📅  Lịch chiếu", "Showtimes");
+            AddMenuButton("🍿  Bắp nước", "Snacks");
+            AddMenuButton("👥  Nhân viên", "Staff");
+            AddMenuButton("👤  Khách hàng", "Customers");
+            AddMenuButton("📄  Hóa đơn", "Invoices");
         }
         else
         {
-            AddMenuButton("🎬  Phim đang chiếu", yPos, "NowShowing"); yPos += 48;
-            AddMenuButton("🎟️  Bán vé", yPos, "SellTicket"); yPos += 48;
+            AddMenuButton("🎬  Phim đang chiếu", "NowShowing");
+            AddMenuButton("🎟️  Bán vé", "SellTicket");
+            AddMenuButton("📄  Hóa đơn", "Invoices");
         }
 
-        // Logout ở cuối sidebar
+        CreateUserNav();
+    }
+
+    private void CreateUserNav()
+    {
+        pnlSidebarFooter.Controls.Clear();
+
+        pnlUserDropdown = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 0,
+            BackColor = Color.FromArgb(25, 25, 43),
+            Visible = false,
+            Padding = new Padding(10, 6, 10, 6)
+        };
+        pnlSidebarFooter.Controls.Add(pnlUserDropdown);
+
+        var btnProfile = CreateUserDropdownButton("Thông tin tài khoản", (s, e) => ShowCurrentUserInfo());
+        var btnMyInvoices = CreateUserDropdownButton("Hóa đơn của tôi", (s, e) =>
+        {
+            ToggleUserDropdown(false);
+            LoadModule("Invoices");
+        });
+        pnlUserDropdown.Controls.Add(btnMyInvoices);
+        pnlUserDropdown.Controls.Add(btnProfile);
+
+        btnUserNav = new Button
+        {
+            Text = BuildUserNavText(false),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            Height = 48,
+            Dock = DockStyle.Top,
+            BackColor = Color.FromArgb(31, 31, 50),
+            ForeColor = Color.FromArgb(220, 220, 238),
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(18, 0, 8, 0)
+        };
+        btnUserNav.FlatAppearance.BorderSize = 0;
+        btnUserNav.FlatAppearance.MouseOverBackColor = Color.FromArgb(42, 42, 66);
+        btnUserNav.Click += (s, e) => ToggleUserDropdown(!pnlUserDropdown.Visible);
+        pnlSidebarFooter.Controls.Add(btnUserNav);
+
         var btnSideLogout = new Button
         {
             Text = "🚪  Đăng xuất",
             Font = new Font("Segoe UI", 10),
-            Size = new Size(250, 44),
+            Height = 44,
+            Dock = DockStyle.Top,
             BackColor = Color.FromArgb(20, 20, 35),
             ForeColor = Color.FromArgb(210, 90, 90),
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(22, 0, 0, 0),
-            Dock = DockStyle.Bottom
+            Padding = new Padding(22, 0, 0, 0)
         };
         btnSideLogout.FlatAppearance.BorderSize = 0;
         btnSideLogout.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 25, 25);
         btnSideLogout.Click += BtnLogout_Click;
-        pnlSidebar.Controls.Add(btnSideLogout);
+        pnlSidebarFooter.Controls.Add(btnSideLogout);
+        btnSideLogout.BringToFront();
+        btnUserNav.BringToFront();
+        ResizeSidebarMenu();
     }
 
-    private void AddMenuButton(string text, int yPos, string tag)
+    private Button CreateUserDropdownButton(string text, EventHandler click)
     {
+        var button = new Button
+        {
+            Text = text,
+            Font = new Font("Segoe UI", 9.5f),
+            Height = 30,
+            Dock = DockStyle.Top,
+            BackColor = Color.Transparent,
+            ForeColor = Color.FromArgb(185, 185, 210),
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(12, 0, 0, 0)
+        };
+        button.FlatAppearance.BorderSize = 0;
+        button.FlatAppearance.MouseOverBackColor = Color.FromArgb(38, 38, 58);
+        button.Click += click;
+        return button;
+    }
+
+    private void ToggleUserDropdown(bool show)
+    {
+        pnlUserDropdown.Visible = show;
+        pnlUserDropdown.Height = show ? 72 : 0;
+        pnlSidebarFooter.Height = show ? 172 : 100;
+        btnUserNav.Text = BuildUserNavText(show);
+        ResizeSidebarMenu();
+    }
+
+    private void ShowCurrentUserInfo()
+    {
+        ToggleUserDropdown(false);
+        var user = SessionManager.CurrentUser;
+        if (user == null) return;
+
+        MessageBox.Show(
+            $"Họ tên: {user.FullName}\nTài khoản: {user.Username}\nVai trò: {user.Role}\nSĐT: {user.Phone ?? "-"}",
+            "Thông tin tài khoản",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private string BuildUserNavText(bool expanded)
+    {
+        var name = SessionManager.CurrentUser?.FullName ?? "User";
+        if (name.Length > 19)
+            name = name[..18] + "...";
+
+        return $"{GetInitials(SessionManager.CurrentUser?.FullName)}  {name}    {(expanded ? "▴" : "▾")}";
+    }
+
+    private static string GetInitials(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            return "U";
+
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+            return parts[0][0].ToString().ToUpper();
+
+        return (parts[0][0].ToString() + parts[^1][0]).ToUpper();
+    }
+
+    private void ResizeSidebarMenu()
+    {
+        if (pnlSidebarMenu == null || pnlSidebarFooter == null)
+            return;
+
+        pnlSidebarMenu.Height = Math.Max(90, pnlSidebar.ClientSize.Height - pnlSidebarMenu.Top - pnlSidebarFooter.Height);
+    }
+
+    private void AddMenuButton(string text, string tag)
+    {
+        var yPos = _menuButtons.Count * 48;
         var btn = new Button
         {
             Text = text,
@@ -210,18 +355,21 @@ public class FrmMain : Form
             Font = new Font("Segoe UI", 11),
             Size = new Size(250, 44),
             Location = new Point(0, yPos),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             BackColor = Color.FromArgb(20, 20, 35),
             ForeColor = Color.FromArgb(175, 175, 200),
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(22, 0, 0, 0)
+            Padding = new Padding(22, 0, 0, 0),
+            Margin = Padding.Empty
         };
         btn.FlatAppearance.BorderSize = 0;
         btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(35, 35, 55);
         btn.Click += MenuButton_Click;
-        pnlSidebar.Controls.Add(btn);
+        pnlSidebarMenu.Controls.Add(btn);
         _menuButtons.Add(btn);
+        pnlSidebarMenu.AutoScrollMinSize = new Size(0, _menuButtons.Count * 48 + 20);
     }
 
     private void MenuButton_Click(object? sender, EventArgs e)
@@ -254,6 +402,7 @@ public class FrmMain : Form
             "Snacks" => new Admin.UcSnackManagement(),
             "Staff" => new Admin.UcStaffManagement(),
             "Customers" => new Admin.UcCustomerManagement(),
+            "Invoices" => new Admin.UcInvoiceManagement(),
             "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
         };

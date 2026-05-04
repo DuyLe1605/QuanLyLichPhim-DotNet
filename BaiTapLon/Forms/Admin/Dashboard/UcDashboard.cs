@@ -7,221 +7,293 @@ using SkiaSharp;
 
 namespace BaiTapLon.Forms.Admin;
 
-/// <summary>
-/// Dashboard thống kê: tổng quan + biểu đồ doanh thu, top phim, tỷ lệ lấp đầy.
-/// </summary>
 public class UcDashboard : UserControl
 {
-    // === Stats cards ===
+    private readonly List<Label> _sectionTitles = new();
+    private readonly List<Panel> _statCards = new();
+
+    private Panel scrollHost = null!;
+    private TableLayoutPanel root = null!;
+    private TableLayoutPanel statsGrid = null!, bottomGrid = null!;
     private Label lblMovies = null!, lblRooms = null!, lblShows = null!;
     private Label lblTickets = null!, lblRevenue = null!, lblInvoices = null!;
-
-    // === Charts ===
-    private CartesianChart chartRevenue = null!;
-    private CartesianChart chartTopMovies = null!;
-    private PieChart chartOccupancy = null!;
-
-    // === Filters ===
+    private Label lblLoading = null!;
     private DateTimePicker dtpFrom = null!, dtpTo = null!;
     private ComboBox cboRevenueMode = null!;
-    private Panel pnlLoading = null!;
+    private CartesianChart chartRevenue = null!, chartTopMovies = null!;
+    private PieChart chartOccupancy = null!;
 
     public UcDashboard()
     {
         InitUI();
-        this.Load += async (s, e) => await LoadAllAsync();
+        Load += async (s, e) => await LoadAllAsync();
     }
 
     private void InitUI()
     {
-        this.Dock = DockStyle.Fill;
-        this.BackColor = Color.FromArgb(18, 18, 30);
-        this.AutoScroll = true;
-        this.Padding = new Padding(5);
+        AdminControls.ConfigurePage(this);
+        Padding = new Padding(16);
+        AutoScroll = false;
 
-        // ========= Outer container: Flow cho responsive =========
-        var mainFlow = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowOnly,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            BackColor = Color.Transparent,
-            Padding = new Padding(0)
-        };
-        this.Controls.Add(mainFlow);
-
-        pnlLoading = new Panel
+        scrollHost = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(18, 18, 30),
+            BackColor = Color.Transparent,
+            AutoScroll = true
+        };
+        Controls.Add(scrollHost);
+
+        root = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Width = 900,
+            Height = 900,
+            ColumnCount = 1,
+            RowCount = 6,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 326));
+        scrollHost.Controls.Add(root);
+
+        root.Controls.Add(CreateHeader(), 0, 0);
+
+        statsGrid = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 6,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 0, 14)
+        };
+        root.Controls.Add(statsGrid, 0, 1);
+
+        lblMovies = AddStatCard("Phim", "0", "Dang chieu", Color.FromArgb(118, 95, 255));
+        lblRooms = AddStatCard("Phong", "0", "San sang", Color.FromArgb(44, 164, 184));
+        lblShows = AddStatCard("Suat hom nay", "0", "Lich trong ngay", Color.FromArgb(213, 159, 42));
+        lblTickets = AddStatCard("Ve da ban", "0", "Tat ca giao dich", Color.FromArgb(65, 196, 126));
+        lblRevenue = AddStatCard("Doanh thu", "0 d", "Tong doanh so", Color.FromArgb(226, 85, 126));
+        lblInvoices = AddStatCard("Hoa don", "0", "Da thanh toan", Color.FromArgb(157, 111, 234));
+
+        root.Controls.Add(CreateFilterBar(), 0, 2);
+        root.Controls.Add(CreateSectionTitle("Doanh thu"), 0, 3);
+
+        chartRevenue = CreateCartesianChart();
+        root.Controls.Add(chartRevenue, 0, 4);
+
+        bottomGrid = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 8, 0, 0)
+        };
+        bottomGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
+        bottomGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
+        bottomGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        bottomGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.Controls.Add(bottomGrid, 0, 5);
+
+        bottomGrid.Controls.Add(CreateSectionTitle("Top 5 phim an khach"), 0, 0);
+        bottomGrid.Controls.Add(CreateSectionTitle("Ty le lap day phong"), 1, 0);
+
+        chartTopMovies = CreateCartesianChart();
+        chartOccupancy = new PieChart
+        {
+            Dock = DockStyle.Fill,
+            BackColor = AdminTheme.GridBack,
+            Margin = new Padding(10, 0, 0, 0),
+            LegendTextPaint = new SolidColorPaint(SKColor.Parse("#C8C8DC")),
+            LegendTextSize = 12
+        };
+        bottomGrid.Controls.Add(chartTopMovies, 0, 1);
+        bottomGrid.Controls.Add(chartOccupancy, 1, 1);
+
+        lblLoading = new Label
+        {
+            Dock = DockStyle.Bottom,
+            Height = 28,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Font = AdminTheme.BodyBoldFont,
+            ForeColor = AdminTheme.MutedText,
             Visible = false
         };
-        pnlLoading.Controls.Add(new Label
+        Controls.Add(lblLoading);
+        lblLoading.BringToFront();
+
+        Resize += (s, e) => ApplyResponsiveLayout();
+        scrollHost.Resize += (s, e) => ApplyResponsiveLayout();
+        ApplyResponsiveLayout();
+    }
+
+    private Control CreateHeader()
+    {
+        var header = new TableLayoutPanel
         {
-            Text = "Đang tải dữ liệu...",
-            Dock = DockStyle.Top,
-            Height = 70,
-            Font = new Font("Segoe UI", 13, FontStyle.Bold),
-            ForeColor = Color.FromArgb(180, 180, 210),
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty
+        };
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250));
+
+        var titleStack = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 10, 0)
+        };
+        titleStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        titleStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        titleStack.Controls.Add(new Label
+        {
+            Text = "Tong Quan Thong Ke",
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 20, FontStyle.Bold),
+            ForeColor = AdminTheme.TitleText,
+            TextAlign = ContentAlignment.BottomLeft
+        }, 0, 0);
+        titleStack.Controls.Add(new Label
+        {
+            Text = "Theo doi doanh thu, ve ban va hieu suat phong chieu",
+            Dock = DockStyle.Fill,
+            Font = AdminTheme.BodyFont,
+            ForeColor = AdminTheme.MutedText,
+            TextAlign = ContentAlignment.TopLeft
+        }, 0, 1);
+
+        header.Controls.Add(titleStack, 0, 0);
+        header.Controls.Add(new Label
+        {
+            Text = DateTime.Today.ToString("'Hom nay' dd/MM/yyyy"),
+            Dock = DockStyle.Fill,
+            Font = AdminTheme.BodyBoldFont,
+            ForeColor = Color.White,
             TextAlign = ContentAlignment.MiddleCenter,
-            Padding = new Padding(0, 25, 0, 0)
-        });
-        this.Controls.Add(pnlLoading);
+            BackColor = Color.FromArgb(38, 38, 58),
+            Margin = new Padding(12, 20, 0, 18)
+        }, 1, 0);
 
-        // === Title ===
-        mainFlow.Controls.Add(new Label
-        {
-            Text = "📊  Tổng Quan & Thống Kê",
-            Font = new Font("Segoe UI", 18, FontStyle.Bold),
-            ForeColor = Color.FromArgb(210, 210, 230),
-            AutoSize = true,
-            Margin = new Padding(5, 5, 5, 10)
-        });
+        return header;
+    }
 
-        // === Stat Cards (6 cards) ===
-        var statsPanel = new FlowLayoutPanel
+    private Control CreateFilterBar()
+    {
+        var bar = new FlowLayoutPanel
         {
-            Size = new Size(1100, 85),
+            Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
             BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 5)
+            Margin = new Padding(0, 4, 0, 0),
+            Padding = new Padding(0, 6, 0, 0)
         };
-        mainFlow.Controls.Add(statsPanel);
 
-        (lblMovies, _) = AddStatCard(statsPanel, "🎬 Phim", "0", Color.FromArgb(100, 80, 255));
-        (lblRooms, _) = AddStatCard(statsPanel, "🏠 Phòng", "0", Color.FromArgb(60, 160, 200));
-        (lblShows, _) = AddStatCard(statsPanel, "📅 Suất hôm nay", "0", Color.FromArgb(200, 150, 40));
-        (lblTickets, _) = AddStatCard(statsPanel, "🎟️ Vé đã bán", "0", Color.FromArgb(80, 200, 120));
-        (lblRevenue, _) = AddStatCard(statsPanel, "💰 Doanh thu", "0 đ", Color.FromArgb(220, 80, 120));
-        (lblInvoices, _) = AddStatCard(statsPanel, "📄 Hóa đơn", "0", Color.FromArgb(160, 100, 220));
+        dtpFrom = AdminControls.CreateDatePicker();
+        dtpFrom.Value = DateTime.Today.AddDays(-30);
+        dtpTo = AdminControls.CreateDatePicker();
+        dtpTo.Value = DateTime.Today;
 
-        // === Filter Row ===
-        var pnlFilter = new Panel
-        {
-            Size = new Size(1100, 38),
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 5, 0, 8)
-        };
-        mainFlow.Controls.Add(pnlFilter);
-
-        int fx = 0;
-        pnlFilter.Controls.Add(new Label { Text = "Từ:", Font = new Font("Segoe UI", 10), ForeColor = Color.FromArgb(150, 150, 180), Location = new Point(fx, 8), AutoSize = true });
-        fx += 30;
-        dtpFrom = new DateTimePicker { Font = new Font("Segoe UI", 10), Size = new Size(135, 28), Location = new Point(fx, 5), Format = DateTimePickerFormat.Short, Value = DateTime.Today.AddDays(-30) };
-        pnlFilter.Controls.Add(dtpFrom);
-        fx += 150;
-
-        pnlFilter.Controls.Add(new Label { Text = "Đến:", Font = new Font("Segoe UI", 10), ForeColor = Color.FromArgb(150, 150, 180), Location = new Point(fx, 8), AutoSize = true });
-        fx += 38;
-        dtpTo = new DateTimePicker { Font = new Font("Segoe UI", 10), Size = new Size(135, 28), Location = new Point(fx, 5), Format = DateTimePickerFormat.Short };
-        pnlFilter.Controls.Add(dtpTo);
-        fx += 150;
-
-        pnlFilter.Controls.Add(new Label { Text = "Doanh thu:", Font = new Font("Segoe UI", 10), ForeColor = Color.FromArgb(150, 150, 180), Location = new Point(fx, 8), AutoSize = true });
-        fx += 85;
-        cboRevenueMode = new ComboBox
-        {
-            Font = new Font("Segoe UI", 10), Size = new Size(120, 28),
-            Location = new Point(fx, 5),
-            BackColor = Color.FromArgb(30, 30, 50), ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat, DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        cboRevenueMode.Items.AddRange(new[] { "Theo ngày", "Theo tháng" });
+        cboRevenueMode = AdminControls.CreateComboBox(135);
+        cboRevenueMode.Items.AddRange(new object[] { "Theo ngay", "Theo thang" });
         cboRevenueMode.SelectedIndex = 0;
-        pnlFilter.Controls.Add(cboRevenueMode);
-        fx += 135;
 
-        var btnRefresh = new Button
-        {
-            Text = "🔄 Cập nhật", Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Size = new Size(110, 30), Location = new Point(fx, 4),
-            BackColor = Color.FromArgb(80, 60, 200), ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand
-        };
-        btnRefresh.FlatAppearance.BorderSize = 0;
-        btnRefresh.Click += async (s, e) => await RunWithLoadingAsync(LoadChartsAsync);
-        pnlFilter.Controls.Add(btnRefresh);
-        fx += 120;
-
-        var btnPdf = new Button
-        {
-            Text = "📄 Xuất PDF", Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            Size = new Size(110, 30), Location = new Point(fx, 4),
-            BackColor = Color.FromArgb(200, 60, 60), ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand
-        };
-        btnPdf.FlatAppearance.BorderSize = 0;
-        btnPdf.Click += BtnExportPdf_Click;
-        pnlFilter.Controls.Add(btnPdf);
-
-        // === Revenue Chart ===
-        mainFlow.Controls.Add(new Label
-        {
-            Text = "📈  Doanh thu",
-            Font = new Font("Segoe UI", 13, FontStyle.Bold),
-            ForeColor = Color.FromArgb(190, 190, 215),
-            AutoSize = true,
-            Margin = new Padding(5, 5, 5, 3)
-        });
-
-        chartRevenue = new CartesianChart
-        {
-            Size = new Size(1060, 240),
-            BackColor = Color.FromArgb(22, 22, 38),
-            Margin = new Padding(5, 0, 5, 10)
-        };
-        mainFlow.Controls.Add(chartRevenue);
-
-        // === Bottom row container ===
-        var pnlBottom = new Panel
-        {
-            Size = new Size(1100, 310),
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 10)
-        };
-        mainFlow.Controls.Add(pnlBottom);
-
-        // Top Movies label
-        pnlBottom.Controls.Add(new Label
-        {
-            Text = "🏆  Top 5 phim ăn khách",
-            Font = new Font("Segoe UI", 13, FontStyle.Bold),
-            ForeColor = Color.FromArgb(190, 190, 215),
-            Location = new Point(5, 0),
-            AutoSize = true
-        });
-
-        // Occupancy label
-        pnlBottom.Controls.Add(new Label
-        {
-            Text = "🥧  Tỷ lệ lấp đầy phòng",
-            Font = new Font("Segoe UI", 13, FontStyle.Bold),
-            ForeColor = Color.FromArgb(190, 190, 215),
-            Location = new Point(550, 0),
-            AutoSize = true
-        });
-
-        chartTopMovies = new CartesianChart
-        {
-            Location = new Point(5, 28),
-            Size = new Size(520, 270),
-            BackColor = Color.FromArgb(22, 22, 38)
-        };
-        pnlBottom.Controls.Add(chartTopMovies);
-
-        chartOccupancy = new PieChart
-        {
-            Location = new Point(550, 28),
-            Size = new Size(500, 270),
-            BackColor = Color.FromArgb(22, 22, 38)
-        };
-        pnlBottom.Controls.Add(chartOccupancy);
+        bar.Controls.Add(AdminControls.CreateToolbarLabel("Tu:", 28));
+        bar.Controls.Add(dtpFrom);
+        bar.Controls.Add(AdminControls.CreateToolbarLabel("Den:", 38));
+        bar.Controls.Add(dtpTo);
+        bar.Controls.Add(AdminControls.CreateToolbarLabel("Che do:", 64));
+        bar.Controls.Add(cboRevenueMode);
+        bar.Controls.Add(AdminControls.CreateButton("Cap nhat", Color.FromArgb(88, 72, 216), 108, async (s, e) => await RunWithLoadingAsync(LoadChartsAsync)));
+        bar.Controls.Add(AdminControls.CreateButton("Xuat PDF", AdminTheme.ButtonDanger, 108, BtnExportPdf_Click));
+        return bar;
     }
 
-    // ==================== DATA LOADING ====================
+    private Label AddStatCard(string title, string value, string subtitle, Color accent)
+    {
+        var card = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(24, 24, 40),
+            Padding = new Padding(14, 12, 14, 10),
+            Margin = new Padding(0, 0, 10, 0)
+        };
+        _statCards.Add(card);
+
+        card.Controls.Add(new Panel
+        {
+            Dock = DockStyle.Left,
+            Width = 4,
+            BackColor = accent
+        });
+        card.Controls.Add(new Label
+        {
+            Text = title,
+            Font = AdminTheme.BodyBoldFont,
+            ForeColor = AdminTheme.MutedText,
+            Location = new Point(16, 10),
+            Size = new Size(170, 24)
+        });
+
+        var lblValue = new Label
+        {
+            Text = value,
+            Font = new Font("Segoe UI", 19, FontStyle.Bold),
+            ForeColor = accent,
+            Location = new Point(16, 36),
+            Size = new Size(180, 36)
+        };
+        card.Controls.Add(lblValue);
+        card.Controls.Add(new Label
+        {
+            Text = subtitle,
+            Font = new Font("Segoe UI", 8.5f),
+            ForeColor = Color.FromArgb(112, 112, 142),
+            Location = new Point(17, 76),
+            Size = new Size(170, 20)
+        });
+
+        return lblValue;
+    }
+
+    private Label CreateSectionTitle(string text)
+    {
+        var label = new Label
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 13, FontStyle.Bold),
+            ForeColor = AdminTheme.TitleText,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = Padding.Empty
+        };
+        _sectionTitles.Add(label);
+        return label;
+    }
+
+    private static CartesianChart CreateCartesianChart()
+    {
+        return new CartesianChart
+        {
+            Dock = DockStyle.Fill,
+            BackColor = AdminTheme.GridBack,
+            Margin = new Padding(0, 0, 0, 10),
+            LegendTextPaint = new SolidColorPaint(SKColor.Parse("#C8C8DC")),
+            LegendTextSize = 12
+        };
+    }
 
     private async Task LoadAllAsync()
     {
@@ -240,16 +312,16 @@ public class UcDashboard : UserControl
             var svc = new ReportService(ctx);
             var stats = await svc.GetStatsAsync();
 
-            lblMovies.Text = stats.TotalMovies.ToString();
-            lblRooms.Text = stats.TotalRooms.ToString();
-            lblShows.Text = stats.TotalShowtimesToday.ToString();
+            lblMovies.Text = stats.TotalMovies.ToString("N0");
+            lblRooms.Text = stats.TotalRooms.ToString("N0");
+            lblShows.Text = stats.TotalShowtimesToday.ToString("N0");
             lblTickets.Text = stats.TotalTicketsSold.ToString("N0");
-            lblRevenue.Text = stats.TotalRevenue.ToString("N0") + " đ";
+            lblRevenue.Text = stats.TotalRevenue.ToString("N0") + " d";
             lblInvoices.Text = stats.TotalInvoices.ToString("N0");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi tải thống kê: {ex.Message}");
+            MessageBox.Show($"Loi tai thong ke: {ex.Message}", "Dashboard");
         }
     }
 
@@ -259,11 +331,15 @@ public class UcDashboard : UserControl
         {
             using var ctx = Program.CreateDbContext();
             var svc = new ReportService(ctx);
+            var from = dtpFrom.Value.Date;
+            var to = dtpTo.Value.Date;
 
-            DateTime from = dtpFrom.Value.Date;
-            DateTime to = dtpTo.Value.Date;
+            if (from > to)
+            {
+                MessageBox.Show("Ngay bat dau khong duoc lon hon ngay ket thuc.", "Dashboard");
+                return;
+            }
 
-            // === Revenue Chart ===
             if (cboRevenueMode.SelectedIndex == 0)
             {
                 var data = await svc.GetRevenueByDateAsync(from, to);
@@ -272,119 +348,83 @@ public class UcDashboard : UserControl
                     new ColumnSeries<decimal>
                     {
                         Values = data.Select(d => d.Revenue).ToArray(),
-                        Name = "Doanh thu (đ)",
-                        Fill = new SolidColorPaint(SKColor.Parse("#6450FF")),
-                        MaxBarWidth = 25
+                        Name = "Doanh thu",
+                        Fill = new SolidColorPaint(SKColor.Parse("#725DFF")),
+                        MaxBarWidth = 34
                     }
                 };
-                chartRevenue.XAxes = new[]
-                {
-                    new Axis
-                    {
-                        Labels = data.Select(d => d.Date.ToString("dd/MM")).ToArray(),
-                        LabelsPaint = new SolidColorPaint(SKColor.Parse("#9999B0")),
-                        TextSize = 10
-                    }
-                };
+                chartRevenue.XAxes = new[] { CreateAxis(data.Select(d => d.Date.ToString("dd/MM")).ToArray(), 10) };
             }
             else
             {
-                var data = await svc.GetRevenueByMonthAsync(DateTime.Now.Year);
+                var data = await svc.GetRevenueByMonthAsync(to.Year);
                 chartRevenue.Series = new ISeries[]
                 {
                     new ColumnSeries<decimal>
                     {
                         Values = data.Select(d => d.Revenue).ToArray(),
-                        Name = "Doanh thu (đ)",
-                        Fill = new SolidColorPaint(SKColor.Parse("#6450FF")),
-                        MaxBarWidth = 40
+                        Name = "Doanh thu",
+                        Fill = new SolidColorPaint(SKColor.Parse("#725DFF")),
+                        MaxBarWidth = 42
                     }
                 };
-                chartRevenue.XAxes = new[]
-                {
-                    new Axis
-                    {
-                        Labels = data.Select(d => $"T{d.Month}").ToArray(),
-                        LabelsPaint = new SolidColorPaint(SKColor.Parse("#9999B0")),
-                        TextSize = 11
-                    }
-                };
+                chartRevenue.XAxes = new[] { CreateAxis(data.Select(d => $"T{d.Month}").ToArray(), 11) };
             }
 
             chartRevenue.YAxes = new[]
             {
                 new Axis
                 {
-                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#9999B0")),
+                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#A5A5BF")),
+                    SeparatorsPaint = new SolidColorPaint(SKColor.Parse("#33334D")),
                     TextSize = 10,
                     Labeler = v => v.ToString("N0")
                 }
             };
 
-            // === Top Movies Chart ===
             var topMovies = await svc.GetTopMoviesAsync(5, from, to);
-            if (topMovies.Count > 0)
-            {
-                chartTopMovies.Series = new ISeries[]
+            chartTopMovies.Series = topMovies.Count == 0
+                ? Array.Empty<ISeries>()
+                : new ISeries[]
                 {
                     new RowSeries<int>
                     {
                         Values = topMovies.Select(m => m.TicketCount).ToArray(),
-                        Name = "Số vé",
-                        Fill = new SolidColorPaint(SKColor.Parse("#50C878")),
-                        MaxBarWidth = 20
+                        Name = "So ve",
+                        Fill = new SolidColorPaint(SKColor.Parse("#41C47E")),
+                        MaxBarWidth = 24
                     }
                 };
-                chartTopMovies.YAxes = new[]
-                {
-                    new Axis
-                    {
-                        Labels = topMovies.Select(m => m.Title.Length > 18 ? m.Title[..18] + "..." : m.Title).ToArray(),
-                        LabelsPaint = new SolidColorPaint(SKColor.Parse("#CCCCDD")),
-                        TextSize = 10
-                    }
-                };
-            }
-            else
-            {
-                chartTopMovies.Series = Array.Empty<ISeries>();
-            }
+            chartTopMovies.YAxes = new[] { CreateAxis(topMovies.Select(m => Shorten(m.Title, 22)).ToArray(), 10) };
             chartTopMovies.XAxes = new[]
             {
                 new Axis
                 {
-                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#9999B0")),
+                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#A5A5BF")),
+                    SeparatorsPaint = new SolidColorPaint(SKColor.Parse("#33334D")),
                     TextSize = 10
                 }
             };
 
-            // === Occupancy Pie Chart ===
             var occupancy = await svc.GetRoomOccupancyAsync(from, to);
-            var pieColors = new[] { "#6450FF", "#50C878", "#FF6B8A", "#FFB84D", "#40C4E0", "#C878FF" };
-            if (occupancy.Count > 0)
-            {
-                chartOccupancy.Series = occupancy.Select((r, i) => new PieSeries<double>
+            var pieColors = new[] { "#725DFF", "#41C47E", "#E2557E", "#D59F2A", "#2CA4B8", "#A36FEA" };
+            chartOccupancy.Series = occupancy.Count == 0
+                ? Array.Empty<ISeries>()
+                : occupancy.Select((r, i) => new PieSeries<double>
                 {
-                    Values = new[] { Math.Max(r.OccupancyRate, 0.1) }, // Avoid zero-size slices
-                    Name = $"{r.RoomName} ({r.OccupancyRate}%)",
+                    Values = new[] { Math.Max(r.OccupancyRate, 0.1) },
+                    Name = $"{r.RoomName} ({r.OccupancyRate:N1}%)",
                     Fill = new SolidColorPaint(SKColor.Parse(pieColors[i % pieColors.Length])),
-                    DataLabelsSize = 11,
                     DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsSize = 11,
                     DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
                 } as ISeries).ToArray();
-            }
-            else
-            {
-                chartOccupancy.Series = Array.Empty<ISeries>();
-            }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi tải biểu đồ: {ex.Message}");
+            MessageBox.Show($"Loi tai bieu do: {ex.Message}", "Dashboard");
         }
     }
-
-    // ==================== PDF EXPORT ====================
 
     private async void BtnExportPdf_Click(object? sender, EventArgs e)
     {
@@ -392,9 +432,8 @@ public class UcDashboard : UserControl
         {
             using var ctx = Program.CreateDbContext();
             var svc = new ReportService(ctx);
-            DateTime from = dtpFrom.Value.Date;
-            DateTime to = dtpTo.Value.Date;
-
+            var from = dtpFrom.Value.Date;
+            var to = dtpTo.Value.Date;
             var stats = await svc.GetStatsAsync();
             var topMovies = await svc.GetTopMoviesAsync(5, from, to);
             var revenueData = await svc.GetRevenueByDateAsync(from, to);
@@ -403,24 +442,25 @@ public class UcDashboard : UserControl
             {
                 Filter = "PDF|*.pdf",
                 FileName = $"BaoCao_{from:ddMMyyyy}_{to:ddMMyyyy}.pdf",
-                Title = "Lưu báo cáo PDF"
+                Title = "Luu bao cao PDF"
             };
 
-            if (sfd.ShowDialog() != DialogResult.OK) return;
+            if (sfd.ShowDialog() != DialogResult.OK)
+                return;
 
             Helpers.PrintHelper.ExportReport(sfd.FileName, stats, topMovies, revenueData, from, to);
-            MessageBox.Show($"Đã xuất PDF: {sfd.FileName}", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"Da xuat PDF: {sfd.FileName}", "Thanh cong", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi xuất PDF: {ex.Message}", "Lỗi");
+            MessageBox.Show($"Loi xuat PDF: {ex.Message}", "Dashboard");
         }
     }
 
     private async Task RunWithLoadingAsync(Func<Task> action)
     {
-        pnlLoading.Visible = true;
-        pnlLoading.BringToFront();
+        lblLoading.Visible = true;
+        lblLoading.Text = "Dang tai du lieu...";
         UseWaitCursor = true;
 
         try
@@ -430,49 +470,93 @@ public class UcDashboard : UserControl
         finally
         {
             UseWaitCursor = false;
-            pnlLoading.Visible = false;
+            lblLoading.Visible = false;
         }
     }
 
-    // ==================== HELPERS ====================
-
-    private (Label valueLabel, Panel card) AddStatCard(FlowLayoutPanel parent, string title, string value, Color accentColor)
+    private void ApplyResponsiveLayout()
     {
-        var card = new Panel
+        if (scrollHost == null || root == null || statsGrid == null || bottomGrid == null)
+            return;
+
+        var width = Math.Max(560, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 2);
+        root.Width = width;
+
+        var columns = width < 720 ? 2 : width < 1040 ? 3 : 6;
+
+        statsGrid.SuspendLayout();
+        statsGrid.Controls.Clear();
+        statsGrid.ColumnStyles.Clear();
+        statsGrid.RowStyles.Clear();
+        statsGrid.ColumnCount = columns;
+        statsGrid.RowCount = (int)Math.Ceiling(_statCards.Count / (double)columns);
+        for (var i = 0; i < columns; i++)
+            statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / columns));
+        for (var i = 0; i < statsGrid.RowCount; i++)
+            statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
+        for (var i = 0; i < _statCards.Count; i++)
+            statsGrid.Controls.Add(_statCards[i], i % columns, i / columns);
+        statsGrid.ResumeLayout();
+
+        root.RowStyles[1].Height = statsGrid.RowCount * 104 + 14;
+
+        if (width < 900)
         {
-            Size = new Size(170, 75),
-            BackColor = Color.FromArgb(26, 26, 44),
-            Margin = new Padding(4)
+            bottomGrid.ColumnCount = 1;
+            bottomGrid.RowCount = 4;
+            bottomGrid.ColumnStyles.Clear();
+            bottomGrid.RowStyles.Clear();
+            bottomGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            bottomGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            bottomGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));
+            bottomGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            bottomGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));
+            root.RowStyles[5].Height = 604;
+            bottomGrid.SetCellPosition(_sectionTitles[1], new TableLayoutPanelCellPosition(0, 0));
+            bottomGrid.SetCellPosition(chartTopMovies, new TableLayoutPanelCellPosition(0, 1));
+            bottomGrid.SetCellPosition(_sectionTitles[2], new TableLayoutPanelCellPosition(0, 2));
+            bottomGrid.SetCellPosition(chartOccupancy, new TableLayoutPanelCellPosition(0, 3));
+            chartOccupancy.Margin = Padding.Empty;
+        }
+        else
+        {
+            bottomGrid.ColumnCount = 2;
+            bottomGrid.RowCount = 2;
+            bottomGrid.ColumnStyles.Clear();
+            bottomGrid.RowStyles.Clear();
+            bottomGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
+            bottomGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
+            bottomGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            bottomGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            root.RowStyles[5].Height = 326;
+            bottomGrid.SetCellPosition(_sectionTitles[1], new TableLayoutPanelCellPosition(0, 0));
+            bottomGrid.SetCellPosition(chartTopMovies, new TableLayoutPanelCellPosition(0, 1));
+            bottomGrid.SetCellPosition(_sectionTitles[2], new TableLayoutPanelCellPosition(1, 0));
+            bottomGrid.SetCellPosition(chartOccupancy, new TableLayoutPanelCellPosition(1, 1));
+            chartOccupancy.Margin = new Padding(10, 0, 0, 0);
+        }
+
+        var totalHeight = 0;
+        foreach (RowStyle style in root.RowStyles)
+            totalHeight += (int)style.Height;
+
+        root.Height = totalHeight;
+        scrollHost.AutoScrollMinSize = new Size(0, totalHeight + 12);
+    }
+
+    private static Axis CreateAxis(string[] labels, double textSize)
+    {
+        return new Axis
+        {
+            Labels = labels,
+            LabelsPaint = new SolidColorPaint(SKColor.Parse("#C8C8DC")),
+            SeparatorsPaint = new SolidColorPaint(SKColor.Parse("#33334D")),
+            TextSize = textSize
         };
+    }
 
-        // Accent bar (top)
-        card.Controls.Add(new Panel
-        {
-            Size = new Size(170, 3),
-            BackColor = accentColor,
-            Dock = DockStyle.Top
-        });
-
-        card.Controls.Add(new Label
-        {
-            Text = title,
-            Font = new Font("Segoe UI", 8.5f),
-            ForeColor = Color.FromArgb(130, 130, 160),
-            Location = new Point(12, 12),
-            AutoSize = true
-        });
-
-        var lblValue = new Label
-        {
-            Text = value,
-            Font = new Font("Segoe UI", 16, FontStyle.Bold),
-            ForeColor = accentColor,
-            Location = new Point(12, 35),
-            AutoSize = true
-        };
-        card.Controls.Add(lblValue);
-
-        parent.Controls.Add(card);
-        return (lblValue, card);
+    private static string Shorten(string value, int maxLength)
+    {
+        return value.Length <= maxLength ? value : value[..maxLength] + "...";
     }
 }
