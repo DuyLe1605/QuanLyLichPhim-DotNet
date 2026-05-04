@@ -69,8 +69,7 @@ public class UcSnackManagement : UserControl
                 TrạngThái = s.IsActive ? "Đang bán" : "Đã ẩn"
             }).ToList();
 
-            if (dgvSnacks.Columns.Contains("Id"))
-                dgvSnacks.Columns["Id"].Visible = false;
+            AdminControls.HideColumn(dgvSnacks, "Id");
         }
         catch (Exception ex)
         {
@@ -129,8 +128,7 @@ public class UcSnackManagement : UserControl
 
     private int? GetCurrentSnackId()
     {
-        if (dgvSnacks.CurrentRow == null || !dgvSnacks.Columns.Contains("Id")) return null;
-        return dgvSnacks.CurrentRow.Cells["Id"].Value is int id ? id : null;
+        return AdminControls.GetCurrentIntValue(dgvSnacks, "Id");
     }
 
     private static string GetCategoryDisplay(string category) => category switch

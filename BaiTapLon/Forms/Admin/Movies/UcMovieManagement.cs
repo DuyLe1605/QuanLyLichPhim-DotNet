@@ -86,8 +86,7 @@ public class UcMovieManagement : UserControl
                 TrạngThái = m.IsActive ? "Đang chiếu" : "Đã ẩn"
             }).ToList();
 
-            if (dgvMovies.Columns.Contains("Id"))
-                dgvMovies.Columns["Id"].Visible = false;
+            AdminControls.HideColumn(dgvMovies, "Id");
         }
         catch (Exception ex)
         {
@@ -114,18 +113,18 @@ public class UcMovieManagement : UserControl
 
     private async void BtnEdit_Click(object? sender, EventArgs e)
     {
-        if (dgvMovies.CurrentRow == null) return;
-        int id = (int)dgvMovies.CurrentRow.Cells["Id"].Value;
+        var id = GetCurrentMovieId();
+        if (!id.HasValue) return;
 
         using var context = Program.CreateDbContext();
         var service = new MovieService(context);
-        var movie = await service.GetByIdAsync(id);
+        var movie = await service.GetByIdAsync(id.Value);
         if (movie == null) return;
 
         using var dlg = new DlgMovieEdit(movie, _genres);
         if (dlg.ShowDialog() == DialogResult.OK)
         {
-            dlg.MovieData.Id = id;
+            dlg.MovieData.Id = id.Value;
             var (ok, msg) = await service.UpdateAsync(dlg.MovieData, dlg.SelectedGenreIds);
             MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
             if (ok) await LoadDataAsync();
@@ -134,8 +133,9 @@ public class UcMovieManagement : UserControl
 
     private async void BtnDelete_Click(object? sender, EventArgs e)
     {
-        if (dgvMovies.CurrentRow == null) return;
-        int id = (int)dgvMovies.CurrentRow.Cells["Id"].Value;
+        var id = GetCurrentMovieId();
+        if (!id.HasValue || dgvMovies.CurrentRow == null) return;
+
         string title = dgvMovies.CurrentRow.Cells["TênPhim"].Value?.ToString() ?? "";
 
         if (MessageBox.Show($"Xóa phim \"{title}\"?", "Xác nhận",
@@ -143,10 +143,15 @@ public class UcMovieManagement : UserControl
         {
             using var context = Program.CreateDbContext();
             var service = new MovieService(context);
-            var (ok, msg) = await service.SoftDeleteAsync(id);
+            var (ok, msg) = await service.SoftDeleteAsync(id.Value);
             MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
             if (ok) await LoadDataAsync();
         }
+    }
+
+    private int? GetCurrentMovieId()
+    {
+        return AdminControls.GetCurrentIntValue(dgvMovies, "Id");
     }
 
 }

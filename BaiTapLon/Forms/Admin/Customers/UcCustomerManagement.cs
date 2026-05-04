@@ -51,11 +51,10 @@ public class UcCustomerManagement : UserControl
         {
             Dock = DockStyle.Fill,
             Orientation = Orientation.Vertical,
-            SplitterDistance = 650,
-            BackColor = AdminTheme.PageBack,
-            Panel1MinSize = 400,
-            Panel2MinSize = 280
+            BackColor = AdminTheme.PageBack
         };
+        splitContainer.HandleCreated += (s, e) => ApplyCustomerSplitLayout(splitContainer);
+        splitContainer.Resize += (s, e) => ApplyCustomerSplitLayout(splitContainer);
 
         dgv.Dock = DockStyle.Fill;
         splitContainer.Panel1.Controls.Add(dgv);
@@ -223,7 +222,7 @@ public class UcCustomerManagement : UserControl
                 NgàyĐK = c.CreatedAt.ToString("dd/MM/yyyy")
             }).ToList();
 
-            if (dgv.Columns.Contains("Id")) dgv.Columns["Id"].Visible = false;
+            AdminControls.HideColumn(dgv, "Id");
         }
         catch (Exception ex)
         {
@@ -233,11 +232,9 @@ public class UcCustomerManagement : UserControl
 
     private async void DgvSelectionChanged(object? sender, EventArgs e)
     {
-        if (dgv.CurrentRow == null) return;
-        if (!dgv.Columns.Contains("Id")) return;
-
-        int id = (int)dgv.CurrentRow.Cells["Id"].Value;
-        await LoadDetailAsync(id);
+        var id = AdminControls.GetCurrentIntValue(dgv, "Id");
+        if (id.HasValue)
+            await LoadDetailAsync(id.Value);
     }
 
     private async Task LoadDetailAsync(int customerId)
@@ -304,8 +301,9 @@ public class UcCustomerManagement : UserControl
 
     private async void BtnToggle_Click(object? s, EventArgs e)
     {
-        if (dgv.CurrentRow == null) return;
-        int id = (int)dgv.CurrentRow.Cells["Id"].Value;
+        var id = AdminControls.GetCurrentIntValue(dgv, "Id");
+        if (!id.HasValue || dgv.CurrentRow == null) return;
+
         string name = dgv.CurrentRow.Cells["HọTên"].Value?.ToString() ?? "";
 
         if (MessageBox.Show($"Khóa/Mở tài khoản \"{name}\"?", "Xác nhận",
@@ -313,8 +311,38 @@ public class UcCustomerManagement : UserControl
 
         using var ctx = Program.CreateDbContext();
         var svc = new CustomerService(ctx);
-        await svc.ToggleActiveAsync(id);
+        await svc.ToggleActiveAsync(id.Value);
         await LoadAsync();
+    }
+
+    private static void ApplyCustomerSplitLayout(SplitContainer splitContainer)
+    {
+        const int preferredLeftWidth = 650;
+        const int desiredLeftMin = 360;
+        const int desiredRightMin = 260;
+
+        var availableWidth = splitContainer.ClientSize.Width - splitContainer.SplitterWidth;
+        if (availableWidth <= 50)
+            return;
+
+        splitContainer.Panel1MinSize = 25;
+        splitContainer.Panel2MinSize = 25;
+
+        var leftMin = desiredLeftMin;
+        var rightMin = desiredRightMin;
+        if (availableWidth < leftMin + rightMin)
+        {
+            leftMin = 25;
+            rightMin = 25;
+        }
+
+        var maxDistance = splitContainer.ClientSize.Width - splitContainer.SplitterWidth - rightMin;
+        if (maxDistance < leftMin)
+            return;
+
+        splitContainer.SplitterDistance = Math.Clamp(preferredLeftWidth, leftMin, maxDistance);
+        splitContainer.Panel1MinSize = leftMin;
+        splitContainer.Panel2MinSize = rightMin;
     }
 
     private static string FormatTier(string tier) => tier switch

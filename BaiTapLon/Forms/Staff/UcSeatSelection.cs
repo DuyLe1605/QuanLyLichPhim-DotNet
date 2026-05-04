@@ -39,11 +39,6 @@ public class UcSeatSelection : UserControl
     public event Action? BackRequested;
 
     /// <summary>
-    /// Event khi thanh toán thành công.
-    /// </summary>
-    public event Action? CheckoutCompleted;
-
-    /// <summary>
     /// Event khi nhân viên chọn xong ghế và tiếp tục sang màn bắp nước.
     /// </summary>
     public event Action<SaleOrderState>? ContinueRequested;

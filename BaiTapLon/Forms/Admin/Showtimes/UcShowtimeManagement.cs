@@ -97,7 +97,7 @@ public class UcShowtimeManagement : UserControl
                 Ngày = s.StartTime.ToString("dd/MM/yyyy"),
                 GiáVé = s.BasePrice.ToString("N0") + " đ"
             }).ToList();
-            if (dgv.Columns.Contains("Id")) dgv.Columns["Id"].Visible = false;
+            AdminControls.HideColumn(dgv, "Id");
         }
         catch (Exception ex)
         {
@@ -154,9 +154,7 @@ public class UcShowtimeManagement : UserControl
 
     private int? GetCurrentShowtimeId()
     {
-        if (dgv.CurrentRow == null) return null;
-        if (!dgv.Columns.Contains("Id")) return null;
-        return dgv.CurrentRow.Cells["Id"].Value is int id ? id : null;
+        return AdminControls.GetCurrentIntValue(dgv, "Id");
     }
 
 }

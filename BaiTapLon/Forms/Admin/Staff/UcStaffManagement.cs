@@ -46,7 +46,7 @@ public class UcStaffManagement : UserControl
                 TrạngThái = u.IsActive ? "✅ Hoạt động" : "❌ Đã khóa",
                 NgàyTạo = u.CreatedAt.ToString("dd/MM/yyyy")
             }).ToList();
-            if (dgv.Columns.Contains("Id")) dgv.Columns["Id"].Visible = false;
+            AdminControls.HideColumn(dgv, "Id");
         }
         catch (Exception ex)
         {
@@ -67,8 +67,9 @@ public class UcStaffManagement : UserControl
 
     private async void BtnReset_Click(object? s, EventArgs e)
     {
-        if (dgv.CurrentRow == null) return;
-        int id = (int)dgv.CurrentRow.Cells["Id"].Value;
+        var id = AdminControls.GetCurrentIntValue(dgv, "Id");
+        if (!id.HasValue || dgv.CurrentRow == null) return;
+
         string name = dgv.CurrentRow.Cells["TàiKhoản"].Value?.ToString() ?? "";
 
         string newPw = $"{name}123";
@@ -76,7 +77,7 @@ public class UcStaffManagement : UserControl
             MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
 
         using var ctx = Program.CreateDbContext();
-        var user = await ctx.Users.FindAsync(id);
+        var user = await ctx.Users.FindAsync(id.Value);
         if (user == null) return;
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPw);
         await ctx.SaveChangesAsync();
@@ -85,16 +86,17 @@ public class UcStaffManagement : UserControl
 
     private async void BtnToggle_Click(object? s, EventArgs e)
     {
-        if (dgv.CurrentRow == null) return;
-        int id = (int)dgv.CurrentRow.Cells["Id"].Value;
-        if (id == SessionManager.CurrentUser?.Id)
+        var id = AdminControls.GetCurrentIntValue(dgv, "Id");
+        if (!id.HasValue) return;
+
+        if (id.Value == SessionManager.CurrentUser?.Id)
         {
             MessageBox.Show("Không thể khóa tài khoản của chính bạn!", "Cảnh báo");
             return;
         }
 
         using var ctx = Program.CreateDbContext();
-        var user = await ctx.Users.FindAsync(id);
+        var user = await ctx.Users.FindAsync(id.Value);
         if (user == null) return;
         user.IsActive = !user.IsActive;
         await ctx.SaveChangesAsync();

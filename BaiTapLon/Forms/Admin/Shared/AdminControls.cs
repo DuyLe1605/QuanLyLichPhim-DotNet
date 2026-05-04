@@ -133,4 +133,20 @@ public static class AdminControls
         grid.ColumnHeadersHeight = 42;
         return grid;
     }
+
+    public static void HideColumn(DataGridView grid, string columnName)
+    {
+        var column = grid.Columns[columnName];
+        if (column != null)
+            column.Visible = false;
+    }
+
+    public static int? GetCurrentIntValue(DataGridView grid, string columnName)
+    {
+        if (grid.CurrentRow == null || !grid.Columns.Contains(columnName))
+            return null;
+
+        var cell = grid.CurrentRow.Cells[columnName];
+        return cell?.Value is int value ? value : null;
+    }
 }
