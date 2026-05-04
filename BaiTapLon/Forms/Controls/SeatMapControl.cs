@@ -21,7 +21,7 @@ public class SeatMapControl : Control
     private const int Gap = 5;
     private const int ScreenMarginTop = 50;
     private const int RowLabelWidth = 30;
-    private const int LegendHeight = 50;
+    private const int LegendHeight = 58;
 
     // === Colors ===
     private static readonly Color BgColor = Color.FromArgb(18, 18, 30);
@@ -206,9 +206,8 @@ public class SeatMapControl : Control
                     g.DrawPath(pen, path);
                 }
 
-                // Text (số ghế)
-                string seatText = _soldSeatIds.Contains(seat.Id) ? "✕" : (c + 1).ToString();
-                seatText = _soldSeatIds.Contains(seat.Id) ? "×" : $"{seat.RowLabel}{seat.SeatNumber}";
+                // Text
+                string seatText = _soldSeatIds.Contains(seat.Id) ? "×" : seat.SeatNumber.ToString();
                 Color textColor = _soldSeatIds.Contains(seat.Id)
                     ? Color.FromArgb(70, 70, 80)
                     : Color.White;
@@ -256,12 +255,15 @@ public class SeatMapControl : Control
             ("Couple", EmptyCouple)
         };
 
-        // Căn giữa legend
-        float totalW = items.Length * 80;
-        float x = startX + (gridWidth - totalW) / 2;
+        var itemWidths = items
+            .Select(item => Math.Max(66f, g.MeasureString(item.Item1, font).Width + 28f))
+            .ToArray();
+        float totalW = itemWidths.Sum();
+        float x = Math.Max(10, startX + (gridWidth - totalW) / 2);
 
-        foreach (var (label, color) in items)
+        for (int i = 0; i < items.Length; i++)
         {
+            var (label, color) = items[i];
             using var brush = new SolidBrush(color);
             var seatRect = new RectangleF(x, y, 14, 14);
             using var path = RoundedRect(seatRect, 3);
@@ -269,7 +271,7 @@ public class SeatMapControl : Control
 
             using var labelBrush = new SolidBrush(Color.FromArgb(150, 150, 175));
             g.DrawString(label, font, labelBrush, x + 18, y);
-            x += 80;
+            x += itemWidths[i];
         }
     }
 

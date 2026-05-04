@@ -93,7 +93,7 @@ public class UcSeatSelection : UserControl
         pnlRight = new Panel
         {
             Dock = DockStyle.Right,
-            Width = 320,
+            Width = 340,
             BackColor = Color.FromArgb(22, 22, 38),
             AutoScroll = true,
             Padding = new Padding(15)
@@ -126,8 +126,8 @@ public class UcSeatSelection : UserControl
             Font = new Font("Segoe UI", 14, FontStyle.Bold),
             ForeColor = Color.FromArgb(220, 220, 240),
             Location = new Point(15, y),
-            Size = new Size(280, 40),
-            MaximumSize = new Size(280, 0),
+            Size = new Size(300, 40),
+            MaximumSize = new Size(300, 0),
             AutoSize = true
         };
         pnlRight.Controls.Add(lblMovieTitle);
@@ -139,15 +139,15 @@ public class UcSeatSelection : UserControl
             Font = new Font("Segoe UI", 9.5f),
             ForeColor = Color.FromArgb(150, 150, 180),
             Location = new Point(15, y),
-            Size = new Size(280, 110),
-            MaximumSize = new Size(280, 0),
+            Size = new Size(300, 135),
+            MaximumSize = new Size(300, 0),
             AutoSize = true
         };
         pnlRight.Controls.Add(lblShowInfo);
-        y += 120;
+        y += 146;
 
         // Separator
-        pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(280, 1), BackColor = Color.FromArgb(50, 50, 75) });
+        pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(300, 1), BackColor = Color.FromArgb(50, 50, 75) });
         y += 12;
 
         // Ghế đã chọn
@@ -168,8 +168,8 @@ public class UcSeatSelection : UserControl
             Font = new Font("Segoe UI", 9.5f),
             ForeColor = Color.FromArgb(170, 170, 200),
             Location = new Point(15, y),
-            Size = new Size(280, 40),
-            MaximumSize = new Size(280, 0),
+            Size = new Size(300, 40),
+            MaximumSize = new Size(300, 0),
             AutoSize = true
         };
         pnlRight.Controls.Add(lblSelectedSeats);
@@ -188,7 +188,7 @@ public class UcSeatSelection : UserControl
         y += 42;
 
         // Separator
-        pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(280, 1), BackColor = Color.FromArgb(50, 50, 75) });
+        pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(300, 1), BackColor = Color.FromArgb(50, 50, 75) });
         y += 15;
 
         // Thông tin khách hàng
@@ -206,8 +206,8 @@ public class UcSeatSelection : UserControl
         txtCustomerName = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(195, 28),
-            Location = new Point(85, y),
+            Size = new Size(225, 28),
+            Location = new Point(90, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
@@ -220,8 +220,8 @@ public class UcSeatSelection : UserControl
         txtCustomerPhone = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(150, 28),
-            Location = new Point(85, y),
+            Size = new Size(176, 28),
+            Location = new Point(90, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
@@ -234,8 +234,8 @@ public class UcSeatSelection : UserControl
         {
             Text = "🔍",
             Font = new Font("Segoe UI", 10),
-            Size = new Size(42, 28),
-            Location = new Point(238, y),
+            Size = new Size(45, 28),
+            Location = new Point(270, y),
             BackColor = Color.FromArgb(60, 120, 200),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -253,14 +253,14 @@ public class UcSeatSelection : UserControl
             Font = new Font("Segoe UI", 9),
             ForeColor = Color.FromArgb(80, 220, 120),
             Location = new Point(15, y),
-            Size = new Size(280, 20),
+            Size = new Size(300, 20),
             Visible = false
         };
         pnlRight.Controls.Add(lblMemberInfo);
         y += 25;
 
         // Separator
-        pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(280, 1), BackColor = Color.FromArgb(50, 50, 75) });
+        pnlRight.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(300, 1), BackColor = Color.FromArgb(50, 50, 75) });
         y += 15;
 
         // Bước tiếp theo
@@ -280,7 +280,7 @@ public class UcSeatSelection : UserControl
             Font = new Font("Segoe UI", 9),
             ForeColor = Color.FromArgb(130, 130, 160),
             Location = new Point(15, y + 3),
-            Size = new Size(260, 34)
+            Size = new Size(300, 34)
         });
         txtReceived = new TextBox
         {
@@ -314,7 +314,7 @@ public class UcSeatSelection : UserControl
         {
             Text = "TIẾP TỤC",
             Font = new Font("Segoe UI", 12, FontStyle.Bold),
-            Size = new Size(280, 48),
+            Size = new Size(300, 48),
             Location = new Point(15, y),
             BackColor = Color.FromArgb(60, 170, 60),
             ForeColor = Color.White,
