@@ -8,8 +8,8 @@ public class SeatLayoutPreviewControl : Control
     private readonly List<PreviewSeat> _seats = new();
     private string _title = "Sơ đồ ghế";
 
-    private const int SeatW = 20;
-    private const int SeatH = 18;
+    private const int SeatW = 28;
+    private const int SeatH = 20;
     private const int Gap = 4;
     private const int RowLabelWidth = 26;
     private const int ScreenTop = 42;
@@ -151,7 +151,7 @@ public class SeatLayoutPreviewControl : Control
     private void DrawSeats(Graphics g, List<IGrouping<string, PreviewSeat>> rows, int maxSeats, int startX, int gridWidth)
     {
         using var rowFont = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-        using var seatFont = new Font("Segoe UI", 6.5f, FontStyle.Bold);
+        using var seatFont = new Font("Segoe UI", 6.4f, FontStyle.Bold);
         using var rowBrush = new SolidBrush(MutedText);
         var textFormat = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
 
@@ -181,7 +181,7 @@ public class SeatLayoutPreviewControl : Control
                 g.DrawPath(highlightPen, path);
 
                 using var seatTextBrush = new SolidBrush(Color.White);
-                g.DrawString(seat.SeatNumber.ToString(), seatFont, seatTextBrush, rect, textFormat);
+                g.DrawString($"{seat.RowLabel}{seat.SeatNumber}", seatFont, seatTextBrush, rect, textFormat);
             }
         }
     }

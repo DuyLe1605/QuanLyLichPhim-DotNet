@@ -24,6 +24,7 @@ public class DlgRoomEdit : Form
     private DataGridView dgvRows = null!;
     private Label lblSummary = null!;
     private SeatLayoutPreviewControl seatPreview = null!;
+    private ErrorProvider errorProvider = null!;
 
     public Room RoomData { get; private set; } = new();
     public List<RowConfig> RowConfigs { get; private set; } = new();
@@ -48,6 +49,12 @@ public class DlgRoomEdit : Form
         this.MinimizeBox = false;
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
+
+        errorProvider = new ErrorProvider
+        {
+            ContainerControl = this,
+            BlinkStyle = ErrorBlinkStyle.NeverBlink
+        };
 
         int x1 = 20, x2 = 130, y = 20;
 
@@ -333,6 +340,18 @@ public class DlgRoomEdit : Form
 
     private void BtnOk_Click(object? s, EventArgs e)
     {
+        errorProvider.Clear();
+        if (string.IsNullOrWhiteSpace(txtName.Text) || dgvRows.Rows.Count == 0)
+        {
+            if (string.IsNullOrWhiteSpace(txtName.Text))
+                errorProvider.SetError(txtName, "Nhập tên phòng.");
+            if (dgvRows.Rows.Count == 0)
+                errorProvider.SetError(dgvRows, "Chưa có hàng ghế nào.");
+
+            this.DialogResult = DialogResult.None;
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(txtName.Text))
         {
             MessageBox.Show("Nhập tên phòng!", "Thiếu thông tin");

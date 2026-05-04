@@ -109,6 +109,7 @@ public class DlgStaffEdit : Form
 {
     private TextBox txtName = null!, txtUser = null!, txtPw = null!, txtPhone = null!;
     private ComboBox cboRole = null!;
+    private ErrorProvider errorProvider = null!;
     public string FullName => txtName.Text.Trim();
     public string Username => txtUser.Text.Trim();
     public string Password => txtPw.Text;
@@ -126,6 +127,12 @@ public class DlgStaffEdit : Form
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
         this.Padding = new Padding(15);
+
+        errorProvider = new ErrorProvider
+        {
+            ContainerControl = this,
+            BlinkStyle = ErrorBlinkStyle.NeverBlink
+        };
 
         // === TableLayoutPanel (CSS Grid style) ===
         var tbl = new TableLayoutPanel
@@ -191,6 +198,22 @@ public class DlgStaffEdit : Form
         btnOk.FlatAppearance.BorderSize = 0;
         btnOk.Click += (s, e) =>
         {
+            errorProvider.Clear();
+            if (string.IsNullOrWhiteSpace(txtName.Text) ||
+                string.IsNullOrWhiteSpace(txtUser.Text) ||
+                string.IsNullOrWhiteSpace(txtPw.Text))
+            {
+                if (string.IsNullOrWhiteSpace(txtName.Text))
+                    errorProvider.SetError(txtName, "Nhập họ tên.");
+                if (string.IsNullOrWhiteSpace(txtUser.Text))
+                    errorProvider.SetError(txtUser, "Nhập tên đăng nhập.");
+                if (string.IsNullOrWhiteSpace(txtPw.Text))
+                    errorProvider.SetError(txtPw, "Nhập mật khẩu.");
+
+                this.DialogResult = DialogResult.None;
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(txtName.Text) || string.IsNullOrWhiteSpace(txtUser.Text) || string.IsNullOrWhiteSpace(txtPw.Text))
             {
                 MessageBox.Show("Điền đầy đủ thông tin bắt buộc!", "Thiếu thông tin");

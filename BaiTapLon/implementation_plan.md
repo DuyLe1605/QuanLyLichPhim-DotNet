@@ -222,7 +222,7 @@ BaiTapLon/
     │   ├── SessionManager.cs               ✅
     │   └── PrintHelper.cs                  ✅ Phase 4 (QuestPDF)
     │
-    └── Resources/                          🔲 Phase 6
+    └── Resources/                          ✅ Phase 5.5 (Posters/Snacks assets)
 ```
 
 ---
@@ -498,25 +498,31 @@ Microsoft.Extensions.Configuration.Json       # appsettings.json
 - [x] Giữ double-check race condition ghế đã bán trước khi commit
 - [x] Build kiểm tra thành công ra `C:\tmp\BaiTapLonPhase5Build2`
 
-### Phase 5.5: Refactor Backlog Cho Phase 1-5 ⬅️ TIẾP THEO
+### Phase 5.5: Refactor Phase 1-5 & UI/UX Polish 🔄 ĐANG THỰC HIỆN (04/05/2026)
 
-- [ ] Chuẩn hóa `ErrorProvider` cho các dialog quản trị còn lại:
-  - [ ] `DlgMovieEdit`
-  - [ ] `DlgRoomEdit`
-  - [ ] `DlgShowtimeEdit`
-  - [ ] `DlgStaffEdit`
-- [ ] Cải thiện lưu poster phim:
-  - [ ] Copy file upload vào `Resources/Posters`
-  - [ ] DB chỉ lưu tên file/relative path thay vì phụ thuộc đường dẫn tuyệt đối trên máy dev
-  - [ ] Load ảnh bằng `Path.Combine(Application.StartupPath, "Resources", "Posters", fileName)`
+- [x] Chuẩn hóa layout quản trị bằng `Dock`, `FlowLayoutPanel`, `TableLayoutPanel`:
+  - [x] `UcMovieManagement`
+  - [x] `UcRoomManagement`
+  - [x] `UcStaffManagement`
+  - [x] `AdminLayouts.CreateManagementPage()` dùng `pnlHeader Dock=Top`, content/grid `Dock=Fill`, header `BringToFront`
+- [x] Chuẩn hóa `ErrorProvider` cho các dialog quản trị còn lại:
+  - [x] `DlgMovieEdit`
+  - [x] `DlgRoomEdit`
+  - [x] `DlgShowtimeEdit`
+  - [x] `DlgStaffEdit`
+- [x] Cải thiện lưu poster phim:
+  - [x] Copy file upload vào `Resources/Posters`
+  - [x] DB lưu tên file/relative path (`PosterPath`) thay vì phụ thuộc đường dẫn tuyệt đối trên máy dev
+  - [x] Load ảnh bằng `Path.Combine(Application.StartupPath, "Resources", "Posters", fileName)`, fallback sang `Poster` byte[] cũ nếu cần
 - [ ] Hoàn thiện hóa đơn/PDF bán hàng:
   - [ ] Thêm hàm xuất hóa đơn bán vé có bảng "Dịch vụ đi kèm"
   - [ ] In danh sách bắp nước theo tên món, số lượng, đơn giá, thành tiền
 - [ ] Polish dashboard:
-  - [ ] Đảm bảo các query thống kê chạy bằng `async/await`
-  - [ ] Thêm trạng thái loading trong lúc chờ dữ liệu/biểu đồ
+  - [x] Đảm bảo các query thống kê chạy bằng `async/await`
+  - [x] Thêm trạng thái loading trong lúc chờ dữ liệu/biểu đồ
 - [x] Chống race condition bán ghế trong `InvoiceService.CreateAsync()`:
   - [x] Double-check ghế đã bán trong transaction trước khi lưu invoice/tickets/snacks
+  - [x] Thêm unique index `(ShowtimeId, SeatId)` và transaction `Serializable` để chặn commit trùng khi 2 máy bán cùng ghế sát thời điểm
 
 ### Phase 6: Hoàn Thiện & Polish
 

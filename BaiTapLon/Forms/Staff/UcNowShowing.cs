@@ -242,11 +242,7 @@ public class UcNowShowing : UserControl
             BackColor = Color.FromArgb(40, 40, 60),
             Cursor = Cursors.Hand
         };
-        if (movie.Poster != null && movie.Poster.Length > 0)
-        {
-            try { using var ms = new MemoryStream(movie.Poster); pic.Image = Image.FromStream(ms); }
-            catch { /* no poster */ }
-        }
+        pic.Image = LoadPosterImage(movie);
         card.Controls.Add(pic);
 
         // Tên phim
@@ -342,16 +338,7 @@ public class UcNowShowing : UserControl
                            $"📌  {movie.AgeRating}\n" +
                            $"🏷️  {genres}";
 
-        if (movie.Poster != null)
-        {
-            try
-            {
-                using var ms = new MemoryStream(movie.Poster);
-                picSelected.Image = Image.FromStream(ms);
-            }
-            catch { picSelected.Image = null; }
-        }
-        else picSelected.Image = null;
+        picSelected.Image = LoadPosterImage(movie);
 
         // Load suất chiếu theo ngày đang chọn
         await LoadShowtimesAsync(movie.Id);
@@ -434,5 +421,41 @@ public class UcNowShowing : UserControl
         {
             MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi");
         }
+    }
+
+    private static Image? LoadPosterImage(Movie movie)
+    {
+        if (!string.IsNullOrWhiteSpace(movie.PosterPath))
+        {
+            var path = Path.Combine(Application.StartupPath, "Resources", "Posters", movie.PosterPath);
+            if (File.Exists(path))
+            {
+                try
+                {
+                    using var source = Image.FromFile(path);
+                    return new Bitmap(source);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        if (movie.Poster is { Length: > 0 })
+        {
+            try
+            {
+                using var ms = new MemoryStream(movie.Poster);
+                using var source = Image.FromStream(ms);
+                return new Bitmap(source);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 }

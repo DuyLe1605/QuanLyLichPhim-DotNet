@@ -187,6 +187,10 @@ namespace BaiTapLon.Migrations
                     b.Property<byte[]>("Poster")
                         .HasColumnType("varbinary(max)");
 
+                    b.Property<string>("PosterPath")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
                     b.Property<DateTime?>("ReleaseDate")
                         .HasColumnType("datetime2");
 
@@ -2638,6 +2642,9 @@ namespace BaiTapLon.Migrations
                     b.HasIndex("SeatId");
 
                     b.HasIndex("ShowtimeId");
+
+                    b.HasIndex("ShowtimeId", "SeatId")
+                        .IsUnique();
 
                     b.ToTable("Tickets");
                 });

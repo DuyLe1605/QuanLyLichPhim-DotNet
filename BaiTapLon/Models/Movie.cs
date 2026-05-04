@@ -11,6 +11,7 @@ public class Movie
     public string AgeRating { get; set; } = "P"; // P, C13, C16, C18
     public string? Description { get; set; }
     public byte[]? Poster { get; set; }
+    public string? PosterPath { get; set; }
     public string? TrailerUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? ReleaseDate { get; set; }

@@ -62,6 +62,11 @@ public class AppDbContext : DbContext
             .Property(st => st.BasePrice)
             .HasPrecision(12, 2);
 
+        // ===== Movie =====
+        modelBuilder.Entity<Movie>()
+            .Property(m => m.PosterPath)
+            .HasMaxLength(260);
+
         // ===== Invoice =====
         modelBuilder.Entity<Invoice>()
             .HasOne(i => i.User)
@@ -95,6 +100,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Ticket>()
             .Property(t => t.Price).HasPrecision(12, 2);
+
+        modelBuilder.Entity<Ticket>()
+            .HasIndex(t => new { t.ShowtimeId, t.SeatId })
+            .IsUnique();
 
         // ===== Snack =====
         modelBuilder.Entity<Snack>()

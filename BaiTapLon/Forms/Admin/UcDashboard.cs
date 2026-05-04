@@ -24,6 +24,7 @@ public class UcDashboard : UserControl
     // === Filters ===
     private DateTimePicker dtpFrom = null!, dtpTo = null!;
     private ComboBox cboRevenueMode = null!;
+    private Panel pnlLoading = null!;
 
     public UcDashboard()
     {
@@ -50,6 +51,24 @@ public class UcDashboard : UserControl
             Padding = new Padding(0)
         };
         this.Controls.Add(mainFlow);
+
+        pnlLoading = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(18, 18, 30),
+            Visible = false
+        };
+        pnlLoading.Controls.Add(new Label
+        {
+            Text = "Đang tải dữ liệu...",
+            Dock = DockStyle.Top,
+            Height = 70,
+            Font = new Font("Segoe UI", 13, FontStyle.Bold),
+            ForeColor = Color.FromArgb(180, 180, 210),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Padding = new Padding(0, 25, 0, 0)
+        });
+        this.Controls.Add(pnlLoading);
 
         // === Title ===
         mainFlow.Controls.Add(new Label
@@ -123,7 +142,7 @@ public class UcDashboard : UserControl
             FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand
         };
         btnRefresh.FlatAppearance.BorderSize = 0;
-        btnRefresh.Click += async (s, e) => await LoadChartsAsync();
+        btnRefresh.Click += async (s, e) => await RunWithLoadingAsync(LoadChartsAsync);
         pnlFilter.Controls.Add(btnRefresh);
         fx += 120;
 
@@ -206,8 +225,11 @@ public class UcDashboard : UserControl
 
     private async Task LoadAllAsync()
     {
-        await LoadStatsAsync();
-        await LoadChartsAsync();
+        await RunWithLoadingAsync(async () =>
+        {
+            await LoadStatsAsync();
+            await LoadChartsAsync();
+        });
     }
 
     private async Task LoadStatsAsync()
@@ -392,6 +414,23 @@ public class UcDashboard : UserControl
         catch (Exception ex)
         {
             MessageBox.Show($"Lỗi xuất PDF: {ex.Message}", "Lỗi");
+        }
+    }
+
+    private async Task RunWithLoadingAsync(Func<Task> action)
+    {
+        pnlLoading.Visible = true;
+        pnlLoading.BringToFront();
+        UseWaitCursor = true;
+
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            UseWaitCursor = false;
+            pnlLoading.Visible = false;
         }
     }
 

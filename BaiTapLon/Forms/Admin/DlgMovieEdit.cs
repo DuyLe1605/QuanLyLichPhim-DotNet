@@ -18,7 +18,9 @@ public class DlgMovieEdit : Form
     private DateTimePicker dtpRelease = null!;
     private CheckedListBox clbGenres = null!;
     private PictureBox picPoster = null!;
+    private ErrorProvider errorProvider = null!;
     private byte[]? _posterData;
+    private string? _posterPath;
 
     public Movie MovieData { get; private set; } = new();
     public List<int> SelectedGenreIds { get; private set; } = new();
@@ -45,6 +47,12 @@ public class DlgMovieEdit : Form
         this.MinimizeBox = false;
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
+
+        errorProvider = new ErrorProvider
+        {
+            ContainerControl = this,
+            BlinkStyle = ErrorBlinkStyle.NeverBlink
+        };
 
         var root = new TableLayoutPanel
         {
@@ -261,7 +269,13 @@ public class DlgMovieEdit : Form
         int ageIdx = cboAgeRating.Items.IndexOf(_editMovie.AgeRating ?? "P");
         cboAgeRating.SelectedIndex = ageIdx >= 0 ? ageIdx : 0;
 
-        if (_editMovie.Poster != null)
+        _posterPath = _editMovie.PosterPath;
+        var posterImage = LoadPosterImage(_editMovie);
+        if (posterImage != null)
+        {
+            picPoster.Image = posterImage;
+        }
+        else if (_editMovie.Poster != null)
         {
             using var ms = new MemoryStream(_editMovie.Poster);
             picPoster.Image = Image.FromStream(ms);
@@ -277,15 +291,23 @@ public class DlgMovieEdit : Form
 
     private void BtnSave_Click(object? sender, EventArgs e)
     {
+        errorProvider.Clear();
+        bool isValid = true;
+
         if (string.IsNullOrWhiteSpace(txtCode.Text))
         {
-            MessageBox.Show("Vui lòng nhập mã phim!", "Thiếu thông tin");
-            this.DialogResult = DialogResult.None;
-            return;
+            errorProvider.SetError(txtCode, "Vui lòng nhập mã phim.");
+            isValid = false;
         }
+
         if (string.IsNullOrWhiteSpace(txtTitle.Text))
         {
-            MessageBox.Show("Vui lòng nhập tên phim!", "Thiếu thông tin");
+            errorProvider.SetError(txtTitle, "Vui lòng nhập tên phim.");
+            isValid = false;
+        }
+
+        if (!isValid)
+        {
             this.DialogResult = DialogResult.None;
             return;
         }
@@ -302,6 +324,7 @@ public class DlgMovieEdit : Form
             TrailerUrl = txtTrailer.Text.Trim(),
             ReleaseDate = (DateTime?)dtpRelease.Value,
             Poster = _posterData,
+            PosterPath = _posterPath,
             IsActive = true
         };
 
@@ -322,9 +345,43 @@ public class DlgMovieEdit : Form
         };
         if (ofd.ShowDialog() == DialogResult.OK)
         {
-            _posterData = File.ReadAllBytes(ofd.FileName);
-            using var ms = new MemoryStream(_posterData);
-            picPoster.Image = Image.FromStream(ms);
+            _posterPath = CopyPosterToResources(ofd.FileName);
+            _posterData = null;
+            picPoster.Image = LoadPosterImage(new Movie { PosterPath = _posterPath });
+        }
+    }
+
+    private static string CopyPosterToResources(string sourcePath)
+    {
+        var targetDir = Path.Combine(Application.StartupPath, "Resources", "Posters");
+        Directory.CreateDirectory(targetDir);
+
+        var originalName = Path.GetFileNameWithoutExtension(sourcePath);
+        var extension = Path.GetExtension(sourcePath).ToLowerInvariant();
+        var safeName = string.Join("_", originalName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeName)) safeName = "poster";
+
+        var fileName = $"{safeName}_{DateTime.Now:yyyyMMddHHmmssfff}{extension}";
+        var targetPath = Path.Combine(targetDir, fileName);
+        File.Copy(sourcePath, targetPath, overwrite: true);
+        return fileName;
+    }
+
+    private static Image? LoadPosterImage(Movie movie)
+    {
+        if (string.IsNullOrWhiteSpace(movie.PosterPath)) return null;
+
+        var path = Path.Combine(Application.StartupPath, "Resources", "Posters", movie.PosterPath);
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            using var source = Image.FromFile(path);
+            return new Bitmap(source);
+        }
+        catch
+        {
+            return null;
         }
     }
 

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BaiTapLon.Migrations
 {
     /// <inheritdoc />
+    [Migration("20260504012500_AddSnackImagePath")]
     public partial class AddSnackImagePath : Migration
     {
         /// <inheritdoc />

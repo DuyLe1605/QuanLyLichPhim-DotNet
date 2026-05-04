@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using BaiTapLon.Data;
 using BaiTapLon.Models;
+using System.Data;
 
 namespace BaiTapLon.Services;
 
@@ -25,7 +26,7 @@ public class InvoiceService
     public async Task<(bool Success, string Message, int InvoiceId)> CreateAsync(
         Invoice invoice, List<Ticket> tickets, List<InvoiceSnack> invoiceSnacks)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
             if (tickets.Count == 0)
@@ -34,11 +35,11 @@ public class InvoiceService
             var showtimeId = tickets.First().ShowtimeId;
             var requestedSeatIds = tickets.Select(t => t.SeatId).ToList();
 
-            var alreadySold = await _context.Tickets
+            var alreadySoldCount = await _context.Tickets
                 .Where(t => t.ShowtimeId == showtimeId && requestedSeatIds.Contains(t.SeatId))
-                .AnyAsync();
+                .CountAsync();
 
-            if (alreadySold)
+            if (alreadySoldCount > 0)
             {
                 await transaction.RollbackAsync();
                 return (false, "Một số ghế đã được bán! Vui lòng chọn ghế khác.", 0);
@@ -78,6 +79,9 @@ public class InvoiceService
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
+            if (ex is DbUpdateException)
+                return (false, "Ghế vừa được bán trên hệ thống, vui lòng chọn ghế khác.", 0);
+
             return (false, $"Lỗi thanh toán: {ex.Message}", 0);
         }
     }

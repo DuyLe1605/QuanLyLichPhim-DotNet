@@ -97,8 +97,15 @@ public class MovieService
         existing.TrailerUrl = movie.TrailerUrl;
         existing.ReleaseDate = movie.ReleaseDate;
 
-        if (movie.Poster != null)
+        if (!string.IsNullOrWhiteSpace(movie.PosterPath))
+        {
+            existing.PosterPath = movie.PosterPath;
             existing.Poster = movie.Poster;
+        }
+        else if (movie.Poster != null)
+        {
+            existing.Poster = movie.Poster;
+        }
 
         // Cập nhật thể loại: xóa cũ, thêm mới
         _context.MovieGenres.RemoveRange(existing.MovieGenres);

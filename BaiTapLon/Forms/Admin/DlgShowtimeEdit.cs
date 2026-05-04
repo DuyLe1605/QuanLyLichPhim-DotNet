@@ -9,6 +9,7 @@ public class DlgShowtimeEdit : Form
     private DateTimePicker dtpDate = null!;
     private DateTimePicker dtpTime = null!;
     private NumericUpDown nudPrice = null!;
+    private ErrorProvider errorProvider = null!;
 
     public Showtime ShowtimeData { get; private set; } = new();
     private readonly List<Movie> _movies;
@@ -36,6 +37,12 @@ public class DlgShowtimeEdit : Form
         this.BackColor = Color.FromArgb(24, 24, 40);
         this.ForeColor = Color.FromArgb(200, 200, 220);
         this.Padding = new Padding(15);
+
+        errorProvider = new ErrorProvider
+        {
+            ContainerControl = this,
+            BlinkStyle = ErrorBlinkStyle.NeverBlink
+        };
 
         // === TableLayoutPanel ===
         var tbl = new TableLayoutPanel
@@ -144,6 +151,20 @@ public class DlgShowtimeEdit : Form
         btnOk.FlatAppearance.BorderSize = 0;
         btnOk.Click += (s, e) =>
         {
+            errorProvider.Clear();
+            if (cboMovie.SelectedIndex < 0 || cboRoom.SelectedIndex < 0 || nudPrice.Value <= 0)
+            {
+                if (cboMovie.SelectedIndex < 0)
+                    errorProvider.SetError(cboMovie, "Chọn phim.");
+                if (cboRoom.SelectedIndex < 0)
+                    errorProvider.SetError(cboRoom, "Chọn phòng.");
+                if (nudPrice.Value <= 0)
+                    errorProvider.SetError(nudPrice, "Giá vé phải lớn hơn 0.");
+
+                this.DialogResult = DialogResult.None;
+                return;
+            }
+
             if (cboMovie.SelectedIndex < 0 || cboRoom.SelectedIndex < 0)
             {
                 MessageBox.Show("Chọn phim và phòng!", "Thiếu thông tin");
