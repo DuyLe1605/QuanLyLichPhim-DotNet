@@ -26,6 +26,10 @@ public class AppDbContext : DbContext
     public DbSet<PointTransaction> PointTransactions => Set<PointTransaction>();
     public DbSet<Shift> Shifts => Set<Shift>();
 
+    // ===== Phase 8: Loyalty Coupon System =====
+    public DbSet<Coupon> Coupons => Set<Coupon>();
+    public DbSet<CouponRedemption> CouponRedemptions => Set<CouponRedemption>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -241,6 +245,28 @@ public class AppDbContext : DbContext
         // ===== Unique constraints =====
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username).IsUnique();
+
+        // ===== Coupon =====
+        modelBuilder.Entity<Coupon>()
+            .HasIndex(c => c.Code).IsUnique();
+
+        // ===== CouponRedemption =====
+        modelBuilder.Entity<CouponRedemption>()
+            .HasIndex(cr => new { cr.CouponId, cr.CustomerId }).IsUnique();
+
+        modelBuilder.Entity<CouponRedemption>()
+            .HasOne(cr => cr.Coupon)
+            .WithMany(c => c.Redemptions)
+            .HasForeignKey(cr => cr.CouponId);
+
+        modelBuilder.Entity<CouponRedemption>()
+            .HasOne(cr => cr.Customer)
+            .WithMany(c => c.CouponRedemptions)
+            .HasForeignKey(cr => cr.CustomerId);
+
+        // ===== Customer (new fields) =====
+        modelBuilder.Entity<Customer>()
+            .Property(c => c.MonthlySpent).HasPrecision(14, 2);
 
         // ===== Seed Data =====
         SeedData(modelBuilder);

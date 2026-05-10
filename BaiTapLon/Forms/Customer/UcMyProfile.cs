@@ -110,7 +110,7 @@ public class UcMyProfile : UserControl
         var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            RowCount = 7,
+            RowCount = 8,
             ColumnCount = 1,
             BackColor = Color.Transparent,
             Padding = new Padding(28, 0, 0, 0)
@@ -121,6 +121,7 @@ public class UcMyProfile : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         panel.Controls.Add(new Label
@@ -152,6 +153,19 @@ public class UcMyProfile : UserControl
         progress.Dock = DockStyle.Fill;
         progress.Maximum = 100;
         panel.Controls.Add(progress, 0, 5);
+
+        var btnRedeem = CustomerUi.PrimaryButton("🎁 Nhập mã thưởng");
+        btnRedeem.Dock = DockStyle.Fill;
+        btnRedeem.BackColor = Color.FromArgb(130, 110, 255);
+        btnRedeem.FlatAppearance.MouseOverBackColor = Color.FromArgb(150, 130, 255);
+        btnRedeem.Click += async (s, e) =>
+        {
+            if (customer == null) return;
+            using var dlg = new DlgCouponRedeem(customer.Id);
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+                await LoadProfileAsync();
+        };
+        panel.Controls.Add(btnRedeem, 0, 6);
 
         return panel;
     }
@@ -196,8 +210,8 @@ public class UcMyProfile : UserControl
         txtFullName.Text = customer.FullName;
         txtPhone.Text = customer.Phone;
         lblMember.Text = $"Mã thành viên: {customer.MemberCode}";
-        lblTier.Text = $"Hạng: {customer.Tier}";
-        lblPoints.Text = $"Điểm hiện tại: {customer.TotalPoints:N0} | Tổng chi: {customer.TotalSpent:N0} đ";
+        lblTier.Text = $"{TierIcon(customer.Tier)} Hạng: {customer.Tier}";
+        lblPoints.Text = $"Điểm thưởng: {customer.LoyaltyPoints:N0} | Điểm TV: {customer.MembershipPoints:N0}";
         picQr.Image = BarcodeHelper.GenerateQrCode(customer.MemberCode, 220, 220);
 
         var next = customer.Tier switch
@@ -253,4 +267,11 @@ public class UcMyProfile : UserControl
             txtNewPassword.Clear();
         }
     }
+
+    private static string TierIcon(string tier) => tier switch
+    {
+        "Diamond" => "💎",
+        "VIP" => "⭐",
+        _ => "🎫"
+    };
 }

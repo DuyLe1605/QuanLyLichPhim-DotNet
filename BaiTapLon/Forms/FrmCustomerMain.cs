@@ -1,5 +1,8 @@
+using BaiTapLon.Data;
 using BaiTapLon.Helpers;
 using BaiTapLon.Models;
+using BaiTapLon.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace BaiTapLon.Forms;
 
@@ -17,6 +20,29 @@ public class FrmCustomerMain : Form
     {
         InitializeComponent();
         LoadHome();
+        _ = RunDemotionCheckAsync();
+    }
+
+    private async Task RunDemotionCheckAsync()
+    {
+        if (DateTime.Now.Day != 1) return;
+
+        try
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+            optionsBuilder.UseSqlServer(AppConfig.ConnectionString);
+            using var context = new AppDbContext(optionsBuilder.Options);
+
+            var service = new DemotionService(context);
+            if (await service.ShouldRunAsync())
+            {
+                await service.ExecuteMonthlyDemotionAsync();
+            }
+        }
+        catch
+        {
+            // Background check — silently ignore errors to avoid disrupting the UI
+        }
     }
 
     private void InitializeComponent()

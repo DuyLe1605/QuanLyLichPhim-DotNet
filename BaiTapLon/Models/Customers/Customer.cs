@@ -10,6 +10,9 @@ public class Customer
     public string MemberCode { get; set; } = string.Empty; // QR/Barcode: "CM-XXXXXX"
     public string Tier { get; set; } = "Standard"; // "Standard" | "VIP" | "Diamond"
     public int TotalPoints { get; set; } = 0;
+    public int LoyaltyPoints { get; set; } = 0;
+    public int MembershipPoints { get; set; } = 0;
+    public decimal MonthlySpent { get; set; } = 0;
     public decimal TotalSpent { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -18,4 +21,5 @@ public class Customer
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     public ICollection<PointTransaction> PointTransactions { get; set; } = new List<PointTransaction>();
+    public ICollection<CouponRedemption> CouponRedemptions { get; set; } = new List<CouponRedemption>();
 }

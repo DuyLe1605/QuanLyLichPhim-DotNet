@@ -17,4 +17,8 @@ public class CustomerBookingState
     public decimal DiscountAmount { get; init; }
     public int? VoucherId { get; init; }
     public decimal GrandTotal => TicketTotal + SnackTotal - DiscountAmount;
+
+    // Coupon / points applied at checkout
+    public string? AppliedCouponCode { get; set; }
+    public int PointsToRedeem { get; set; } = 0;
 }

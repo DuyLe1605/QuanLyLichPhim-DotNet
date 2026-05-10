@@ -1,4 +1,7 @@
+using BaiTapLon.Data;
 using BaiTapLon.Helpers;
+using BaiTapLon.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace BaiTapLon.Forms;
 
@@ -21,6 +24,29 @@ public class FrmMain : Form
     {
         InitializeComponent();
         SetupMenuByRole();
+        _ = RunDemotionCheckAsync();
+    }
+
+    private async Task RunDemotionCheckAsync()
+    {
+        if (DateTime.Now.Day != 1) return;
+
+        try
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+            optionsBuilder.UseSqlServer(AppConfig.ConnectionString);
+            using var context = new AppDbContext(optionsBuilder.Options);
+
+            var service = new DemotionService(context);
+            if (await service.ShouldRunAsync())
+            {
+                await service.ExecuteMonthlyDemotionAsync();
+            }
+        }
+        catch
+        {
+            // Background check — silently ignore errors to avoid disrupting the UI
+        }
     }
 
     private void InitializeComponent()
@@ -198,6 +224,7 @@ public class FrmMain : Form
             AddMenuButton("🍿  Bắp nước", "Snacks");
             AddMenuButton("👥  Nhân viên", "Staff");
             AddMenuButton("👤  Khách hàng", "Customers");
+            AddMenuButton("🎟️  Coupon", "Coupons");
             AddMenuButton("📄  Hóa đơn", "Invoices");
         }
         else
@@ -402,6 +429,7 @@ public class FrmMain : Form
             "Snacks" => new Admin.UcSnackManagement(),
             "Staff" => new Admin.UcStaffManagement(),
             "Customers" => new Admin.UcCustomerManagement(),
+            "Coupons" => new Admin.Coupons.UcCouponManagement(),
             "Invoices" => new Admin.UcInvoiceManagement(),
             "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
