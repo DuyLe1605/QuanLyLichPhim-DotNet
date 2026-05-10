@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Dự án:** CineManager — WinForms C# (.NET 10)
-> **Ngày tạo:** 04/05/2026 | **Cập nhật:** 04/05/2026 (Phase 7 ✅)
+> **Ngày tạo:** 04/05/2026 | **Cập nhật:** 04/05/2026 (Phase 9 ✅)
 > **Phạm vi:** Phase 7 → Phase 13
 > **Tiền đề:** Phase 1-5.5 đã hoàn thành (CRUD, Bán vé, Bắp nước, Thống kê, Seat Map GDI+)
 
@@ -135,16 +135,16 @@ BaiTapLon/
 │
 ├── Services/                        (Bổ sung)
 │   ├── CustomerService.cs           ✅ Phase 7
-│   ├── BookingService.cs            Phase 9
+│   ├── BookingService.cs            ✅ Phase 9
 │   ├── PointService.cs              Phase 8
 │   ├── VoucherService.cs            Phase 10
 │   ├── ShiftService.cs              Phase 11
 │   └── HardwareService.cs           Phase 12
 │
 ├── Forms/
-│   ├── FrmLogin.cs                  (Sửa: thêm nút Đăng ký KH — Phase 9)
-│   ├── FrmMain.cs                   (Sửa: routing theo Role — Phase 9)
-│   ├── FrmCustomerMain.cs           Phase 9 ← Shell mới cho Customer
+│   ├── FrmLogin.cs                  ✅ (Sửa: thêm nút Đăng ký KH — Phase 9)
+│   ├── FrmMain.cs                   (Admin/Staff shell hiện tại)
+│   ├── FrmCustomerMain.cs           ✅ Phase 9 ← Shell mới cho Customer
 │   ├── Admin/
 │   │   ├── UcCustomerManagement.cs  Phase 8
 │   │   ├── UcVoucherManagement.cs   Phase 10
@@ -154,13 +154,13 @@ BaiTapLon/
 │   │   ├── UcCheckIn.cs             Phase 9
 │   │   ├── UcShiftPanel.cs          Phase 11
 │   │   └── (UcSeatSelection sửa: thêm Mode)
-│   └── Customer/                    Phase 9 ← Folder mới
-│       ├── UcStorefront.cs          (Trang chủ: banner + grid phim)
-│       ├── UcMovieDetail.cs         (Chi tiết phim + trailer)
-│       ├── UcCustomerBooking.cs     (Luồng đặt vé self-service)
-│       ├── UcPaymentGateway.cs      (QR giả lập + timer)
-│       ├── UcMyTickets.cs           (Lịch sử vé + mã QR)
-│       └── UcMyProfile.cs           (Thông tin + điểm + hạng)
+│   └── Customer/                    ✅ Phase 9 ← Folder mới
+│       ├── UcStorefront.cs          ✅ (Trang chủ: banner + grid phim)
+│       ├── UcMovieDetail.cs         ✅ (Chi tiết phim + trailer)
+│       ├── UcCustomerBooking.cs     ✅ (Luồng đặt vé self-service)
+│       ├── UcPaymentGateway.cs      ✅ (QR giả lập + timer)
+│       ├── UcMyTickets.cs           ✅ (Lịch sử vé + mã QR)
+│       └── UcMyProfile.cs           ✅ (Thông tin + điểm + hạng)
 │
 ├── Helpers/
 │   ├── BarcodeHelper.cs             Phase 8 (sinh mã QR/Barcode — QRCoder)
@@ -263,57 +263,57 @@ flowchart TD
 
 ---
 
-## Phase 9: Customer Shell — Giao diện Khách Hàng (3-4 ngày)
+## Phase 9: Customer Shell — Giao diện Khách Hàng ✅ HOÀN THÀNH (04/05/2026)
 
 > [!IMPORTANT]
 > Phase lớn nhất — tạo trải nghiệm hoàn toàn mới cho Customer role.
 
 **9.1 — Tái cấu trúc FrmLogin**
-- [ ] Thêm nút "Chưa có tài khoản? Đăng ký ngay" → mở `DlgCustomerRegister`
-- [ ] `DlgCustomerRegister`: form đăng ký (Họ tên, Email, SĐT, Mật khẩu, Xác nhận MK)
-- [ ] Sau đăng nhập: kiểm tra Role — nếu User → `FrmMain`, nếu Customer → `FrmCustomerMain`
+- [x] Thêm nút "Chưa có tài khoản? Đăng ký ngay" → mở `DlgCustomerRegister`
+- [x] `DlgCustomerRegister`: form đăng ký (Họ tên, Email, SĐT, Mật khẩu, Xác nhận MK)
+- [x] Sau đăng nhập: kiểm tra Role — nếu User → `FrmMain`, nếu Customer → `FrmCustomerMain`
 
 **9.2 — FrmCustomerMain (Customer Shell)**
-- [ ] `FormBorderStyle.None`, dark theme, draggable (giống FrmMain)
-- [ ] **Top NavBar**: Logo | Trang chủ | Phim Đang Chiếu | Lịch Sử Vé | [Avatar + Tên KH ▼]
-- [ ] Dropdown avatar: Hồ sơ, Điểm thưởng, Đăng xuất
-- [ ] Content panel `Dock=Fill` swap UserControl theo menu
+- [x] `FormBorderStyle.None`, dark theme, draggable (giống FrmMain)
+- [x] **Top NavBar**: Logo | Trang chủ | Phim Đang Chiếu | Lịch Sử Vé | [Avatar + Tên KH ▼]
+- [x] Dropdown avatar: Hồ sơ, Điểm thưởng, Đăng xuất
+- [x] Content panel `Dock=Fill` swap UserControl theo menu
 
 **9.3 — UcStorefront (Trang chủ KH)**
-- [ ] Hero Banner: slider poster phim nổi bật (auto-rotate 5s, manual arrows)
-- [ ] Section "🔥 Phim Đang Hot": FlowLayoutPanel card phim (poster + tên + rating + thời lượng)
-- [ ] Section "📅 Phim Sắp Chiếu": card nhỏ hơn, có nhãn "Coming Soon"
-- [ ] Click card → chuyển sang `UcMovieDetail`
+- [x] Hero Banner: slider poster phim nổi bật (auto-rotate 5s)
+- [x] Section "🔥 Phim Đang Hot": FlowLayoutPanel card phim (poster + tên + rating + thời lượng)
+- [x] Section "📅 Phim Sắp Chiếu": card nhỏ hơn, có nhãn "Coming Soon"
+- [x] Click card → chuyển sang `UcMovieDetail`
 
 **9.4 — UcMovieDetail**
-- [ ] Poster lớn bên trái + thông tin bên phải (tên, đạo diễn, diễn viên, thể loại, mô tả, rating tuổi)
-- [ ] Nút "▶ Xem Trailer" (mở trình duyệt TrailerUrl)
-- [ ] Danh sách suất chiếu theo ngày (tái sử dụng logic `UcNowShowing`)
-- [ ] Click suất → chuyển sang `UcCustomerBooking`
+- [x] Poster lớn bên trái + thông tin bên phải (tên, đạo diễn, diễn viên, thể loại, mô tả, rating tuổi)
+- [x] Nút "▶ Xem Trailer" (mở trình duyệt TrailerUrl)
+- [x] Danh sách suất chiếu theo ngày (tái sử dụng logic `UcNowShowing`)
+- [x] Click suất → chuyển sang `UcCustomerBooking`
 
 **9.5 — UcCustomerBooking (Self-booking Flow)**
-- [ ] Tái sử dụng `SeatMapControl` với `Mode = CustomerMode`
-- [ ] CustomerMode: ẩn các control nhạy cảm, UI thân thiện hơn (nút lớn, màu sắc bắt mắt)
-- [ ] Tái sử dụng `UcSnackOrder` với `Mode = CustomerMode` (ẩn chiết khấu)
-- [ ] Bước cuối → chuyển sang `UcPaymentGateway`
+- [x] Tái sử dụng `SeatMapControl` cho luồng Customer
+- [x] Customer UI: ẩn các control nhạy cảm, nút lớn, màu sắc thân thiện
+- [x] Chọn bắp nước trong `UcCustomerBooking` và truyền sang thanh toán
+- [x] Bước cuối → chuyển sang `UcPaymentGateway`
 
 **9.6 — UcPaymentGateway (Thanh toán giả lập)**
-- [ ] Hiển thị tóm tắt đơn: phim, ghế, bắp nước, tổng tiền, giảm giá (nếu có voucher)
-- [ ] Ô nhập mã giảm giá + nút "Áp dụng"
-- [ ] Hiển thị QR Code (Momo/VNPay giả lập) — dùng `BarcodeHelper`
-- [ ] Timer đếm ngược 10s → tự động "Thanh toán thành công"
-- [ ] Tạo `Booking` với status `Paid`, sinh `BookingCode`
-- [ ] Animation confetti/checkmark khi thành công
+- [x] Hiển thị tóm tắt đơn: phim, ghế, bắp nước, tổng tiền, giảm giá (nếu có voucher)
+- [x] Ô nhập mã giảm giá + nút "Áp dụng" (logic voucher thực thi ở Phase 10)
+- [x] Hiển thị QR Code (Momo/VNPay giả lập) — dùng `BarcodeHelper`
+- [x] Timer đếm ngược 10s → tự động "Thanh toán thành công"
+- [x] Tạo `Booking` với status `Paid`, sinh `BookingCode`
+- [x] Hiển thị trạng thái/checkmark thành công
 
 **9.7 — UcMyTickets (Lịch sử vé)**
-- [ ] Card list vé: poster nhỏ + tên phim + ngày giờ + ghế + trạng thái (Chưa xem / Đã xem / Hủy)
-- [ ] Click vào vé → popup chi tiết + mã QR/Barcode của BookingCode
-- [ ] Lọc: Sắp tới / Đã xem / Đã hủy
+- [x] Card list vé: poster nhỏ + tên phim + ngày giờ + ghế + trạng thái (Chưa xem / Đã xem / Hủy)
+- [x] Click vào vé → popup chi tiết + mã QR/Barcode của BookingCode
+- [x] Lọc: Sắp tới / Đã xem / Đã hủy
 
 **9.8 — UcMyProfile**
-- [ ] Thông tin cá nhân (sửa tên, SĐT, đổi mật khẩu)
-- [ ] Thẻ thành viên: hiển thị MemberCode dạng QR + hạng + điểm hiện tại
-- [ ] Progress bar đến hạng tiếp theo (VD: còn 200,000đ nữa để lên VIP)
+- [x] Thông tin cá nhân (sửa tên, SĐT, đổi mật khẩu)
+- [x] Thẻ thành viên: hiển thị MemberCode dạng QR + hạng + điểm hiện tại
+- [x] Progress bar đến hạng tiếp theo (VD: còn 200,000đ nữa để lên VIP)
 
 ---
 
@@ -432,7 +432,7 @@ CashDifference = ActualCash - ExpectedCash
 |---|---|---|---|
 | 7 | Models + Migration + CustomerService | 1-2 ngày | ✅ Hoàn thành |
 | 8 | CRM & Loyalty + Admin UI | 2-3 ngày | 🔲 |
-| 9 | Customer Shell (Storefront) | 3-4 ngày | 🔲 |
+| 9 | Customer Shell (Storefront) | 3-4 ngày | ✅ |
 | 10 | Voucher & Khuyến mãi | 2 ngày | 🔲 |
 | 11 | Ca làm việc & Két tiền | 2 ngày | 🔲 |
 | 12 | Phần cứng POS (giả lập) | 2 ngày | 🔲 |

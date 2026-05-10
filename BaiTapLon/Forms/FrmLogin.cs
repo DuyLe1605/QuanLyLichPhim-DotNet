@@ -9,6 +9,7 @@ public class FrmLogin : Form
     private TextBox txtUsername = null!;
     private TextBox txtPassword = null!;
     private Button btnLogin = null!;
+    private Button btnRegisterCustomer = null!;
     private Label lblError = null!;
     private CheckBox chkShowPassword = null!;
 
@@ -193,6 +194,23 @@ public class FrmLogin : Form
         pnlMain.Controls.Add(btnLogin);
         y += 65;
 
+        btnRegisterCustomer = new Button
+        {
+            Text = "Chưa có tài khoản? Đăng ký ngay",
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            Size = new Size(340, 40),
+            Location = new Point(40, y),
+            BackColor = Color.FromArgb(35, 35, 55),
+            ForeColor = Color.FromArgb(210, 220, 235),
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand
+        };
+        btnRegisterCustomer.FlatAppearance.BorderSize = 0;
+        btnRegisterCustomer.FlatAppearance.MouseOverBackColor = Color.FromArgb(48, 55, 72);
+        btnRegisterCustomer.Click += BtnRegisterCustomer_Click;
+        pnlMain.Controls.Add(btnRegisterCustomer);
+        y += 48;
+
         // Hint
         // var lblHint = new Label
         // {
@@ -256,7 +274,21 @@ public class FrmLogin : Form
             }
             else
             {
-                ShowError("Sai tên đăng nhập hoặc mật khẩu!");
+                var customerService = new CustomerService(context);
+                var customer = await customerService.LoginAsync(username, password);
+
+                if (customer != null)
+                {
+                    SessionManager.LoginAsCustomer(customer);
+                    this.Hide();
+                    var customerForm = new FrmCustomerMain();
+                    customerForm.FormClosed += (s, args) => this.Close();
+                    customerForm.Show();
+                }
+                else
+                {
+                    ShowError("Sai tài khoản/email hoặc mật khẩu!");
+                }
             }
         }
         catch (Exception ex)
@@ -274,6 +306,18 @@ public class FrmLogin : Form
     {
         lblError.Text = msg;
         lblError.Visible = true;
+    }
+
+    private void BtnRegisterCustomer_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new DlgCustomerRegister();
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+            return;
+
+        Hide();
+        var customerForm = new FrmCustomerMain();
+        customerForm.FormClosed += (s, args) => Close();
+        customerForm.Show();
     }
 
     private static System.Drawing.Drawing2D.GraphicsPath RoundedRect(Rectangle rect, int r)
