@@ -6,6 +6,7 @@ namespace BaiTapLon.Forms;
 public class DlgCustomerRegister : Form
 {
     private readonly TextBox txtFullName = null!;
+    private readonly TextBox txtUsername = null!;
     private readonly TextBox txtEmail = null!;
     private readonly TextBox txtPhone = null!;
     private readonly TextBox txtPassword = null!;
@@ -18,8 +19,8 @@ public class DlgCustomerRegister : Form
     {
         Text = "Đăng ký khách hàng";
         StartPosition = FormStartPosition.CenterParent;
-        ClientSize = new Size(460, 520);
-        MinimumSize = new Size(460, 520);
+        ClientSize = new Size(460, 590);
+        MinimumSize = new Size(460, 590);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -38,28 +39,24 @@ public class DlgCustomerRegister : Form
 
         var subtitle = new Label
         {
-            Text = "Dùng email để đăng nhập, đặt vé và xem lịch sử vé.",
+            Text = "Dùng tên đăng nhập để đăng nhập, đặt vé và xem lịch sử vé.",
             ForeColor = Color.FromArgb(145, 145, 170),
             Location = new Point(36, 65),
             Size = new Size(390, 24)
         };
         Controls.Add(subtitle);
 
-        var y = 112;
-        txtFullName = AddField("Họ tên", y, false);
-        y += 68;
-        txtEmail = AddField("Email", y, false);
-        y += 68;
-        txtPhone = AddField("Số điện thoại", y, false);
-        y += 68;
-        txtPassword = AddField("Mật khẩu", y, true);
-        y += 68;
-        txtConfirm = AddField("Xác nhận mật khẩu", y, true);
+        txtFullName = AddField("Họ tên", 112, false);
+        txtUsername = AddField("Tên đăng nhập", 180, false);
+        txtEmail = AddField("Email", 248, false);
+        txtPhone = AddField("Số điện thoại", 316, false);
+        txtPassword = AddField("Mật khẩu", 384, true);
+        txtConfirm = AddField("Xác nhận mật khẩu", 452, true);
 
         lblError = new Label
         {
             ForeColor = Color.FromArgb(255, 95, 95),
-            Location = new Point(36, 430),
+            Location = new Point(36, 528),
             Size = new Size(390, 24),
             TextAlign = ContentAlignment.MiddleCenter,
             Visible = false
@@ -73,7 +70,7 @@ public class DlgCustomerRegister : Form
             BackColor = Color.FromArgb(100, 80, 255),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Location = new Point(36, 458),
+            Location = new Point(36, 556),
             Size = new Size(250, 42),
             Cursor = Cursors.Hand
         };
@@ -88,7 +85,7 @@ public class DlgCustomerRegister : Form
             BackColor = Color.FromArgb(45, 45, 65),
             ForeColor = Color.FromArgb(220, 220, 235),
             FlatStyle = FlatStyle.Flat,
-            Location = new Point(296, 458),
+            Location = new Point(296, 556),
             Size = new Size(128, 42),
             DialogResult = DialogResult.Cancel,
             Cursor = Cursors.Hand
@@ -141,7 +138,8 @@ public class DlgCustomerRegister : Form
                 txtFullName.Text.Trim(),
                 txtEmail.Text.Trim(),
                 txtPhone.Text.Trim(),
-                txtPassword.Text);
+                txtPassword.Text,
+                txtUsername.Text.Trim());
 
             if (!result.Success)
             {
@@ -174,6 +172,12 @@ public class DlgCustomerRegister : Form
         if (string.IsNullOrWhiteSpace(txtFullName.Text))
         {
             errorProvider.SetError(txtFullName, "Nhập họ tên.");
+            ok = false;
+        }
+
+        if (!CustomerService.IsValidUsername(txtUsername.Text.Trim()))
+        {
+            errorProvider.SetError(txtUsername, "Tên đăng nhập không hợp lệ.");
             ok = false;
         }
 

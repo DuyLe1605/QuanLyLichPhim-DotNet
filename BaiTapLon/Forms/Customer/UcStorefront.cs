@@ -1,3 +1,4 @@
+using BaiTapLon.Data;
 using BaiTapLon.Models;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
@@ -83,27 +84,29 @@ public class UcStorefront : UserControl
         };
     }
 
+    /// <summary>
+    /// Returns up to 6 upcoming movies (ReleaseDate > today, IsActive = true),
+    /// ordered by ReleaseDate ascending. Extracted for testability.
+    /// </summary>
+    public static async Task<List<Movie>> GetUpcomingMoviesAsync(
+        Data.AppDbContext context, DateTime today)
+    {
+        return await context.Movies
+            .Where(m => m.IsActive && m.ReleaseDate.HasValue && m.ReleaseDate.Value.Date > today.Date)
+            .AsNoTracking()
+            .OrderBy(m => m.ReleaseDate)
+            .Take(6)
+            .ToListAsync();
+    }
+
     private async Task LoadDataAsync()
     {
         using var context = Program.CreateDbContext();
         var now = DateTime.Now;
 
-        hotMovies = await context.Movies
-            .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
-            .Include(m => m.Showtimes)
-            .Where(m => m.IsActive && m.Showtimes.Any(s => s.IsActive && s.StartTime > now))
-            .AsNoTracking()
-            .OrderBy(m => m.Showtimes.Min(s => s.StartTime))
-            .Take(12)
-            .ToListAsync();
+        hotMovies = await GetHotMoviesAsync(context, now);
 
-        var upcoming = await context.Movies
-            .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
-            .Where(m => m.IsActive && m.ReleaseDate.HasValue && m.ReleaseDate.Value.Date > now.Date)
-            .AsNoTracking()
-            .OrderBy(m => m.ReleaseDate)
-            .Take(8)
-            .ToListAsync();
+        var upcoming = await GetUpcomingMoviesAsync(context, now);
 
         RenderCards(flpHot, hotMovies, false);
         RenderCards(flpComingSoon, upcoming, true);
@@ -223,6 +226,30 @@ public class UcStorefront : UserControl
         return card;
     }
 
+    /// <summary>
+    /// Returns the "hot movies" list: active movies with at least one active future showtime,
+    /// ordered by nearest showtime ascending, capped at 6.
+    /// Extracted as a static method to enable property-based testing without UI.
+    /// </summary>
+    public static async Task<List<Movie>> GetHotMoviesAsync(
+        BaiTapLon.Data.AppDbContext context, DateTime now)
+    {
+        return await context.Movies
+            .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+            .Include(m => m.Showtimes)
+            .Where(m => m.IsActive && m.Showtimes.Any(s => s.IsActive && s.StartTime > now))
+            .AsNoTracking()
+            .OrderBy(m => m.Showtimes.Min(s => s.StartTime))
+            .Take(6)
+            .ToListAsync();
+    }
+
+    public static float ComputeTextAreaWidth(int heroPanelWidth)
+    {
+        var posterLeft = heroPanelWidth - 220;
+        return Math.Max(200f, posterLeft - 50f);
+    }
+
     private void PaintHero(object? sender, PaintEventArgs e)
     {
         e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -237,9 +264,10 @@ public class UcStorefront : UserControl
         e.Graphics.FillRectangle(bg, rect);
 
         var movie = hotMovies.Count == 0 ? null : hotMovies[Math.Clamp(heroIndex, 0, hotMovies.Count - 1)];
+        var textWidth = ComputeTextAreaWidth(rect.Width);
         if (movie == null)
         {
-            DrawHeroText(e.Graphics, "CineManager", "Chọn phim, đặt ghế và thanh toán QR trong vài bước.", null);
+            DrawHeroText(e.Graphics, "CineManager", "Chọn phim, đặt ghế và thanh toán QR trong vài bước.", null, textWidth);
             return;
         }
 
@@ -255,10 +283,11 @@ public class UcStorefront : UserControl
             e.Graphics,
             movie.Title,
             $"{movie.Duration} phút | {movie.AgeRating} | {CustomerUi.FormatGenres(movie)}",
-            movie.Description);
+            movie.Description,
+            textWidth);
     }
 
-    private static void DrawHeroText(Graphics graphics, string title, string line, string? description)
+    private static void DrawHeroText(Graphics graphics, string title, string line, string? description, float textWidth)
     {
         using var titleFont = new Font("Segoe UI", 26, FontStyle.Bold);
         using var lineFont = new Font("Segoe UI", 12, FontStyle.Bold);
@@ -267,12 +296,12 @@ public class UcStorefront : UserControl
         using var mutedBrush = new SolidBrush(Color.FromArgb(210, 220, 230));
         using var descBrush = new SolidBrush(Color.FromArgb(165, 175, 190));
 
-        graphics.DrawString(title, titleFont, titleBrush, new RectangleF(34, 38, 720, 62));
-        graphics.DrawString(line, lineFont, mutedBrush, new RectangleF(38, 104, 680, 28));
+        graphics.DrawString(title, titleFont, titleBrush, new RectangleF(34, 38, textWidth, 62));
+        graphics.DrawString(line, lineFont, mutedBrush, new RectangleF(38, 104, textWidth - 4, 28));
 
         if (!string.IsNullOrWhiteSpace(description))
         {
-            graphics.DrawString(description, descFont, descBrush, new RectangleF(38, 144, 680, 70));
+            graphics.DrawString(description, descFont, descBrush, new RectangleF(38, 144, textWidth - 4, 70));
         }
     }
 }

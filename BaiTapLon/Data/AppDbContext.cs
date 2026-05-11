@@ -166,6 +166,14 @@ public class AppDbContext : DbContext
 
         // ===== Customer =====
         modelBuilder.Entity<Customer>()
+            .Property(c => c.Username)
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.Username)
+            .IsUnique();
+
+        modelBuilder.Entity<Customer>()
             .HasIndex(c => c.Email).IsUnique();
 
         modelBuilder.Entity<Customer>()

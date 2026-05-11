@@ -109,8 +109,7 @@ public class FrmMain : Form
             Width = 250,
             BackColor = Color.FromArgb(20, 20, 35),
         };
-        this.Controls.Add(pnlSidebar);
-        pnlSidebar.BringToFront();
+        // NOTE: sidebar is added LAST so it doesn't interfere with Fill layout        this.Controls.Add(pnlSidebar);
 
         // Logo icon
         var lblLogo = new Label
@@ -184,8 +183,6 @@ public class FrmMain : Form
             BackColor = Color.FromArgb(22, 22, 38),
             Padding = new Padding(20, 0, 20, 0)
         };
-        this.Controls.Add(pnlHeader);
-        pnlHeader.BringToFront();
 
         var lblUserInfo = new Label
         {
@@ -207,8 +204,13 @@ public class FrmMain : Form
             BackColor = Color.FromArgb(18, 18, 30),
             Padding = new Padding(10)
         };
-        this.Controls.Add(pnlContent);
-        pnlContent.BringToFront();
+
+        // Correct add order for Dock layout:
+        // Fill must be added FIRST, then Top panels, then Left panels.
+        // This ensures pnlContent fills the remaining space correctly.
+        this.Controls.Add(pnlContent);   // Fill — added first
+        this.Controls.Add(pnlHeader);    // Top  — stacks below title bar
+        this.Controls.Add(pnlSidebar);   // Left — sidebar on the left
 
         ShowWelcomeScreen();
     }
@@ -257,6 +259,26 @@ public class FrmMain : Form
             ToggleUserDropdown(false);
             LoadModule("Invoices");
         });
+
+        // Logout button inside the dropdown
+        var btnDropdownLogout = new Button
+        {
+            Text = "🚪  Đăng xuất",
+            Font = new Font("Segoe UI", 9.5f),
+            Height = 30,
+            Dock = DockStyle.Top,
+            BackColor = Color.Transparent,
+            ForeColor = Color.FromArgb(210, 90, 90),
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(12, 0, 0, 0)
+        };
+        btnDropdownLogout.FlatAppearance.BorderSize = 0;
+        btnDropdownLogout.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 25, 25);
+        btnDropdownLogout.Click += BtnLogout_Click;
+
+        pnlUserDropdown.Controls.Add(btnDropdownLogout);
         pnlUserDropdown.Controls.Add(btnMyInvoices);
         pnlUserDropdown.Controls.Add(btnProfile);
 
@@ -278,24 +300,6 @@ public class FrmMain : Form
         btnUserNav.Click += (s, e) => ToggleUserDropdown(!pnlUserDropdown.Visible);
         pnlSidebarFooter.Controls.Add(btnUserNav);
 
-        var btnSideLogout = new Button
-        {
-            Text = "🚪  Đăng xuất",
-            Font = new Font("Segoe UI", 10),
-            Height = 44,
-            Dock = DockStyle.Top,
-            BackColor = Color.FromArgb(20, 20, 35),
-            ForeColor = Color.FromArgb(210, 90, 90),
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(22, 0, 0, 0)
-        };
-        btnSideLogout.FlatAppearance.BorderSize = 0;
-        btnSideLogout.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 25, 25);
-        btnSideLogout.Click += BtnLogout_Click;
-        pnlSidebarFooter.Controls.Add(btnSideLogout);
-        btnSideLogout.BringToFront();
         btnUserNav.BringToFront();
         ResizeSidebarMenu();
     }
@@ -324,8 +328,8 @@ public class FrmMain : Form
     private void ToggleUserDropdown(bool show)
     {
         pnlUserDropdown.Visible = show;
-        pnlUserDropdown.Height = show ? 72 : 0;
-        pnlSidebarFooter.Height = show ? 172 : 100;
+        pnlUserDropdown.Height = show ? 102 : 0;   // 3 items × 30px + 12px padding
+        pnlSidebarFooter.Height = show ? 150 : 48;
         btnUserNav.Text = BuildUserNavText(show);
         ResizeSidebarMenu();
     }

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using BaiTapLon.Data;
 using BaiTapLon.Models;
@@ -14,11 +15,31 @@ public class CustomerService
     }
 
     /// <summary>
+    /// Validates that a username contains only alphanumeric characters, underscores, or dots,
+    /// and is between 3 and 50 characters long.
+    /// </summary>
+    public static bool IsValidUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return false;
+        return Regex.IsMatch(username, @"^[a-zA-Z0-9_.]{3,50}$");
+    }
+
+    /// <summary>
     /// Đăng ký khách hàng mới. Sinh mã thành viên tự động.
     /// </summary>
     public async Task<(bool Success, string Message, Customer? Customer)> RegisterAsync(
-        string fullName, string email, string phone, string password)
+        string fullName, string email, string phone, string password, string username)
     {
+        // Validate username
+        if (string.IsNullOrWhiteSpace(username))
+            return (false, "Vui lòng nhập tên đăng nhập!", null);
+
+        if (!IsValidUsername(username))
+            return (false, "Tên đăng nhập chỉ được chứa chữ cái, số, dấu gạch dưới hoặc dấu chấm (3–50 ký tự).", null);
+
+        if (await _context.Customers.AnyAsync(c => c.Username == username))
+            return (false, "Tên đăng nhập đã được sử dụng!", null);
+
         // Validate email trùng
         if (await _context.Customers.AnyAsync(c => c.Email == email))
             return (false, "Email đã được đăng ký!", null);
@@ -36,6 +57,7 @@ public class CustomerService
             Phone = phone,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             MemberCode = memberCode,
+            Username = username,
             Tier = "Standard",
             TotalPoints = 0,
             TotalSpent = 0,
@@ -50,13 +72,13 @@ public class CustomerService
     }
 
     /// <summary>
-    /// Đăng nhập khách hàng bằng email + password.
+    /// Đăng nhập khách hàng bằng username + password.
     /// </summary>
-    public async Task<Customer?> LoginAsync(string email, string password)
+    public async Task<Customer?> LoginAsync(string username, string password)
     {
         var customer = await _context.Customers
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Email == email && c.IsActive);
+            .FirstOrDefaultAsync(c => c.Username == username && c.IsActive);
 
         if (customer == null) return null;
 

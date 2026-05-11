@@ -10,6 +10,7 @@ public class FrmCustomerMain : Form
 {
     private Panel pnlTitleBar = null!;
     private Panel pnlNav = null!;
+    private FlowLayoutPanel flpNav = null!;
     private Panel pnlContent = null!;
     private Panel pnlAccountMenu = null!;
     private readonly List<Button> navButtons = new();
@@ -56,6 +57,7 @@ public class FrmCustomerMain : Form
         DoubleBuffered = true;
         WindowState = FormWindowState.Maximized;
 
+        // ── Title bar ────────────────────────────────────────────────────────
         pnlTitleBar = new Panel
         {
             Dock = DockStyle.Top,
@@ -63,7 +65,6 @@ public class FrmCustomerMain : Form
             BackColor = Color.FromArgb(10, 12, 20)
         };
         WireDrag(pnlTitleBar);
-        Controls.Add(pnlTitleBar);
 
         var lblTitle = new Label
         {
@@ -92,6 +93,7 @@ public class FrmCustomerMain : Form
         btnMin.Click += (s, e) => WindowState = FormWindowState.Minimized;
         pnlTitleBar.Controls.Add(btnMin);
 
+        // ── Nav bar ──────────────────────────────────────────────────────────
         pnlNav = new Panel
         {
             Dock = DockStyle.Top,
@@ -99,8 +101,6 @@ public class FrmCustomerMain : Form
             BackColor = Color.FromArgb(20, 23, 34),
             Padding = new Padding(24, 0, 24, 0)
         };
-        Controls.Add(pnlNav);
-        pnlNav.BringToFront();
 
         var logo = new Label
         {
@@ -109,24 +109,34 @@ public class FrmCustomerMain : Form
             Font = new Font("Segoe UI", 19, FontStyle.Bold),
             AutoSize = false,
             Size = new Size(210, 68),
-            Location = new Point(24, 0),
+            Dock = DockStyle.Left,
             TextAlign = ContentAlignment.MiddleLeft
         };
         pnlNav.Controls.Add(logo);
 
-        AddNav("Trang chủ", 245, LoadHome);
-        AddNav("Phim đang chiếu", 395, LoadHome);
-        AddNav("Lịch sử vé", 565, LoadTickets);
-
         var account = Customer.CustomerUi.NavButton(BuildAccountText(false));
         account.Width = 230;
-        account.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        account.Dock = DockStyle.Right;
         account.TextAlign = ContentAlignment.MiddleRight;
         account.Click += (s, e) => ToggleAccountMenu(!pnlAccountMenu.Visible);
         pnlNav.Controls.Add(account);
-        pnlNav.Resize += (s, e) => account.Location = new Point(pnlNav.ClientSize.Width - account.Width - 28, 12);
-        account.Location = new Point(pnlNav.ClientSize.Width - account.Width - 28, 12);
 
+        flpNav = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            AutoSize = false,
+            BackColor = Color.Transparent,
+            Padding = new Padding(8, 12, 8, 0)
+        };
+        pnlNav.Controls.Add(flpNav);
+
+        AddNav("Trang chủ", LoadHome);
+        AddNav("Phim đang chiếu", LoadNowShowing);
+        AddNav("Lịch sử vé", LoadTickets);
+
+        // ── Account menu (floating, not docked) ──────────────────────────────
         pnlAccountMenu = new Panel
         {
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
@@ -135,17 +145,22 @@ public class FrmCustomerMain : Form
             Visible = false
         };
         AddAccountItem("Hồ sơ", LoadProfile);
-        AddAccountItem("Điểm thưởng", LoadProfile);
         AddAccountItem("Đăng xuất", Logout);
 
+        // ── Content panel ────────────────────────────────────────────────────
         pnlContent = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = Customer.CustomerUi.AppBg
         };
-        Controls.Add(pnlContent);
-        pnlContent.BringToFront();
 
+        // Add order matters for Dock layout:
+        // Fill panel must be added BEFORE Top panels so it fills the remaining space.
+        Controls.Add(pnlContent);   // Fill — added first
+        Controls.Add(pnlNav);       // Top  — stacks below title bar
+        Controls.Add(pnlTitleBar);  // Top  — sits at very top
+
+        // Account menu floats above everything
         Controls.Add(pnlAccountMenu);
         Resize += (s, e) => PositionAccountMenu();
         PositionAccountMenu();
@@ -185,6 +200,15 @@ public class FrmCustomerMain : Form
         });
     }
 
+    private void LoadNowShowing()
+    {
+        ToggleAccountMenu(false);
+        SetContent(new Customer.UcNowShowing
+        {
+            MovieSelected = ShowMovieDetail
+        });
+    }
+
     private void LoadTickets()
     {
         ToggleAccountMenu(false);
@@ -204,12 +228,11 @@ public class FrmCustomerMain : Form
         pnlContent.Controls.Add(control);
     }
 
-    private void AddNav(string text, int x, Action click)
+    private void AddNav(string text, Action click)
     {
         var button = Customer.CustomerUi.NavButton(text);
-        button.Location = new Point(x, 12);
         button.Click += (s, e) => click();
-        pnlNav.Controls.Add(button);
+        flpNav.Controls.Add(button);
         navButtons.Add(button);
     }
 
@@ -237,7 +260,7 @@ public class FrmCustomerMain : Form
     private void ToggleAccountMenu(bool show)
     {
         pnlAccountMenu.Visible = show;
-        pnlAccountMenu.Height = show ? 114 : 0;
+        pnlAccountMenu.Height = show ? 76 : 0;
         PositionAccountMenu();
         pnlAccountMenu.BringToFront();
     }

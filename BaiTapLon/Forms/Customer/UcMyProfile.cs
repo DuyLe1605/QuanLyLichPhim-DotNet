@@ -1,11 +1,13 @@
 using BaiTapLon.Helpers;
 using BaiTapLon.Models;
 using BaiTapLon.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace BaiTapLon.Forms.Customer;
 
 public class UcMyProfile : UserControl
 {
+    private readonly TextBox txtUsername = new() { ReadOnly = true };
     private readonly TextBox txtFullName = new();
     private readonly TextBox txtPhone = new();
     private readonly TextBox txtCurrentPassword = new();
@@ -15,6 +17,14 @@ public class UcMyProfile : UserControl
     private readonly Label lblPoints = new();
     private readonly ProgressBar progress = new();
     private readonly PictureBox picQr = new();
+    private readonly FlowLayoutPanel flpTransactions = new()
+    {
+        Dock = DockStyle.Fill,
+        FlowDirection = FlowDirection.TopDown,
+        WrapContents = false,
+        AutoScroll = true,
+        MaximumSize = new Size(0, 280)
+    };
     private BaiTapLon.Models.Customer? customer;
 
     public UcMyProfile()
@@ -48,12 +58,14 @@ public class UcMyProfile : UserControl
         var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            RowCount = 9,
+            RowCount = 10,
             ColumnCount = 1,
             BackColor = CustomerUi.PanelBg,
-            Padding = new Padding(24)
+            Padding = new Padding(24),
+            MinimumSize = new Size(280, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
@@ -72,14 +84,15 @@ public class UcMyProfile : UserControl
             TextAlign = ContentAlignment.MiddleLeft
         }, 0, 0);
 
-        panel.Controls.Add(Field("Họ tên", txtFullName), 0, 1);
-        panel.Controls.Add(Field("Số điện thoại", txtPhone), 0, 2);
+        panel.Controls.Add(Field("Tên đăng nhập", txtUsername), 0, 1);
+        panel.Controls.Add(Field("Họ tên", txtFullName), 0, 2);
+        panel.Controls.Add(Field("Số điện thoại", txtPhone), 0, 3);
 
         var save = CustomerUi.PrimaryButton("LƯU THÔNG TIN");
         save.Dock = DockStyle.Left;
         save.Width = 190;
         save.Click += async (s, e) => await SaveProfileAsync();
-        panel.Controls.Add(save, 0, 3);
+        panel.Controls.Add(save, 0, 4);
 
         panel.Controls.Add(new Label
         {
@@ -88,19 +101,19 @@ public class UcMyProfile : UserControl
             ForeColor = CustomerUi.Text,
             Font = new Font("Segoe UI", 16, FontStyle.Bold),
             TextAlign = ContentAlignment.BottomLeft
-        }, 0, 4);
+        }, 0, 5);
 
         txtCurrentPassword.UseSystemPasswordChar = true;
         txtNewPassword.UseSystemPasswordChar = true;
-        panel.Controls.Add(Field("Mật khẩu hiện tại", txtCurrentPassword), 0, 5);
-        panel.Controls.Add(Field("Mật khẩu mới", txtNewPassword), 0, 6);
+        panel.Controls.Add(Field("Mật khẩu hiện tại", txtCurrentPassword), 0, 6);
+        panel.Controls.Add(Field("Mật khẩu mới", txtNewPassword), 0, 7);
 
         var change = CustomerUi.PrimaryButton("ĐỔI MẬT KHẨU");
         change.Dock = DockStyle.Left;
         change.Width = 190;
         change.BackColor = CustomerUi.AccentBlue;
         change.Click += async (s, e) => await ChangePasswordAsync();
-        panel.Controls.Add(change, 0, 7);
+        panel.Controls.Add(change, 0, 8);
 
         return panel;
     }
@@ -110,7 +123,7 @@ public class UcMyProfile : UserControl
         var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            RowCount = 8,
+            RowCount = 10,
             ColumnCount = 1,
             BackColor = Color.Transparent,
             Padding = new Padding(28, 0, 0, 0)
@@ -122,6 +135,8 @@ public class UcMyProfile : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         panel.Controls.Add(new Label
@@ -167,6 +182,17 @@ public class UcMyProfile : UserControl
         };
         panel.Controls.Add(btnRedeem, 0, 6);
 
+        panel.Controls.Add(new Label
+        {
+            Text = "Lịch sử điểm thưởng",
+            Dock = DockStyle.Fill,
+            ForeColor = CustomerUi.Text,
+            Font = new Font("Segoe UI", 13, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 7);
+
+        panel.Controls.Add(flpTransactions, 0, 8);
+
         return panel;
     }
 
@@ -190,6 +216,7 @@ public class UcMyProfile : UserControl
             TextAlign = ContentAlignment.BottomLeft
         }, 0, 0);
         textBox.Dock = DockStyle.Top;
+        textBox.MinimumSize = new Size(280, 0);
         textBox.BackColor = Color.FromArgb(35, 40, 56);
         textBox.ForeColor = CustomerUi.Text;
         textBox.BorderStyle = BorderStyle.FixedSingle;
@@ -204,25 +231,58 @@ public class UcMyProfile : UserControl
         if (current == null) return;
 
         using var context = Program.CreateDbContext();
-        customer = await new CustomerService(context).GetByIdAsync(current.Id);
-        if (customer == null) return;
-
-        txtFullName.Text = customer.FullName;
-        txtPhone.Text = customer.Phone;
-        lblMember.Text = $"Mã thành viên: {customer.MemberCode}";
-        lblTier.Text = $"{TierIcon(customer.Tier)} Hạng: {customer.Tier}";
-        lblPoints.Text = $"Điểm thưởng: {customer.LoyaltyPoints:N0} | Điểm TV: {customer.MembershipPoints:N0}";
-        picQr.Image = BarcodeHelper.GenerateQrCode(customer.MemberCode, 220, 220);
-
-        var next = customer.Tier switch
+        try
         {
-            "Diamond" => customer.TotalSpent,
+            customer = await new CustomerService(context).GetByIdAsync(current.Id);
+            if (customer == null) return;
+
+            ApplyCustomerToUi(customer);
+
+            var transactions = await context.PointTransactions
+                .Where(pt => pt.CustomerId == customer.Id)
+                .OrderByDescending(pt => pt.CreatedAt)
+                .Take(10)
+                .AsNoTracking()
+                .ToListAsync();
+
+            RenderTransactions(transactions);
+        }
+        catch
+        {
+            flpTransactions.Controls.Clear();
+            flpTransactions.Controls.Add(new Label
+            {
+                Text = "Không thể tải lịch sử điểm thưởng.",
+                ForeColor = CustomerUi.Muted,
+                Font = new Font("Segoe UI", 10),
+                AutoSize = true,
+                Padding = new Padding(4)
+            });
+        }
+    }
+
+    /// <summary>
+    /// Applies customer data to the UI fields. Extracted for testability.
+    /// </summary>
+    internal void ApplyCustomerToUi(BaiTapLon.Models.Customer c)
+    {
+        txtFullName.Text = c.FullName;
+        txtPhone.Text = c.Phone;
+        txtUsername.Text = c.Username;
+        lblMember.Text = $"Mã thành viên: {c.MemberCode}";
+        lblTier.Text = $"{TierIcon(c.Tier)} Hạng: {c.Tier}";
+        lblPoints.Text = $"Điểm thưởng: {c.LoyaltyPoints:N0} | Điểm TV: {c.MembershipPoints:N0}";
+        picQr.Image = BarcodeHelper.GenerateQrCode(c.MemberCode, 220, 220);
+
+        var next = c.Tier switch
+        {
+            "Diamond" => c.TotalSpent,
             "VIP" => 10_000_000m,
             _ => 2_000_000m
         };
-        progress.Value = customer.Tier == "Diamond"
+        progress.Value = c.Tier == "Diamond"
             ? 100
-            : (int)Math.Clamp(customer.TotalSpent / next * 100, 0, 100);
+            : (int)Math.Clamp(c.TotalSpent / next * 100, 0, 100);
     }
 
     private async Task SaveProfileAsync()
@@ -265,6 +325,55 @@ public class UcMyProfile : UserControl
         {
             txtCurrentPassword.Clear();
             txtNewPassword.Clear();
+        }
+    }
+
+    public static (string text, Color color) FormatPointChange(int points)
+    {
+        return points >= 0
+            ? ($"+{points:N0}", Color.FromArgb(80, 200, 120))
+            : ($"-{Math.Abs(points):N0}", Color.FromArgb(220, 80, 80));
+    }
+
+    private void RenderTransactions(IEnumerable<PointTransaction> transactions)
+    {
+        flpTransactions.Controls.Clear();
+
+        foreach (var tx in transactions)
+        {
+            var row = new Panel
+            {
+                Height = 28,
+                Dock = DockStyle.Top,
+                BackColor = Color.Transparent
+            };
+
+            var (pointText, pointColor) = FormatPointChange(tx.Points);
+
+            var lblLeft = new Label
+            {
+                Text = $"{tx.CreatedAt:dd/MM/yy} — {tx.Description}",
+                ForeColor = CustomerUi.Muted,
+                Font = new Font("Segoe UI", 9),
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            var lblRight = new Label
+            {
+                Text = pointText,
+                ForeColor = pointColor,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                AutoSize = false,
+                Width = 70,
+                Dock = DockStyle.Right,
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            row.Controls.Add(lblLeft);
+            row.Controls.Add(lblRight);
+            flpTransactions.Controls.Add(row);
         }
     }
 
