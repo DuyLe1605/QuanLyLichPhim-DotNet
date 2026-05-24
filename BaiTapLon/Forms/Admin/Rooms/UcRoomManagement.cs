@@ -1,6 +1,7 @@
 using BaiTapLon.Forms.Controls;
 using BaiTapLon.Models;
 using BaiTapLon.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace BaiTapLon.Forms.Admin;
 
@@ -8,6 +9,7 @@ public class UcRoomManagement : UserControl
 {
     private DataGridView dgvRooms = null!;
     private AdminPaginationBar pagination = null!;
+    private TextBox txtSearch = null!;
     private List<Room> _rooms = new();
 
     public UcRoomManagement()
@@ -26,11 +28,16 @@ public class UcRoomManagement : UserControl
         pagination = new AdminPaginationBar();
         pagination.PaginationChanged += (s, e) => BindRoomPage();
 
+        txtSearch = AdminControls.CreateSearchBox("Tìm tên phòng...");
+        txtSearch.TextChanged += async (s, e) => await LoadDataAsync();
+
         var toolbar = AdminControls.CreateToolbar(
+            txtSearch,
             AdminControls.CreateButton("+ Thêm phòng", AdminTheme.ButtonSuccess, 145, BtnAdd_Click),
             AdminControls.CreateButton("Xem sơ đồ", AdminTheme.ButtonNeutral, 140, (s, e) => ShowSeatPreview()),
             AdminControls.CreateButton("Sửa", AdminTheme.ButtonPrimary, 100, BtnEdit_Click),
-            AdminControls.CreateButton("Xóa", AdminTheme.ButtonDanger, 100, BtnDel_Click)
+            AdminControls.CreateButton("Xóa", AdminTheme.ButtonDanger, 100, BtnDel_Click),
+            AdminControls.CreateButton("📥 Xuất Excel", Color.FromArgb(40, 167, 69), 110, BtnExport_Click)
         );
 
         Controls.Add(AdminLayouts.CreateManagementPage(
@@ -44,7 +51,15 @@ public class UcRoomManagement : UserControl
         try
         {
             using var ctx = Program.CreateDbContext();
-            _rooms = await new RoomService(ctx).GetAllAsync();
+            var query = ctx.Rooms.Include(r => r.Seats).AsNoTracking().AsQueryable();
+
+            string kw = txtSearch.Text.Trim().ToLower();
+            if (!string.IsNullOrWhiteSpace(kw))
+            {
+                query = query.Where(r => r.Name.ToLower().Contains(kw) || r.Type.ToLower().Contains(kw));
+            }
+
+            _rooms = await query.OrderBy(r => r.Name).ToListAsync();
 
             pagination.SetTotalItems(_rooms.Count, resetPage: true);
             BindRoomPage();
@@ -175,9 +190,15 @@ public class UcRoomManagement : UserControl
             return;
 
         using var ctx = Program.CreateDbContext();
-        var (ok, msg) = await new RoomService(ctx).SoftDeleteAsync(id.Value);
+        var service = new RoomService(ctx);
+        var (ok, msg) = await service.SoftDeleteAsync(id.Value);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
         if (ok) await LoadDataAsync();
+    }
+
+    private void BtnExport_Click(object? s, EventArgs e)
+    {
+        BaiTapLon.Helpers.ExcelHelper.ExportDataGridViewToExcel(dgvRooms, "Phong", "Danh Sách Phòng Chiếu");
     }
 
     private static void RenameColumns(DataGridView grid, params (string Name, string Header)[] mappings)

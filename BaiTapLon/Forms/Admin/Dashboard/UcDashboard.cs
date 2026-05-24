@@ -15,8 +15,9 @@ public class UcDashboard : UserControl
     private Panel scrollHost = null!;
     private TableLayoutPanel root = null!;
     private TableLayoutPanel statsGrid = null!, bottomGrid = null!;
-    private Label lblMovies = null!, lblRooms = null!, lblShows = null!;
+    private Label lblMovies = null!, lblShows = null!;
     private Label lblTickets = null!, lblRevenue = null!, lblInvoices = null!;
+    private Label lblSnackRev = null!, lblNewCust = null!, lblAov = null!;
     private Label lblLoading = null!;
     private DateTimePicker dtpFrom = null!, dtpTo = null!;
     private ComboBox cboRevenueMode = null!;
@@ -56,7 +57,7 @@ public class UcDashboard : UserControl
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 134));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));
@@ -68,19 +69,24 @@ public class UcDashboard : UserControl
         statsGrid = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 6,
-            RowCount = 1,
+            ColumnCount = 5,
+            RowCount = 2,
             BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 0, 14)
         };
+        for (int i = 0; i < 5; i++) statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
         root.Controls.Add(statsGrid, 0, 1);
 
         lblMovies = AddStatCard("Phim", "0", "Đang chiếu", Color.FromArgb(118, 95, 255));
-        lblRooms = AddStatCard("Phòng", "0", "Sẵn sàng", Color.FromArgb(44, 164, 184));
         lblShows = AddStatCard("Suất hôm nay", "0", "Lịch trong ngày", Color.FromArgb(213, 159, 42));
         lblTickets = AddStatCard("Vé đã bán", "0", "Tất cả giao dịch", Color.FromArgb(65, 196, 126));
         lblRevenue = AddStatCard("Doanh thu", "0 đ", "Tổng doanh số", Color.FromArgb(226, 85, 126));
         lblInvoices = AddStatCard("Hóa đơn", "0", "Đã thanh toán", Color.FromArgb(157, 111, 234));
+        lblSnackRev = AddStatCard("Doanh thu bắp nước", "0 đ", "Từ quầy", Color.FromArgb(250, 128, 114));
+        lblNewCust = AddStatCard("KH mới", "0", "Tháng này", Color.FromArgb(100, 149, 237));
+        lblAov = AddStatCard("AOV", "0 đ", "GTĐH trung bình", Color.FromArgb(32, 178, 170));
 
         root.Controls.Add(CreateFilterBar(), 0, 2);
         root.Controls.Add(CreateSectionTitle("Doanh thu"), 0, 3);
@@ -229,8 +235,9 @@ public class UcDashboard : UserControl
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(24, 24, 40),
             Padding = new Padding(12, 10, 10, 10),
-            Margin = new Padding(0, 0, 8, 0)
+            Margin = new Padding(4, 4, 4, 4)
         };
+        statsGrid.Controls.Add(card);
         _statCards.Add(card);
 
         card.Controls.Add(new Panel
@@ -329,11 +336,13 @@ public class UcDashboard : UserControl
             var stats = await svc.GetStatsAsync();
 
             lblMovies.Text = stats.TotalMovies.ToString("N0");
-            lblRooms.Text = stats.TotalRooms.ToString("N0");
             lblShows.Text = stats.TotalShowtimesToday.ToString("N0");
             lblTickets.Text = stats.TotalTicketsSold.ToString("N0");
             lblRevenue.Text = stats.TotalRevenue.ToString("N0") + " đ";
             lblInvoices.Text = stats.TotalInvoices.ToString("N0");
+            lblSnackRev.Text = stats.TotalSnackRevenue.ToString("N0") + " đ";
+            lblNewCust.Text = stats.NewCustomersMonth.ToString("N0");
+            lblAov.Text = stats.AOV.ToString("N0") + " đ";
         }
         catch (Exception ex)
         {

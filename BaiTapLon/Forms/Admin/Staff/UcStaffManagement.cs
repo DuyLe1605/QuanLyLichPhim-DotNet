@@ -1,6 +1,7 @@
 using BaiTapLon.Models;
 using BaiTapLon.Services;
 using BaiTapLon.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace BaiTapLon.Forms.Admin;
 
@@ -8,6 +9,7 @@ public class UcStaffManagement : UserControl
 {
     private DataGridView dgv = null!;
     private AdminPaginationBar pagination = null!;
+    private TextBox txtSearch = null!;
     private List<User> _users = new();
 
     public UcStaffManagement()
@@ -21,13 +23,20 @@ public class UcStaffManagement : UserControl
         AdminControls.ConfigurePage(this);
 
         dgv = AdminControls.CreateGrid();
+        dgv.CellDoubleClick += (s, e) => { if (e.RowIndex >= 0) BtnEdit_Click(null, EventArgs.Empty); };
         pagination = new AdminPaginationBar();
         pagination.PaginationChanged += (s, e) => BindStaffPage();
 
+        txtSearch = AdminControls.CreateSearchBox("Tìm nhân viên...");
+        txtSearch.TextChanged += async (s, e) => await LoadAsync();
+
         var toolbar = AdminControls.CreateToolbar(
-            AdminControls.CreateButton("➕ Thêm NV", AdminTheme.ButtonSuccess, 130, BtnAdd_Click),
-            AdminControls.CreateButton("🔑 Reset MK", AdminTheme.ButtonWarning, 130, BtnReset_Click),
-            AdminControls.CreateButton("🔄 Khóa/Mở", AdminTheme.ButtonPrimary, 130, BtnToggle_Click)
+            txtSearch,
+            AdminControls.CreateButton("➕ Thêm NV", AdminTheme.ButtonSuccess, 110, BtnAdd_Click),
+            AdminControls.CreateButton("✏️ Sửa", AdminTheme.ButtonPrimary, 90, BtnEdit_Click),
+            AdminControls.CreateButton("🔑 Reset MK", AdminTheme.ButtonWarning, 120, BtnReset_Click),
+            AdminControls.CreateButton("🔄 Khóa/Mở", AdminTheme.ButtonNeutral, 120, BtnToggle_Click),
+            AdminControls.CreateButton("📥 Xuất Excel", Color.FromArgb(40, 167, 69), 110, BtnExport_Click)
         );
 
         Controls.Add(AdminLayouts.CreateManagementPage(
@@ -41,8 +50,15 @@ public class UcStaffManagement : UserControl
         try
         {
             using var ctx = Program.CreateDbContext();
-            _users = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                .ToListAsync(ctx.Users.OrderBy(u => u.Id));
+            var query = ctx.Users.AsNoTracking().AsQueryable();
+
+            string kw = txtSearch.Text.Trim().ToLower();
+            if (!string.IsNullOrWhiteSpace(kw))
+            {
+                query = query.Where(u => u.FullName.ToLower().Contains(kw) || u.Username.ToLower().Contains(kw) || (u.Phone != null && u.Phone.Contains(kw)));
+            }
+
+            _users = await query.OrderBy(u => u.Id).ToListAsync();
 
             pagination.SetTotalItems(_users.Count, resetPage: true);
             BindStaffPage();
@@ -92,6 +108,22 @@ public class UcStaffManagement : UserControl
         if (ok) await LoadAsync();
     }
 
+    private async void BtnEdit_Click(object? s, EventArgs e)
+    {
+        var id = AdminControls.GetCurrentIntValue(dgv, "Id");
+        if (!id.HasValue) return;
+        var user = _users.FirstOrDefault(u => u.Id == id.Value);
+        if (user == null) return;
+
+        using var dlg = new DlgStaffEdit(user);
+        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+        using var ctx = Program.CreateDbContext();
+        var auth = new AuthService(ctx);
+        var (ok, msg) = await auth.UpdateUserAsync(id.Value, dlg.FullName, dlg.Role, dlg.Phone);
+        MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
+        if (ok) await LoadAsync();
+    }
     private async void BtnReset_Click(object? s, EventArgs e)
     {
         var id = AdminControls.GetCurrentIntValue(dgv, "Id");
@@ -130,6 +162,11 @@ public class UcStaffManagement : UserControl
         await LoadAsync();
     }
 
+    private void BtnExport_Click(object? s, EventArgs e)
+    {
+        ExcelHelper.ExportDataGridViewToExcel(dgv, "NhanVien", "Danh Sách Nhân Viên");
+    }
+
 }
 
 // ==================== DlgStaffEdit — TableLayoutPanel ====================
@@ -145,9 +182,12 @@ public class DlgStaffEdit : Form
     public string Role => cboRole.SelectedItem?.ToString() ?? "Staff";
     public string Phone => txtPhone.Text.Trim();
 
-    public DlgStaffEdit()
+    private User? _existingUser;
+
+    public DlgStaffEdit(User? existingUser = null)
     {
-        this.Text = "Thêm nhân viên";
+        _existingUser = existingUser;
+        this.Text = _existingUser == null ? "Thêm nhân viên" : "Sửa nhân viên";
         this.ClientSize = new Size(440, 340);
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -199,6 +239,18 @@ public class DlgStaffEdit : Form
         tbl.Controls.Add(cboRole, 1, row);
         row++;
 
+        // Edit Mode handling
+        if (_existingUser != null)
+        {
+            txtName.Text = _existingUser.FullName;
+            txtUser.Text = _existingUser.Username;
+            txtUser.Enabled = false;
+            txtPw.Text = "********";
+            txtPw.Enabled = false;
+            txtPhone.Text = _existingUser.Phone;
+            cboRole.SelectedItem = _existingUser.Role;
+        }
+
         // Buttons
         var flpBtns = new FlowLayoutPanel
         {
@@ -229,24 +281,19 @@ public class DlgStaffEdit : Form
         {
             errorProvider.Clear();
             if (string.IsNullOrWhiteSpace(txtName.Text) ||
-                string.IsNullOrWhiteSpace(txtUser.Text) ||
-                string.IsNullOrWhiteSpace(txtPw.Text))
+                (_existingUser == null && string.IsNullOrWhiteSpace(txtUser.Text)) ||
+                (_existingUser == null && string.IsNullOrWhiteSpace(txtPw.Text)))
             {
                 if (string.IsNullOrWhiteSpace(txtName.Text))
                     errorProvider.SetError(txtName, "Nhập họ tên.");
-                if (string.IsNullOrWhiteSpace(txtUser.Text))
+                if (_existingUser == null && string.IsNullOrWhiteSpace(txtUser.Text))
                     errorProvider.SetError(txtUser, "Nhập tên đăng nhập.");
-                if (string.IsNullOrWhiteSpace(txtPw.Text))
+                if (_existingUser == null && string.IsNullOrWhiteSpace(txtPw.Text))
                     errorProvider.SetError(txtPw, "Nhập mật khẩu.");
 
-                this.DialogResult = DialogResult.None;
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtName.Text) || string.IsNullOrWhiteSpace(txtUser.Text) || string.IsNullOrWhiteSpace(txtPw.Text))
-            {
                 MessageBox.Show("Điền đầy đủ thông tin bắt buộc!", "Thiếu thông tin");
                 this.DialogResult = DialogResult.None;
+                return;
             }
         };
         flpBtns.Controls.Add(btnCancel);

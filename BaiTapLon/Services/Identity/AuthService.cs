@@ -59,4 +59,23 @@ public class AuthService
 
         return (true, "Tạo tài khoản thành công!");
     }
+
+    /// <summary>
+    /// Cập nhật thông tin tài khoản (chỉ Admin mới được gọi).
+    /// </summary>
+    public async Task<(bool Success, string Message)> UpdateUserAsync(
+        int id, string fullName, string role, string? phone)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null)
+            return (false, "Không tìm thấy nhân viên!");
+
+        user.FullName = fullName;
+        user.Role = role;
+        user.Phone = phone;
+
+        await _context.SaveChangesAsync();
+
+        return (true, "Cập nhật thông tin thành công!");
+    }
 }

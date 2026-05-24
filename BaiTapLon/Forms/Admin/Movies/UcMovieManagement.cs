@@ -44,7 +44,8 @@ public class UcMovieManagement : UserControl
             AdminControls.CreateButton("🔄", AdminTheme.ButtonNeutral, 36, async (s, e) => await LoadDataAsync()),
             AdminControls.CreateButton("➕ Thêm", AdminTheme.ButtonSuccess, 110, BtnAdd_Click),
             AdminControls.CreateButton("✏️ Sửa", AdminTheme.ButtonPrimary, 100, BtnEdit_Click),
-            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDelete_Click)
+            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDelete_Click),
+            AdminControls.CreateButton("📥 Xuất Excel", Color.FromArgb(40, 167, 69), 110, BtnExport_Click)
         );
 
         Controls.Add(AdminLayouts.CreateManagementPage(
@@ -168,20 +169,35 @@ public class UcMovieManagement : UserControl
 
     private async void BtnDelete_Click(object? sender, EventArgs e)
     {
-        var id = GetCurrentMovieId();
-        if (!id.HasValue || dgvMovies.CurrentRow == null) return;
+        var id = AdminControls.GetCurrentIntValue(dgvMovies, "Id");
+        if (!id.HasValue) return;
 
-        string title = dgvMovies.CurrentRow.Cells["TenPhim"].Value?.ToString() ?? "";
+        var result = MessageBox.Show("Bạn có chắc chắn muốn xóa phim này?", "Xác nhận xóa",
+                                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
-        if (MessageBox.Show($"Xóa phim \"{title}\"?", "Xác nhận",
-            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+        if (result == DialogResult.Yes)
         {
-            using var context = Program.CreateDbContext();
-            var service = new MovieService(context);
-            var (ok, msg) = await service.SoftDeleteAsync(id.Value);
-            MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
-            if (ok) await LoadDataAsync();
+            try
+            {
+                using var context = Program.CreateDbContext();
+                var service = new MovieService(context);
+                var (success, msg) = await service.SoftDeleteAsync(id.Value);
+
+                MessageBox.Show(msg, success ? "Thành công" : "Lỗi",
+                                MessageBoxButtons.OK, success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+
+                if (success) await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+    }
+
+    private void BtnExport_Click(object? s, EventArgs e)
+    {
+        BaiTapLon.Helpers.ExcelHelper.ExportDataGridViewToExcel(dgvMovies, "Phim", "Danh Sách Phim");
     }
 
     private int? GetCurrentMovieId()

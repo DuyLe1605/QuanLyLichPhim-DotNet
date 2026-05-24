@@ -6,6 +6,7 @@ namespace BaiTapLon.Forms.Admin;
 public class UcGenreManagement : UserControl
 {
     private DataGridView dgv = null!;
+    private TextBox txtSearch = null!;
     private List<Genre> _genres = new();
 
     public UcGenreManagement()
@@ -21,10 +22,16 @@ public class UcGenreManagement : UserControl
         dgv = AdminControls.CreateGrid();
         dgv.CellDoubleClick += (s, e) => { if (e.RowIndex >= 0) BtnEdit_Click(null, EventArgs.Empty); };
 
+        txtSearch = AdminControls.CreateSearchBox("Tìm tên thể loại...");
+        txtSearch.TextChanged += (s, e) => FilterData();
+
         var toolbar = AdminControls.CreateToolbar(
+            txtSearch,
             AdminControls.CreateButton("➕ Thêm thể loại", AdminTheme.ButtonSuccess, 150, BtnAdd_Click),
             AdminControls.CreateButton("✏️ Sửa", AdminTheme.ButtonPrimary, 100, BtnEdit_Click),
-            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDelete_Click));
+            AdminControls.CreateButton("🗑️ Xóa", AdminTheme.ButtonDanger, 100, BtnDelete_Click),
+            AdminControls.CreateButton("📥 Xuất Excel", Color.FromArgb(40, 167, 69), 110, BtnExport_Click)
+        );
 
         var content = new Panel { Dock = DockStyle.Fill };
         dgv.Dock = DockStyle.Fill;
@@ -39,18 +46,26 @@ public class UcGenreManagement : UserControl
         {
             using var ctx = Program.CreateDbContext();
             _genres = await new GenreService(ctx).GetAllAsync();
-            dgv.DataSource = null;
-            dgv.Columns.Clear();
-            dgv.DataSource = _genres.Select(g => new
-            {
-                g.Id,
-                TêThểLoại = g.Name,
-                SốPhim = g.MovieGenres?.Count ?? 0
-            }).ToList();
-            AdminControls.HideColumn(dgv, "Id");
-            AdminControls.SetColumnWidths(dgv, ("TêThểLoại", 300), ("SốPhim", 120));
+            FilterData();
         }
         catch (Exception ex) { MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi"); }
+    }
+
+    private void FilterData()
+    {
+        string kw = txtSearch.Text.Trim().ToLower();
+        var filtered = string.IsNullOrWhiteSpace(kw) ? _genres : _genres.Where(g => g.Name.ToLower().Contains(kw)).ToList();
+
+        dgv.DataSource = null;
+        dgv.Columns.Clear();
+        dgv.DataSource = filtered.Select(g => new
+        {
+            g.Id,
+            TêThểLoại = g.Name,
+            SốPhim = g.MovieGenres?.Count ?? 0
+        }).ToList();
+        AdminControls.HideColumn(dgv, "Id");
+        AdminControls.SetColumnWidths(dgv, ("TêThểLoại", 300), ("SốPhim", 120));
     }
 
     private async void BtnAdd_Click(object? s, EventArgs e)
@@ -87,6 +102,11 @@ public class UcGenreManagement : UserControl
         var (ok, msg) = await new GenreService(ctx).DeleteAsync(id.Value);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
         if (ok) await LoadAsync();
+    }
+
+    private void BtnExport_Click(object? s, EventArgs e)
+    {
+        BaiTapLon.Helpers.ExcelHelper.ExportDataGridViewToExcel(dgv, "TheLoai", "Danh Sách Thể Loại Phim");
     }
 
     public static string? ShowInputDialog(string title, string prompt, string defaultVal)

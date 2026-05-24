@@ -10,14 +10,15 @@ public class ReportService
 
     // ==================== DTO ====================
 
-    public record DashboardStats(
-        int TotalMovies, int TotalRooms, int TotalShowtimesToday,
-        int TotalTicketsSold, decimal TotalRevenue, int TotalInvoices);
-
     public record RevenueByDate(DateTime Date, decimal Revenue, int TicketCount);
     public record RevenueByMonth(int Month, int Year, decimal Revenue, int TicketCount);
     public record TopMovie(string Title, int TicketCount, decimal Revenue);
     public record RoomOccupancy(string RoomName, string RoomType, int TotalSeats, int SoldSeats, double OccupancyRate);
+    
+    public record DashboardStats(
+        int TotalMovies, int TotalRooms, int TotalShowtimesToday,
+        int TotalTicketsSold, decimal TotalRevenue, int TotalInvoices,
+        decimal TotalSnackRevenue, int NewCustomersMonth, decimal AOV);
 
     // ==================== QUERIES ====================
 
@@ -30,8 +31,12 @@ public class ReportService
         int tickets = await _context.Tickets.CountAsync();
         decimal revenue = await _context.Invoices.SumAsync(i => (decimal?)i.TotalAmount) ?? 0;
         int invoices = await _context.Invoices.CountAsync();
+        
+        decimal snackRevenue = await _context.InvoiceSnacks.SumAsync(s => (decimal?)(s.Quantity * s.UnitPrice)) ?? 0;
+        int newCust = await _context.Customers.CountAsync(c => c.CreatedAt.Year == DateTime.Now.Year && c.CreatedAt.Month == DateTime.Now.Month);
+        decimal aov = invoices > 0 ? revenue / invoices : 0;
 
-        return new DashboardStats(movies, rooms, showsToday, tickets, revenue, invoices);
+        return new DashboardStats(movies, rooms, showsToday, tickets, revenue, invoices, snackRevenue, newCust, aov);
     }
 
     /// <summary>
