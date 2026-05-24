@@ -9,10 +9,11 @@ export function Navbar() {
     <header className="navbar">
       <Link to="/" className="brand">
         <Film size={28} />
-        <span>CineManager</span>
+        <span>Star Cinema</span>
       </Link>
       <nav>
         <NavLink to="/movies">Phim</NavLink>
+        <NavLink to="/about">Giới thiệu</NavLink>
         {customer && <NavLink to="/profile">Tài khoản</NavLink>}
       </nav>
       <div className="nav-actions">
@@ -27,8 +28,7 @@ export function Navbar() {
           </>
         ) : (
           <>
-            <Link className="ghost-button" to="/login">Đăng nhập</Link>
-            <Link className="primary-button" to="/register">Đăng ký</Link>
+            <Link className="primary-button" to="/auth">Đăng nhập/Đăng ký</Link>
           </>
         )}
       </div>

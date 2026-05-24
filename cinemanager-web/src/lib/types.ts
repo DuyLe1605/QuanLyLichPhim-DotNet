@@ -71,3 +71,11 @@ export type Booking = {
   showtime?: { id: number; startTime: string; movie: string; room?: string };
 };
 export type PointTransaction = { id: number; points: number; type: string; description: string; createdAt: string };
+export type Snack = {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  type: string;
+};
