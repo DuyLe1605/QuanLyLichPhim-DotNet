@@ -13,8 +13,8 @@ public class UcDashboard : UserControl
     private readonly List<Panel> _statCards = new();
 
     private Panel scrollHost = null!;
-    private TableLayoutPanel root = null!;
-    private TableLayoutPanel statsGrid = null!, bottomGrid = null!;
+    private TableLayoutPanel root = null!, bottomGrid = null!;
+    private FlowLayoutPanel statsGrid = null!;
     private Label lblMovies = null!, lblShows = null!;
     private Label lblTickets = null!, lblRevenue = null!, lblInvoices = null!;
     private Label lblSnackRev = null!, lblNewCust = null!, lblAov = null!;
@@ -66,17 +66,14 @@ public class UcDashboard : UserControl
 
         root.Controls.Add(CreateHeader(), 0, 0);
 
-        statsGrid = new TableLayoutPanel
+        statsGrid = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 5,
-            RowCount = 2,
             BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 14)
+            Margin = new Padding(0, 0, 0, 14),
+            AutoScroll = false,
+            WrapContents = true
         };
-        for (int i = 0; i < 5; i++) statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
         root.Controls.Add(statsGrid, 0, 1);
 
         lblMovies = AddStatCard("Phim", "0", "Đang chiếu", Color.FromArgb(118, 95, 255));
@@ -232,7 +229,7 @@ public class UcDashboard : UserControl
     {
         var card = new Panel
         {
-            Dock = DockStyle.Fill,
+            Size = new Size(200, 100),
             BackColor = Color.FromArgb(24, 24, 40),
             Padding = new Padding(12, 10, 10, 10),
             Margin = new Padding(4, 4, 4, 4)
@@ -508,23 +505,27 @@ public class UcDashboard : UserControl
         var width = Math.Max(560, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 2);
         root.Width = width;
 
-        var columns = width < 720 ? 2 : width < 1040 ? 3 : 6;
+        // Max 4 columns for 8 cards looks perfectly balanced (2 rows of 4)
+        var columns = width < 720 ? 2 : width < 1100 ? 3 : 4;
 
         statsGrid.SuspendLayout();
-        statsGrid.Controls.Clear();
-        statsGrid.ColumnStyles.Clear();
-        statsGrid.RowStyles.Clear();
-        statsGrid.ColumnCount = columns;
-        statsGrid.RowCount = (int)Math.Ceiling(_statCards.Count / (double)columns);
-        for (var i = 0; i < columns; i++)
-            statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / columns));
-        for (var i = 0; i < statsGrid.RowCount; i++)
-            statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
-        for (var i = 0; i < _statCards.Count; i++)
-            statsGrid.Controls.Add(_statCards[i], i % columns, i / columns);
+        
+        // Calculate dynamic width for each card based on available width and columns
+        // Margin is 8px horizontal per card (4 left, 4 right)
+        var cardWidth = (width / columns) - 10; 
+        
+        foreach (var card in _statCards)
+        {
+            if (!statsGrid.Controls.Contains(card))
+                statsGrid.Controls.Add(card);
+                
+            card.Size = new Size(cardWidth, 100);
+        }
+        
         statsGrid.ResumeLayout();
-
-        root.RowStyles[1].Height = statsGrid.RowCount * 104 + 14;
+        
+        int rows = (int)Math.Ceiling(_statCards.Count / (double)columns);
+        root.RowStyles[1].Height = rows * 108 + 16;
 
         if (width < 900)
         {

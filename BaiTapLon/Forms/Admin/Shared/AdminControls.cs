@@ -119,6 +119,13 @@ public static class AdminControls
             Font = AdminTheme.BodyFont
         };
 
+        // Enable DoubleBuffering via Reflection to prevent UI flickering
+        typeof(DataGridView).InvokeMember("DoubleBuffered", 
+            System.Reflection.BindingFlags.NonPublic | 
+            System.Reflection.BindingFlags.Instance | 
+            System.Reflection.BindingFlags.SetProperty, 
+            null, grid, new object[] { true });
+
         grid.DefaultCellStyle.BackColor = AdminTheme.GridBack;
         grid.DefaultCellStyle.ForeColor = AdminTheme.Text;
         grid.DefaultCellStyle.SelectionBackColor = AdminTheme.GridSelection;

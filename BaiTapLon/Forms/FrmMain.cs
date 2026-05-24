@@ -437,6 +437,11 @@ public class FrmMain : Form
 
     private void LoadModule(string module)
     {
+        // Fix WinForms Handle Leak: Must dispose controls before clearing
+        foreach (Control ctrl in pnlContent.Controls)
+        {
+            ctrl.Dispose();
+        }
         pnlContent.Controls.Clear();
 
         UserControl? uc = module switch

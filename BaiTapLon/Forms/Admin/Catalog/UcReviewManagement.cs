@@ -87,12 +87,17 @@ public class UcReviewManagement : UserControl
 
         AdminControls.HideColumn(dgv, "Id");
         AdminControls.SetColumnWidths(dgv,
-            ("Phim", 200),
-            ("KháchHàng", 150),
-            ("ĐánhGiá", 100),
-            ("BìnhLuận", 300),
-            ("ThờiGian", 120)
+            ("Phim", 250),
+            ("KháchHàng", 200),
+            ("ĐánhGiá", 120),
+            ("BìnhLuận", 400),
+            ("ThờiGian", 150)
         );
+
+        dgv.Columns["KháchHàng"]!.HeaderText = "Khách Hàng";
+        dgv.Columns["ĐánhGiá"]!.HeaderText = "Đánh Giá";
+        dgv.Columns["BìnhLuận"]!.HeaderText = "Bình Luận";
+        dgv.Columns["ThờiGian"]!.HeaderText = "Thời Gian";
     }
 
     private async void BtnDelete_Click(object? s, EventArgs e)

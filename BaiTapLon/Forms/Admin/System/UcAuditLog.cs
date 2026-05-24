@@ -86,13 +86,18 @@ public class UcAuditLog : UserControl
 
         AdminControls.HideColumn(dgv, "Id");
         AdminControls.SetColumnWidths(dgv,
-            ("ThờiGian", 140),
-            ("User", 100),
-            ("HànhĐộng", 100),
-            ("ĐốiTượng", 100),
-            ("IdĐốiTượng", 80),
-            ("Cũ", 200),
-            ("Mới", 200)
+            ("ThờiGian", 150),
+            ("User", 120),
+            ("HànhĐộng", 150),
+            ("ĐốiTượng", 120),
+            ("IdĐốiTượng", 100),
+            ("Cũ", 250),
+            ("Mới", 250)
         );
+
+        dgv.Columns["ThờiGian"]!.HeaderText = "Thời Gian";
+        dgv.Columns["HànhĐộng"]!.HeaderText = "Hành Động";
+        dgv.Columns["ĐốiTượng"]!.HeaderText = "Đối Tượng";
+        dgv.Columns["IdĐốiTượng"]!.HeaderText = "Id Đối Tượng";
     }
 }

@@ -128,10 +128,18 @@ public class UcBookingManagement : UserControl
 
         AdminControls.HideColumn(dgv, "Id");
         AdminControls.SetColumnWidths(dgv,
-            ("MãĐặt", 110), ("KháchHàng", 150), ("SĐT", 110),
-            ("Phim", 180), ("SuấtChiếu", 140), ("SốVé", 60),
-            ("TổngTiền", 110), ("Giảm", 90), ("TT", 70),
-            ("TrạngThái", 100), ("NgàyĐặt", 110));
+            ("MãĐặt", 110), ("KháchHàng", 170), ("SĐT", 120),
+            ("Phim", 200), ("SuấtChiếu", 150), ("SốVé", 70),
+            ("TổngTiền", 120), ("Giảm", 90), ("TT", 70),
+            ("TrạngThái", 110), ("NgàyĐặt", 120));
+
+        dgv.Columns["MãĐặt"]!.HeaderText = "Mã Đặt";
+        dgv.Columns["KháchHàng"]!.HeaderText = "Khách Hàng";
+        dgv.Columns["SuấtChiếu"]!.HeaderText = "Suất Chiếu";
+        dgv.Columns["SốVé"]!.HeaderText = "Số Vé";
+        dgv.Columns["TổngTiền"]!.HeaderText = "Tổng Tiền";
+        dgv.Columns["TrạngThái"]!.HeaderText = "Trạng Thái";
+        dgv.Columns["NgàyĐặt"]!.HeaderText = "Ngày Đặt";
     }
 
     private async void BtnCheckIn_Click(object? s, EventArgs e)
