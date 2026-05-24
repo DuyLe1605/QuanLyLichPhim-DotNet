@@ -56,7 +56,7 @@ public class UcDashboard : UserControl
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 134));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));
@@ -75,15 +75,16 @@ public class UcDashboard : UserControl
         };
         root.Controls.Add(statsGrid, 0, 1);
 
-        lblMovies = AddStatCard("Phim", "0", "Dang chieu", Color.FromArgb(118, 95, 255));
-        lblRooms = AddStatCard("Phong", "0", "San sang", Color.FromArgb(44, 164, 184));
-        lblShows = AddStatCard("Suat hom nay", "0", "Lich trong ngay", Color.FromArgb(213, 159, 42));
-        lblTickets = AddStatCard("Ve da ban", "0", "Tat ca giao dich", Color.FromArgb(65, 196, 126));
-        lblRevenue = AddStatCard("Doanh thu", "0 d", "Tong doanh so", Color.FromArgb(226, 85, 126));
-        lblInvoices = AddStatCard("Hoa don", "0", "Da thanh toan", Color.FromArgb(157, 111, 234));
+        lblMovies = AddStatCard("Phim", "0", "Đang chiếu", Color.FromArgb(118, 95, 255));
+        lblRooms = AddStatCard("Phòng", "0", "Sẵn sàng", Color.FromArgb(44, 164, 184));
+        lblShows = AddStatCard("Suất hôm nay", "0", "Lịch trong ngày", Color.FromArgb(213, 159, 42));
+        lblTickets = AddStatCard("Vé đã bán", "0", "Tất cả giao dịch", Color.FromArgb(65, 196, 126));
+        lblRevenue = AddStatCard("Doanh thu", "0 đ", "Tổng doanh số", Color.FromArgb(226, 85, 126));
+        lblInvoices = AddStatCard("Hóa đơn", "0", "Đã thanh toán", Color.FromArgb(157, 111, 234));
 
         root.Controls.Add(CreateFilterBar(), 0, 2);
         root.Controls.Add(CreateSectionTitle("Doanh thu"), 0, 3);
+
 
         chartRevenue = CreateCartesianChart();
         root.Controls.Add(chartRevenue, 0, 4);
@@ -102,8 +103,8 @@ public class UcDashboard : UserControl
         bottomGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.Controls.Add(bottomGrid, 0, 5);
 
-        bottomGrid.Controls.Add(CreateSectionTitle("Top 5 phim an khach"), 0, 0);
-        bottomGrid.Controls.Add(CreateSectionTitle("Ty le lap day phong"), 1, 0);
+        bottomGrid.Controls.Add(CreateSectionTitle("Top 5 phim ăn khách"), 0, 0);
+        bottomGrid.Controls.Add(CreateSectionTitle("Tỷ lệ lấp đầy phòng"), 1, 0);
 
         chartTopMovies = CreateCartesianChart();
         chartOccupancy = new PieChart
@@ -159,7 +160,7 @@ public class UcDashboard : UserControl
         titleStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         titleStack.Controls.Add(new Label
         {
-            Text = "Tong Quan Thong Ke",
+            Text = "Tổng Quan Thống Kê",
             Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 20, FontStyle.Bold),
             ForeColor = AdminTheme.TitleText,
@@ -167,7 +168,7 @@ public class UcDashboard : UserControl
         }, 0, 0);
         titleStack.Controls.Add(new Label
         {
-            Text = "Theo doi doanh thu, ve ban va hieu suat phong chieu",
+            Text = "Theo dõi doanh thu, vé bán và hiệu suất phòng chiếu",
             Dock = DockStyle.Fill,
             Font = AdminTheme.BodyFont,
             ForeColor = AdminTheme.MutedText,
@@ -177,7 +178,7 @@ public class UcDashboard : UserControl
         header.Controls.Add(titleStack, 0, 0);
         header.Controls.Add(new Label
         {
-            Text = DateTime.Today.ToString("'Hom nay' dd/MM/yyyy"),
+            Text = DateTime.Today.ToString("'Hôm nay' dd/MM/yyyy"),
             Dock = DockStyle.Fill,
             Font = AdminTheme.BodyBoldFont,
             ForeColor = Color.White,
@@ -207,17 +208,17 @@ public class UcDashboard : UserControl
         dtpTo.Value = DateTime.Today;
 
         cboRevenueMode = AdminControls.CreateComboBox(135);
-        cboRevenueMode.Items.AddRange(new object[] { "Theo ngay", "Theo thang" });
+        cboRevenueMode.Items.AddRange(new object[] { "Theo ngày", "Theo tháng" });
         cboRevenueMode.SelectedIndex = 0;
 
-        bar.Controls.Add(AdminControls.CreateToolbarLabel("Tu:", 28));
+        bar.Controls.Add(AdminControls.CreateToolbarLabel("Từ:", 28));
         bar.Controls.Add(dtpFrom);
-        bar.Controls.Add(AdminControls.CreateToolbarLabel("Den:", 38));
+        bar.Controls.Add(AdminControls.CreateToolbarLabel("Đến:", 38));
         bar.Controls.Add(dtpTo);
-        bar.Controls.Add(AdminControls.CreateToolbarLabel("Che do:", 64));
+        bar.Controls.Add(AdminControls.CreateToolbarLabel("Chế độ:", 64));
         bar.Controls.Add(cboRevenueMode);
-        bar.Controls.Add(AdminControls.CreateButton("Cap nhat", Color.FromArgb(88, 72, 216), 108, async (s, e) => await RunWithLoadingAsync(LoadChartsAsync)));
-        bar.Controls.Add(AdminControls.CreateButton("Xuat PDF", AdminTheme.ButtonDanger, 108, BtnExportPdf_Click));
+        bar.Controls.Add(AdminControls.CreateButton("Cập nhật", Color.FromArgb(88, 72, 216), 108, async (s, e) => await RunWithLoadingAsync(LoadChartsAsync)));
+        bar.Controls.Add(AdminControls.CreateButton("Xuất PDF", AdminTheme.ButtonDanger, 108, BtnExportPdf_Click));
         return bar;
     }
 
@@ -227,8 +228,8 @@ public class UcDashboard : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(24, 24, 40),
-            Padding = new Padding(14, 12, 14, 10),
-            Margin = new Padding(0, 0, 10, 0)
+            Padding = new Padding(12, 10, 10, 10),
+            Margin = new Padding(0, 0, 8, 0)
         };
         _statCards.Add(card);
 
@@ -238,33 +239,48 @@ public class UcDashboard : UserControl
             Width = 4,
             BackColor = accent
         });
-        card.Controls.Add(new Label
+
+        var pnlText = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = Color.Transparent,
+            Margin = new Padding(4, 0, 0, 0)
+        };
+        pnlText.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        pnlText.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        pnlText.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        pnlText.Controls.Add(new Label
         {
             Text = title,
             Font = AdminTheme.BodyBoldFont,
             ForeColor = AdminTheme.MutedText,
-            Location = new Point(16, 10),
-            Size = new Size(170, 24)
-        });
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.BottomLeft
+        }, 0, 0);
 
         var lblValue = new Label
         {
             Text = value,
-            Font = new Font("Segoe UI", 19, FontStyle.Bold),
+            Font = new Font("Segoe UI", 16, FontStyle.Bold),
             ForeColor = accent,
-            Location = new Point(16, 36),
-            Size = new Size(180, 36)
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft
         };
-        card.Controls.Add(lblValue);
-        card.Controls.Add(new Label
+        pnlText.Controls.Add(lblValue, 0, 1);
+
+        pnlText.Controls.Add(new Label
         {
             Text = subtitle,
             Font = new Font("Segoe UI", 8.5f),
             ForeColor = Color.FromArgb(112, 112, 142),
-            Location = new Point(17, 76),
-            Size = new Size(170, 20)
-        });
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.TopLeft
+        }, 0, 2);
 
+        card.Controls.Add(pnlText);
         return lblValue;
     }
 
@@ -316,12 +332,12 @@ public class UcDashboard : UserControl
             lblRooms.Text = stats.TotalRooms.ToString("N0");
             lblShows.Text = stats.TotalShowtimesToday.ToString("N0");
             lblTickets.Text = stats.TotalTicketsSold.ToString("N0");
-            lblRevenue.Text = stats.TotalRevenue.ToString("N0") + " d";
+            lblRevenue.Text = stats.TotalRevenue.ToString("N0") + " đ";
             lblInvoices.Text = stats.TotalInvoices.ToString("N0");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Loi tai thong ke: {ex.Message}", "Dashboard");
+            MessageBox.Show($"Lỗi tải thống kê: {ex.Message}", "Dashboard");
         }
     }
 
@@ -336,7 +352,7 @@ public class UcDashboard : UserControl
 
             if (from > to)
             {
-                MessageBox.Show("Ngay bat dau khong duoc lon hon ngay ket thuc.", "Dashboard");
+                MessageBox.Show("Ngày bắt đầu không được lớn hơn ngày kết thúc.", "Dashboard");
                 return;
             }
 
@@ -349,6 +365,7 @@ public class UcDashboard : UserControl
                     {
                         Values = data.Select(d => d.Revenue).ToArray(),
                         Name = "Doanh thu",
+
                         Fill = new SolidColorPaint(SKColor.Parse("#725DFF")),
                         MaxBarWidth = 34
                     }
@@ -390,7 +407,7 @@ public class UcDashboard : UserControl
                     new RowSeries<int>
                     {
                         Values = topMovies.Select(m => m.TicketCount).ToArray(),
-                        Name = "So ve",
+                        Name = "Số vé",
                         Fill = new SolidColorPaint(SKColor.Parse("#41C47E")),
                         MaxBarWidth = 24
                     }
@@ -422,7 +439,7 @@ public class UcDashboard : UserControl
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Loi tai bieu do: {ex.Message}", "Dashboard");
+            MessageBox.Show($"Lỗi tải biểu đồ: {ex.Message}", "Dashboard");
         }
     }
 
@@ -441,26 +458,26 @@ public class UcDashboard : UserControl
             using var sfd = new SaveFileDialog
             {
                 Filter = "PDF|*.pdf",
-                FileName = $"BaoCao_{from:ddMMyyyy}_{to:ddMMyyyy}.pdf",
-                Title = "Luu bao cao PDF"
+                FileName = $"BáoCáo_{from:ddMMyyyy}_{to:ddMMyyyy}.pdf",
+                Title = "Lưu báo cáo PDF"
             };
 
             if (sfd.ShowDialog() != DialogResult.OK)
                 return;
 
             Helpers.PrintHelper.ExportReport(sfd.FileName, stats, topMovies, revenueData, from, to);
-            MessageBox.Show($"Da xuat PDF: {sfd.FileName}", "Thanh cong", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"Đã xuất PDF: {sfd.FileName}", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Loi xuat PDF: {ex.Message}", "Dashboard");
+            MessageBox.Show($"Lỗi xuất PDF: {ex.Message}", "Dashboard");
         }
     }
 
     private async Task RunWithLoadingAsync(Func<Task> action)
     {
         lblLoading.Visible = true;
-        lblLoading.Text = "Dang tai du lieu...";
+        lblLoading.Text = "Đang tải dữ liệu...";
         UseWaitCursor = true;
 
         try

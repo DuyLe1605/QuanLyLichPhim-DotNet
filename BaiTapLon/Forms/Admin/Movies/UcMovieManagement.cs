@@ -100,26 +100,37 @@ public class UcMovieManagement : UserControl
             .Select(m => new
             {
                 m.Id,
-                MãPhim = m.Code,
-                TênPhim = m.Title,
-                ĐạoDiễn = m.Director ?? "",
-                ThờiLượng = $"{m.Duration} phút",
-                ĐộTuổi = m.AgeRating ?? "P",
-                ThểLoại = string.Join(", ", m.MovieGenres.Select(mg => mg.Genre.Name)),
-                NgàyKhởiChiếu = m.ReleaseDate.HasValue ? m.ReleaseDate.Value.ToString("dd/MM/yyyy") : "",
-                TrạngThái = m.IsActive ? "Đang chiếu" : "Đã ẩn"
+                MaPhim = m.Code,
+                TenPhim = m.Title,
+                DaoDien = m.Director ?? "",
+                ThoiLuong = $"{m.Duration} phút",
+                DoTuoi = m.AgeRating ?? "P",
+                TheLoai = string.Join(", ", m.MovieGenres.Select(mg => mg.Genre.Name)),
+                NgayKhoiChieu = m.ReleaseDate.HasValue ? m.ReleaseDate.Value.ToString("dd/MM/yyyy") : "",
+                TrangThai = m.IsActive ? "Đang chiếu" : "Đã ẩn"
             }).ToList();
 
         AdminControls.HideColumn(dgvMovies, "Id");
         AdminControls.SetColumnWidths(dgvMovies,
-            ("MãPhim", 100),
-            ("TênPhim", 260),
-            ("ĐạoDiễn", 180),
-            ("ThờiLượng", 110),
-            ("ĐộTuổi", 90),
-            ("ThểLoại", 220),
-            ("NgàyKhởiChiếu", 140),
-            ("TrạngThái", 120));
+            ("MaPhim", 100),
+            ("TenPhim", 260),
+            ("DaoDien", 180),
+            ("ThoiLuong", 110),
+            ("DoTuoi", 90),
+            ("TheLoai", 220),
+            ("NgayKhoiChieu", 140),
+            ("TrangThai", 120));
+
+        // Rename column headers to have proper display names
+        RenameColumns(dgvMovies,
+            ("MaPhim", "Mã Phim"),
+            ("TenPhim", "Tên Phim"),
+            ("DaoDien", "Đạo Diễn"),
+            ("ThoiLuong", "Thời Lượng"),
+            ("DoTuoi", "Độ Tuổi"),
+            ("TheLoai", "Thể Loại"),
+            ("NgayKhoiChieu", "Ngày Khởi Chiếu"),
+            ("TrangThai", "Trạng Thái"));
     }
 
     private async void BtnAdd_Click(object? sender, EventArgs e)
@@ -160,7 +171,7 @@ public class UcMovieManagement : UserControl
         var id = GetCurrentMovieId();
         if (!id.HasValue || dgvMovies.CurrentRow == null) return;
 
-        string title = dgvMovies.CurrentRow.Cells["TênPhim"].Value?.ToString() ?? "";
+        string title = dgvMovies.CurrentRow.Cells["TenPhim"].Value?.ToString() ?? "";
 
         if (MessageBox.Show($"Xóa phim \"{title}\"?", "Xác nhận",
             MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
@@ -178,4 +189,12 @@ public class UcMovieManagement : UserControl
         return AdminControls.GetCurrentIntValue(dgvMovies, "Id");
     }
 
+    private static void RenameColumns(DataGridView grid, params (string Name, string Header)[] mappings)
+    {
+        foreach (var (name, header) in mappings)
+        {
+            var col = grid.Columns[name];
+            if (col != null) col.HeaderText = header;
+        }
+    }
 }

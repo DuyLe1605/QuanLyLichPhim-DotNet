@@ -65,22 +65,32 @@ public class UcRoomManagement : UserControl
             .Select(r => new
             {
                 r.Id,
-                Tên = r.Name,
-                Loại = r.Type,
-                Hàng = r.Rows,
-                CộtMax = r.Columns,
-                TổngGhế = r.TotalSeats,
-                TrạngThái = r.IsActive ? "Hoạt động" : "Ẩn"
+                Ten = r.Name,
+                Loai = r.Type,
+                Hang = r.Rows,
+                CotMax = r.Columns,
+                TongGhe = r.TotalSeats,
+                TrangThai = r.IsActive ? "Hoạt động" : "Ẩn"
             }).ToList();
 
         AdminControls.HideColumn(dgvRooms, "Id");
         AdminControls.SetColumnWidths(dgvRooms,
-            ("Tên", 180),
-            ("Loại", 140),
-            ("Hàng", 90),
-            ("CộtMax", 100),
-            ("TổngGhế", 110),
-            ("TrạngThái", 130));
+            ("Ten", 180),
+            ("Loai", 140),
+            ("Hang", 90),
+            ("CotMax", 100),
+            ("TongGhe", 110),
+            ("TrangThai", 130));
+
+        // Rename column headers to proper display names
+        RenameColumns(dgvRooms,
+            ("Ten", "Tên"),
+            ("Loai", "Loại"),
+            ("Hang", "Hàng"),
+            ("CotMax", "Cột Max"),
+            ("TongGhe", "Tổng Ghế"),
+            ("TrangThai", "Trạng Thái"));
+
         AddViewColumn();
     }
 
@@ -168,6 +178,15 @@ public class UcRoomManagement : UserControl
         var (ok, msg) = await new RoomService(ctx).SoftDeleteAsync(id.Value);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
         if (ok) await LoadDataAsync();
+    }
+
+    private static void RenameColumns(DataGridView grid, params (string Name, string Header)[] mappings)
+    {
+        foreach (var (name, header) in mappings)
+        {
+            var col = grid.Columns[name];
+            if (col != null) col.HeaderText = header;
+        }
     }
 }
 

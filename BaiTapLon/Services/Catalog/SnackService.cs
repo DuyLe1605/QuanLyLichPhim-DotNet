@@ -101,6 +101,7 @@ public class SnackService
         existing.Price = snack.Price;
         existing.Category = NormalizeCategory(snack.Category);
         existing.IsActive = snack.IsActive;
+        existing.ImagePath = snack.ImagePath;
 
         await _context.SaveChangesAsync();
         return (true, "Cập nhật món thành công!");

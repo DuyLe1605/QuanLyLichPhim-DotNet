@@ -228,6 +228,8 @@ public class FrmMain : Form
             AddMenuButton("👤  Khách hàng", "Customers");
             AddMenuButton("🎟️  Coupon", "Coupons");
             AddMenuButton("📄  Hóa đơn", "Invoices");
+            AddMenuButton("🎬  Phim đang chiếu", "NowShowing");
+            AddMenuButton("🎟️  Bán vé", "SellTicket");
         }
         else
         {

@@ -219,9 +219,23 @@ public class UcMyTickets : UserControl
             TextAlign = ContentAlignment.TopLeft
         });
 
+        var btnReceipt = CustomerUi.PrimaryButton("📄 Hóa đơn");
+        btnReceipt.BackColor = Color.FromArgb(70, 145, 230);
+        btnReceipt.Location = new Point(40, 488);
+        btnReceipt.Size = new Size(160, 42);
+        btnReceipt.Click += async (s, e) =>
+        {
+            using var ctx = Program.CreateDbContext();
+            var receiptData = await new InvoiceQueryService(ctx)
+                .GetReceiptDataByBookingCodeAsync(booking.BookingCode);
+            if (receiptData != null)
+                new DlgReceiptPreview(receiptData).ShowDialog(dialog);
+        };
+        dialog.Controls.Add(btnReceipt);
+
         var close = CustomerUi.PrimaryButton("Đóng");
-        close.Location = new Point(110, 488);
-        close.Size = new Size(200, 42);
+        close.Location = new Point(220, 488);
+        close.Size = new Size(160, 42);
         close.Click += (s, e) => dialog.Close();
         dialog.Controls.Add(close);
         dialog.ShowDialog(this);

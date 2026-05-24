@@ -10,6 +10,7 @@ internal static class Program
     [STAThread]
     static void Main()
     {
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
         ApplicationConfiguration.Initialize();
 
         // Tạo DbContext options

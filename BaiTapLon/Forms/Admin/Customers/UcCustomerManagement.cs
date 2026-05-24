@@ -13,7 +13,7 @@ public class UcCustomerManagement : UserControl
     private List<Models.Customer> _customers = new();
 
     // Panel chi tiết bên phải
-    private Panel pnlDetail = null!;
+    private Control pnlDetail = null!;
     private Label lblCustName = null!, lblCustInfo = null!, lblCustStats = null!;
     private PictureBox picQr = null!;
     private DataGridView dgvHistory = null!;
@@ -69,94 +69,104 @@ public class UcCustomerManagement : UserControl
         Controls.Add(page);
     }
 
-    private Panel CreateDetailPanel()
+    private Control CreateDetailPanel()
     {
-        var panel = new Panel
+        var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 5,
             BackColor = Color.FromArgb(22, 22, 38),
-            Padding = new Padding(15),
-            AutoScroll = true
+            Padding = new Padding(15)
         };
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        int y = 10;
+        var topInfo = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 10)
+        };
+        topInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+        topInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        // QR Code
         picQr = new PictureBox
         {
             Size = new Size(120, 120),
-            Location = new Point(15, y),
             BackColor = Color.White,
             SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(0, 0, 10, 0)
         };
-        panel.Controls.Add(picQr);
+        topInfo.Controls.Add(picQr, 0, 0);
 
-        // Tên KH
+        var infoText = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            AutoSize = true,
+            Margin = Padding.Empty
+        };
+        infoText.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        infoText.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
         lblCustName = new Label
         {
             Text = "Chọn khách hàng",
             Font = new Font("Segoe UI", 13, FontStyle.Bold),
             ForeColor = Color.FromArgb(210, 210, 230),
-            Location = new Point(145, y),
-            Size = new Size(200, 30)
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 5)
         };
-        panel.Controls.Add(lblCustName);
+        infoText.Controls.Add(lblCustName, 0, 0);
 
-        // Thông tin
         lblCustInfo = new Label
         {
             Text = "",
             Font = new Font("Segoe UI", 9.5f),
             ForeColor = Color.FromArgb(150, 150, 180),
-            Location = new Point(145, y + 32),
-            Size = new Size(200, 88),
-            MaximumSize = new Size(200, 0),
+            Dock = DockStyle.Fill,
             AutoSize = true
         };
-        panel.Controls.Add(lblCustInfo);
+        infoText.Controls.Add(lblCustInfo, 0, 1);
+        topInfo.Controls.Add(infoText, 1, 0);
 
-        y += 135;
+        panel.Controls.Add(topInfo, 0, 0);
 
-        // Separator
-        panel.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(320, 1), BackColor = Color.FromArgb(50, 50, 75) });
-        y += 10;
-
-        // Thống kê
         lblCustStats = new Label
         {
             Text = "",
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(180, 180, 210),
-            Location = new Point(15, y),
-            Size = new Size(320, 80),
-            MaximumSize = new Size(320, 0),
-            AutoSize = true
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 10)
         };
-        panel.Controls.Add(lblCustStats);
-        y += 90;
+        panel.Controls.Add(lblCustStats, 0, 1);
 
-        // Separator
-        panel.Controls.Add(new Panel { Location = new Point(15, y), Size = new Size(320, 1), BackColor = Color.FromArgb(50, 50, 75) });
-        y += 10;
+        panel.Controls.Add(new Panel { Dock = DockStyle.Fill, Height = 1, BackColor = Color.FromArgb(50, 50, 75), Margin = new Padding(0, 10, 0, 10) }, 0, 2);
 
-        // Label lịch sử
         panel.Controls.Add(new Label
         {
             Text = "📋 Lịch sử điểm thưởng",
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(160, 160, 190),
-            Location = new Point(15, y),
-            AutoSize = true
-        });
-        y += 25;
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 5)
+        }, 0, 3);
 
-        // Grid lịch sử điểm
         dgvHistory = new DataGridView
         {
-            Location = new Point(15, y),
-            Size = new Size(320, 200),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            Dock = DockStyle.Fill,
             BackgroundColor = Color.FromArgb(26, 26, 42),
             GridColor = Color.FromArgb(40, 40, 60),
             BorderStyle = BorderStyle.None,
@@ -178,7 +188,7 @@ public class UcCustomerManagement : UserControl
         dgvHistory.ColumnHeadersDefaultCellStyle.ForeColor = AdminTheme.MutedText;
         dgvHistory.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9, FontStyle.Bold);
         dgvHistory.ColumnHeadersHeight = 32;
-        panel.Controls.Add(dgvHistory);
+        panel.Controls.Add(dgvHistory, 0, 4);
 
         return panel;
     }

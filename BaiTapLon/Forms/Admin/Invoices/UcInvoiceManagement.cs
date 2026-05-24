@@ -45,13 +45,29 @@ public class UcInvoiceManagement : UserControl
 
         var toolbar = AdminControls.CreateToolbar(
             txtSearch,
-            AdminControls.CreateToolbarLabel("Tu:", 28),
+            AdminControls.CreateToolbarLabel("Từ:", 28),
             dtpFrom,
-            AdminControls.CreateToolbarLabel("Den:", 38),
+            AdminControls.CreateToolbarLabel("Đến:", 38),
             dtpTo,
             cboPayment,
             AdminControls.CreateButton("Lọc", AdminTheme.ButtonPrimary, 74, async (s, e) => await LoadInvoicesAsync()),
-            AdminControls.CreateButton("Làm mới", AdminTheme.ButtonNeutral, 98, async (s, e) => await LoadInvoicesAsync())
+            AdminControls.CreateButton("Làm mới", AdminTheme.ButtonNeutral, 98, async (s, e) => await LoadInvoicesAsync()),
+            AdminControls.CreateButton("📄 Xuất HĐ", AdminTheme.ButtonPrimary, 100, async (s, e) =>
+            {
+                var id = AdminControls.GetCurrentIntValue(dgvInvoices, "Id");
+                if (!id.HasValue)
+                {
+                    MessageBox.Show("Vui lòng chọn một hóa đơn để xuất.", "Xuất HĐ");
+                    return;
+                }
+                using var ctx = Program.CreateDbContext();
+                var data = await new BaiTapLon.Services.InvoiceQueryService(ctx).GetReceiptDataByInvoiceIdAsync(id.Value);
+                if (data != null)
+                {
+                    using var dlg = new DlgReceiptPreview(data);
+                    dlg.ShowDialog(this);
+                }
+            })
         );
 
         dgvInvoices = AdminControls.CreateGrid();
@@ -145,7 +161,7 @@ public class UcInvoiceManagement : UserControl
             Padding = new Padding(14)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 128));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 240));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
@@ -174,7 +190,7 @@ public class UcInvoiceManagement : UserControl
 
         panel.Controls.Add(new Label
         {
-            Text = "So do ghe da mua",
+            Text = "Sơ đồ ghế đã mua",
             Dock = DockStyle.Fill,
             Font = AdminTheme.BodyBoldFont,
             ForeColor = AdminTheme.TitleText,
@@ -187,7 +203,7 @@ public class UcInvoiceManagement : UserControl
             Margin = new Padding(0, 0, 0, 8),
             ShowLegend = true
         };
-        seatPreview.ClearPreview("Chon hoa don de xem ghe");
+        seatPreview.ClearPreview("Chọn hóa đơn để xem ghế");
         panel.Controls.Add(seatPreview, 0, 3);
 
         panel.Controls.Add(new Label
@@ -314,6 +330,18 @@ public class UcInvoiceManagement : UserControl
             ("GiamGia", 100),
             ("TongTien", 120));
 
+        RenameColumns(dgvInvoices,
+            ("MaHD", "Mã HĐ"),
+            ("ThoiGian", "Thời Gian"),
+            ("NhanVien", "Nhân Viên"),
+            ("KhachHang", "Khách Hàng"),
+            ("SDT", "SĐT"),
+            ("ThanhToan", "Thanh Toán"),
+            ("Ve", "Vé"),
+            ("BapNuoc", "Bắp Nước"),
+            ("GiamGia", "Giảm Giá"),
+            ("TongTien", "Tổng Tiền"));
+
         var total = _rows.Sum(i => i.TotalAmount);
         lblSummary.Text = $"  {_rows.Count:N0} hóa đơn | Tổng doanh thu: {total:N0} đ";
     }
@@ -376,7 +404,7 @@ public class UcInvoiceManagement : UserControl
 
             if (firstTicket == null)
             {
-                seatPreview.ClearPreview("Hoa don khong co ve");
+                seatPreview.ClearPreview("Hóa đơn không có vé");
             }
             else
             {
@@ -425,6 +453,19 @@ public class UcInvoiceManagement : UserControl
                     ThanhTien = (s.UnitPrice * s.Quantity).ToString("N0") + " đ"
                 })
                 .ToList();
+
+            RenameColumns(dgvTickets,
+                ("Phim", "Phim"),
+                ("Phong", "Phòng"),
+                ("Suat", "Suất"),
+                ("Ghe", "Ghế"),
+                ("Gia", "Giá"));
+
+            RenameColumns(dgvSnacks,
+                ("Mon", "Món"),
+                ("SL", "SL"),
+                ("DonGia", "Đơn Giá"),
+                ("ThanhTien", "Thành Tiền"));
         }
         catch (Exception ex)
         {
@@ -436,7 +477,7 @@ public class UcInvoiceManagement : UserControl
     {
         lblDetailTitle.Text = "Chọn hóa đơn";
         lblDetailInfo.Text = "Chi tiết vé và bắp nước sẽ hiển thị tại đây.";
-        seatPreview.ClearPreview("Chon hoa don de xem ghe");
+        seatPreview.ClearPreview("Chọn hóa đơn để xem ghế");
         dgvTickets.DataSource = null;
         dgvSnacks.DataSource = null;
     }
@@ -491,4 +532,13 @@ public class UcInvoiceManagement : UserControl
         int SnackCount,
         decimal DiscountAmount,
         decimal TotalAmount);
+
+    private static void RenameColumns(DataGridView grid, params (string Name, string Header)[] mappings)
+    {
+        foreach (var (name, header) in mappings)
+        {
+            var col = grid.Columns[name];
+            if (col != null) col.HeaderText = header;
+        }
+    }
 }

@@ -641,6 +641,15 @@ public class UcSnackOrder : UserControl
                 $"Tổng: {total:N0} đ\n" +
                 $"Tiền thối: {change:N0} đ{pointMsg}",
                 "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            using var receiptCtx = Program.CreateDbContext();
+            var receiptData = await new InvoiceQueryService(receiptCtx).GetReceiptDataByInvoiceIdAsync(invoiceId);
+            if (receiptData != null)
+            {
+                using var dlg = new DlgReceiptPreview(receiptData);
+                dlg.ShowDialog(this);
+            }
+
             CheckoutCompleted?.Invoke();
         }
         else

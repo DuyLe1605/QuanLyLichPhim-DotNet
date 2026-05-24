@@ -503,6 +503,15 @@ public class UcPaymentGateway : UserControl
                 "Thành công",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
+
+            using var receiptCtx = Program.CreateDbContext();
+            var receiptData = await new InvoiceQueryService(receiptCtx).GetReceiptDataByBookingCodeAsync(result.BookingCode);
+            if (receiptData != null)
+            {
+                using var dlg = new DlgReceiptPreview(receiptData);
+                dlg.ShowDialog(this);
+            }
+
             PaymentCompleted?.Invoke(result.BookingCode);
         }
         catch (Exception ex)

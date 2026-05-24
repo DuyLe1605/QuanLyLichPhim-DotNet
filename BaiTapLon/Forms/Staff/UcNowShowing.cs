@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using BaiTapLon.Models;
 using BaiTapLon.Services;
 
@@ -39,15 +39,27 @@ public class UcNowShowing : UserControl
         this.BackColor = Color.FromArgb(18, 18, 30);
 
         // === Tiêu đề ===
-        var pnlTitle = new Panel { Dock = DockStyle.Top, Height = 55 };
+        var pnlTitle = new TableLayoutPanel 
+        { 
+            Dock = DockStyle.Top, 
+            Height = 55, 
+            ColumnCount = 4, 
+            RowCount = 1 
+        };
+        pnlTitle.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        pnlTitle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        pnlTitle.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        pnlTitle.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
         pnlTitle.Controls.Add(new Label
         {
             Text = "🎬  Phim Đang Chiếu",
             Font = new Font("Segoe UI", 18, FontStyle.Bold),
             ForeColor = Color.FromArgb(210, 210, 230),
-            Location = new Point(5, 10),
-            AutoSize = true
-        });
+            AutoSize = true,
+            Anchor = AnchorStyles.Left | AnchorStyles.Top,
+            Margin = new Padding(5, 10, 0, 0)
+        }, 0, 0);
 
         pnlTitle.Controls.Add(new Label
         {
@@ -55,30 +67,21 @@ public class UcNowShowing : UserControl
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(150, 150, 180),
             AutoSize = true,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(520, 19)
-        });
+            Anchor = AnchorStyles.Right | AnchorStyles.Top,
+            Margin = new Padding(0, 19, 5, 0)
+        }, 2, 0);
 
         dtpShowDate = new DateTimePicker
         {
             Font = new Font("Segoe UI", 10),
             Format = DateTimePickerFormat.Short,
             Size = new Size(135, 28),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(605, 14)
+            Anchor = AnchorStyles.Right | AnchorStyles.Top,
+            Margin = new Padding(0, 14, 20, 0)
         };
         dtpShowDate.ValueChanged += async (s, e) => await LoadMoviesAsync();
-        pnlTitle.Controls.Add(dtpShowDate);
+        pnlTitle.Controls.Add(dtpShowDate, 3, 0);
 
-        pnlTitle.Resize += (s, e) =>
-        {
-            dtpShowDate.Location = new Point(Math.Max(260, pnlTitle.Width - 150), 14);
-            foreach (Control c in pnlTitle.Controls)
-            {
-                if (c is Label { Text: "Ngày chiếu:" })
-                    c.Location = new Point(dtpShowDate.Left - 85, 19);
-            }
-        };
         this.Controls.Add(pnlTitle);
 
         // === Panel chọn suất chiếu (bên phải) ===

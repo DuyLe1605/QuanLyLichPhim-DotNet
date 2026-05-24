@@ -8,9 +8,11 @@ public class DlgSnackEdit : Form
     private NumericUpDown nudPrice = null!;
     private ComboBox cboCategory = null!;
     private CheckBox chkActive = null!;
+    private PictureBox picImage = null!;
     private ErrorProvider errorProvider = null!;
 
     private readonly Snack? _editSnack;
+    private string? _imagePath;
 
     public Snack SnackData { get; private set; } = new();
 
@@ -24,7 +26,7 @@ public class DlgSnackEdit : Form
     private void InitializeComponent()
     {
         Text = _editSnack == null ? "Thêm món bắp nước" : "Sửa món bắp nước";
-        ClientSize = new Size(460, 300);
+        ClientSize = new Size(520, 420);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -50,26 +52,40 @@ public class DlgSnackEdit : Form
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
         Controls.Add(root);
 
+        // Content: left form + right image
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
+        root.Controls.Add(content, 0, 0);
+
+        // Left: form fields
         var form = new TableLayoutPanel
         {
-            Dock = DockStyle.Top,
+            Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 4,
-            Height = 190,
-            BackColor = Color.Transparent
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 14, 0)
         };
-        form.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+        form.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         for (int i = 0; i < 4; i++) form.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
-        root.Controls.Add(form, 0, 0);
+        content.Controls.Add(form, 0, 0);
 
         txtName = MakeTextBox();
         AddFormRow(form, "Tên món *", txtName, 0);
 
         nudPrice = new NumericUpDown
         {
-            Dock = DockStyle.Left,
-            Width = 160,
+            Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 10),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
@@ -85,8 +101,7 @@ public class DlgSnackEdit : Form
 
         cboCategory = new ComboBox
         {
-            Dock = DockStyle.Left,
-            Width = 170,
+            Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 10),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
@@ -104,12 +119,62 @@ public class DlgSnackEdit : Form
             Checked = true,
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(220, 220, 240),
-            Dock = DockStyle.Left,
+            Dock = DockStyle.Fill,
             AutoSize = true,
             Margin = new Padding(0, 10, 0, 0)
         };
         AddFormRow(form, "Trạng thái", chkActive, 3);
 
+        // Right: image panel
+        var imagePanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        imagePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        imagePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        imagePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+        content.Controls.Add(imagePanel, 1, 0);
+
+        imagePanel.Controls.Add(new Label
+        {
+            Text = "Ảnh món",
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            ForeColor = Color.FromArgb(160, 160, 185),
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 0);
+
+        picImage = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(35, 35, 55),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(0, 4, 0, 4)
+        };
+        imagePanel.Controls.Add(picImage, 0, 1);
+
+        var btnChooseImage = new Button
+        {
+            Text = "📷 Chọn ảnh",
+            Font = new Font("Segoe UI", 9),
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(50, 50, 75),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            Margin = new Padding(0, 2, 0, 0)
+        };
+        btnChooseImage.FlatAppearance.BorderSize = 0;
+        btnChooseImage.Click += BtnChooseImage_Click;
+        imagePanel.Controls.Add(btnChooseImage, 0, 2);
+
+        // Button bar
         var buttonBar = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
@@ -142,6 +207,29 @@ public class DlgSnackEdit : Form
         nudPrice.Value = Math.Max(nudPrice.Minimum, Math.Min(nudPrice.Maximum, _editSnack.Price));
         cboCategory.SelectedItem = _editSnack.Category;
         chkActive.Checked = _editSnack.IsActive;
+
+        _imagePath = _editSnack.ImagePath;
+        if (!string.IsNullOrWhiteSpace(_imagePath))
+        {
+            var img = LoadSnackImage(_imagePath);
+            if (img != null)
+                picImage.Image = img;
+        }
+    }
+
+    private void BtnChooseImage_Click(object? sender, EventArgs e)
+    {
+        using var ofd = new OpenFileDialog
+        {
+            Filter = "Ảnh|*.jpg;*.jpeg;*.png;*.bmp;*.webp",
+            Title = "Chọn ảnh món bắp nước"
+        };
+
+        if (ofd.ShowDialog() != DialogResult.OK) return;
+
+        _imagePath = CopySnackImageToResources(ofd.FileName);
+        picImage.Image?.Dispose();
+        picImage.Image = LoadSnackImage(_imagePath);
     }
 
     private void BtnSave_Click(object? sender, EventArgs e)
@@ -173,8 +261,43 @@ public class DlgSnackEdit : Form
             Name = txtName.Text.Trim(),
             Price = nudPrice.Value,
             Category = cboCategory.SelectedItem?.ToString() ?? "Food",
-            IsActive = chkActive.Checked
+            IsActive = chkActive.Checked,
+            ImagePath = _imagePath
         };
+    }
+
+    private static string CopySnackImageToResources(string sourcePath)
+    {
+        var targetDir = Path.Combine(Application.StartupPath, "Resources", "Snacks");
+        Directory.CreateDirectory(targetDir);
+
+        var originalName = Path.GetFileNameWithoutExtension(sourcePath);
+        var extension = Path.GetExtension(sourcePath).ToLowerInvariant();
+        var safeName = string.Join("_", originalName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeName)) safeName = "snack";
+
+        var fileName = $"{safeName}_{DateTime.Now:yyyyMMddHHmmssfff}{extension}";
+        var targetPath = Path.Combine(targetDir, fileName);
+        File.Copy(sourcePath, targetPath, overwrite: true);
+        return fileName;
+    }
+
+    private static Image? LoadSnackImage(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath)) return null;
+
+        var path = Path.Combine(Application.StartupPath, "Resources", "Snacks", imagePath);
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            using var source = Image.FromFile(path);
+            return new Bitmap(source);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static void AddFormRow(TableLayoutPanel table, string label, Control editor, int row)

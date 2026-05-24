@@ -27,6 +27,8 @@ public class UcSeatSelection : UserControl
     private Button btnCheckout = null!;
     private Button btnBack = null!;
     private Label lblMemberInfo = null!;
+    private ComboBox cboCustomerSearch = null!;
+    private List<Models.Customer> _customers = new();
     private int? _customerId = null;
 
     private Showtime _showtime = null!;
@@ -81,6 +83,15 @@ public class UcSeatSelection : UserControl
 
         // Nạp sơ đồ ghế
         seatMap.SetData(_room.Seats.ToList(), soldIds, _room.Rows, _room.Columns, showtime.BasePrice);
+        
+        // Nạp danh sách khách hàng
+        _customers = await ctx.Customers.Where(c => c.IsActive).ToListAsync();
+        cboCustomerSearch.Items.Clear();
+        cboCustomerSearch.Items.Add("Khách vãng lai");
+        foreach (var c in _customers)
+            cboCustomerSearch.Items.Add($"{c.Phone} - {c.FullName}");
+        cboCustomerSearch.SelectedIndex = 0;
+
         UpdateSelection();
     }
 
@@ -202,12 +213,45 @@ public class UcSeatSelection : UserControl
         });
         y += 28;
 
+        pnlRight.Controls.Add(new Label { Text = "Tìm từ Database:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), AutoSize = true });
+        cboCustomerSearch = new ComboBox
+        {
+            Font = new Font("Segoe UI", 10),
+            Size = new Size(210, 28),
+            Location = new Point(105, y),
+            BackColor = Color.FromArgb(35, 35, 55),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            DropDownStyle = ComboBoxStyle.DropDown,
+            AutoCompleteMode = AutoCompleteMode.SuggestAppend,
+            AutoCompleteSource = AutoCompleteSource.ListItems
+        };
+        cboCustomerSearch.SelectedIndexChanged += async (s, e) => 
+        {
+            if (cboCustomerSearch.SelectedIndex == 0)
+            {
+                txtCustomerName.Text = "";
+                txtCustomerPhone.Text = "";
+                _customerId = null;
+                lblMemberInfo.Visible = false;
+            }
+            else if (cboCustomerSearch.SelectedIndex > 0)
+            {
+                var cust = _customers[cboCustomerSearch.SelectedIndex - 1];
+                txtCustomerPhone.Text = cust.Phone;
+                txtCustomerName.Text = cust.FullName;
+                await LookupCustomerAsync();
+            }
+        };
+        pnlRight.Controls.Add(cboCustomerSearch);
+        y += 35;
+
         pnlRight.Controls.Add(new Label { Text = "Tên KH:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), AutoSize = true });
         txtCustomerName = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(225, 28),
-            Location = new Point(90, y),
+            Size = new Size(210, 28),
+            Location = new Point(105, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
@@ -220,8 +264,8 @@ public class UcSeatSelection : UserControl
         txtCustomerPhone = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(176, 28),
-            Location = new Point(90, y),
+            Size = new Size(160, 28),
+            Location = new Point(105, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
