@@ -12,6 +12,7 @@ public class SaleOrderState
     public string? CustomerName { get; init; }
     public string? CustomerPhone { get; init; }
     public int? CustomerId { get; init; } // Khách hàng thành viên (Phase 8)
+    public int? ShiftId { get; init; } // Ca làm việc hiện tại
     public decimal TicketTotal { get; init; }
 }
 

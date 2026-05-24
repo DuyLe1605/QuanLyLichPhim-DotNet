@@ -15,7 +15,12 @@ public class UcSnackOrder : UserControl
     private Label lblSnackTotal = null!;
     private Label lblGrandTotal = null!;
     private Label lblChange = null!;
+    private Label lblDiscount = null!;
+    private TextBox txtVoucher = null!;
+    private Button btnApplyVoucher = null!;
     private Button btnCheckout = null!;
+    private int? _appliedVoucherId;
+    private decimal _discountAmount;
 
     private readonly Dictionary<int, SnackCartItem> _cart = new();
     private List<Snack> _snacks = new();
@@ -134,6 +139,8 @@ public class UcSnackOrder : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F)); // Voucher row
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30F)); // Discount label
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
@@ -203,6 +210,37 @@ public class UcSnackOrder : UserControl
         panel.Controls.Add(lblSnackTotal, 0, 4);
         panel.Controls.Add(lblGrandTotal, 0, 5);
 
+        // Voucher input row
+        var voucherRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1,
+            BackColor = Color.Transparent, Margin = Padding.Empty
+        };
+        voucherRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        voucherRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
+        txtVoucher = new TextBox
+        {
+            Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10),
+            BackColor = Color.FromArgb(35, 35, 55), ForeColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle, PlaceholderText = "Nhập mã voucher...",
+            CharacterCasing = CharacterCasing.Upper
+        };
+        btnApplyVoucher = new Button
+        {
+            Text = "Áp dụng", Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            BackColor = Color.FromArgb(88, 72, 216), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand
+        };
+        btnApplyVoucher.FlatAppearance.BorderSize = 0;
+        btnApplyVoucher.Click += BtnApplyVoucher_Click;
+        voucherRow.Controls.Add(txtVoucher, 0, 0);
+        voucherRow.Controls.Add(btnApplyVoucher, 1, 0);
+        panel.Controls.Add(voucherRow, 0, 6);
+
+        lblDiscount = MakeTotalLabel("Giảm giá: 0 đ", Color.FromArgb(255, 150, 60));
+        panel.Controls.Add(lblDiscount, 0, 7);
+
         txtReceived = new TextBox
         {
             Dock = DockStyle.Fill,
@@ -214,10 +252,10 @@ public class UcSnackOrder : UserControl
             PlaceholderText = "Tiền nhận"
         };
         txtReceived.TextChanged += (s, e) => CalculateChange();
-        panel.Controls.Add(txtReceived, 0, 6);
+        panel.Controls.Add(txtReceived, 0, 8);
 
         lblChange = MakeTotalLabel("Tiền thối: 0 đ", Color.FromArgb(255, 200, 60));
-        panel.Controls.Add(lblChange, 0, 7);
+        panel.Controls.Add(lblChange, 0, 9);
 
         btnCheckout = new Button
         {
@@ -231,7 +269,7 @@ public class UcSnackOrder : UserControl
         };
         btnCheckout.FlatAppearance.BorderSize = 0;
         btnCheckout.Click += BtnCheckout_Click;
-        panel.Controls.Add(btnCheckout, 0, 8);
+        panel.Controls.Add(btnCheckout, 0, 10);
 
         return panel;
     }
@@ -511,12 +549,56 @@ public class UcSnackOrder : UserControl
         RefreshCart();
     }
 
+    private async void BtnApplyVoucher_Click(object? sender, EventArgs e)
+    {
+        string code = txtVoucher.Text.Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            // Clear voucher
+            _appliedVoucherId = null;
+            _discountAmount = 0;
+            txtVoucher.Enabled = true;
+            btnApplyVoucher.Text = "Áp dụng";
+            UpdateTotals();
+            return;
+        }
+
+        try
+        {
+            var subtotal = _state.TicketTotal + _cart.Values.Sum(i => i.LineTotal);
+            using var ctx = Program.CreateDbContext();
+            var svc = new VoucherService(ctx);
+            var (ok, msg, discount) = await svc.ApplyVoucherAsync(code, subtotal);
+
+            if (ok)
+            {
+                var voucher = await svc.GetByCodeAsync(code);
+                _appliedVoucherId = voucher?.Id;
+                _discountAmount = discount;
+                txtVoucher.Enabled = false;
+                btnApplyVoucher.Text = "✕ Hủy";
+                MessageBox.Show(msg, "Voucher hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                _appliedVoucherId = null;
+                _discountAmount = 0;
+                MessageBox.Show(msg, "Voucher không hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            UpdateTotals();
+        }
+        catch (Exception ex) { MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi"); }
+    }
+
     private void UpdateTotals()
     {
         var snackTotal = _cart.Values.Sum(i => i.LineTotal);
-        var grandTotal = _state.TicketTotal + snackTotal;
+        var subtotal = _state.TicketTotal + snackTotal;
+        var grandTotal = subtotal - _discountAmount;
+        if (grandTotal < 0) grandTotal = 0;
 
         lblSnackTotal.Text = $"Bắp nước: {snackTotal:N0} đ";
+        lblDiscount.Text = _discountAmount > 0 ? $"Giảm giá: -{_discountAmount:N0} đ" : "Giảm giá: 0 đ";
         lblGrandTotal.Text = $"Tổng bill: {grandTotal:N0} đ";
         CalculateChange();
     }
@@ -524,8 +606,9 @@ public class UcSnackOrder : UserControl
     private void CalculateChange()
     {
         if (_state == null) return;
-
-        var total = _state.TicketTotal + _cart.Values.Sum(i => i.LineTotal);
+        var subtotal = _state.TicketTotal + _cart.Values.Sum(i => i.LineTotal);
+        var total = subtotal - _discountAmount;
+        if (total < 0) total = 0;
         if (decimal.TryParse(txtReceived.Text.Replace(",", "").Replace(".", ""), out var received) && received >= total)
         {
             lblChange.Text = $"Tiền thối: {received - total:N0} đ";
@@ -545,7 +628,9 @@ public class UcSnackOrder : UserControl
 
     private async void BtnCheckout_Click(object? sender, EventArgs e)
     {
-        var total = _state.TicketTotal + _cart.Values.Sum(i => i.LineTotal);
+        var subtotal = _state.TicketTotal + _cart.Values.Sum(i => i.LineTotal);
+        var total = subtotal - _discountAmount;
+        if (total < 0) total = 0;
         if (!decimal.TryParse(txtReceived.Text.Replace(",", "").Replace(".", ""), out var received))
         {
             MessageBox.Show("Vui lòng nhập số tiền nhận!", "Thiếu thông tin");
@@ -585,9 +670,12 @@ public class UcSnackOrder : UserControl
         {
             UserId = SessionManager.CurrentUser!.Id,
             CustomerId = _state.CustomerId, // Liên kết khách hàng thành viên
+            ShiftId = _state.ShiftId, // Liên kết ca làm việc
             CustomerName = string.IsNullOrWhiteSpace(_state.CustomerName) ? null : _state.CustomerName,
             CustomerPhone = string.IsNullOrWhiteSpace(_state.CustomerPhone) ? null : _state.CustomerPhone,
             TotalAmount = total,
+            DiscountAmount = _discountAmount,
+            VoucherId = _appliedVoucherId,
             ReceivedAmount = received,
             ChangeAmount = change,
             CreatedAt = DateTime.Now
@@ -632,6 +720,17 @@ public class UcSnackOrder : UserControl
                         pointMsg = $"\n🎁 Tích được {earnedPoints:N0} điểm thưởng!";
                 }
                 catch { /* Không block checkout nếu tích điểm lỗi */ }
+            }
+
+            // Tăng lượt sử dụng voucher
+            if (_appliedVoucherId.HasValue)
+            {
+                try
+                {
+                    using var voucherCtx = Program.CreateDbContext();
+                    await new VoucherService(voucherCtx).IncrementUsageAsync(_appliedVoucherId.Value);
+                }
+                catch { /* Không block checkout nếu tăng lượt lỗi */ }
             }
 
             MessageBox.Show(

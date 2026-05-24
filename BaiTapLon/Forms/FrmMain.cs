@@ -16,6 +16,7 @@ public class FrmMain : Form
     private Panel pnlContent = null!;
     private Panel pnlTitleBar = null!;
     private readonly List<Button> _menuButtons = new();
+    private int? _currentShiftId;
 
     private bool _dragging = false;
     private Point _dragStart;
@@ -221,12 +222,16 @@ public class FrmMain : Form
         {
             AddMenuButton("📊  Tổng quan", "Dashboard");
             AddMenuButton("🎬  Quản lý phim", "Movies");
+            AddMenuButton("🏷️  Thể loại phim", "Genres");
             AddMenuButton("🏠  Phòng chiếu", "Rooms");
             AddMenuButton("📅  Lịch chiếu", "Showtimes");
             AddMenuButton("🍿  Bắp nước", "Snacks");
             AddMenuButton("👥  Nhân viên", "Staff");
+            AddMenuButton("⏰  Ca làm việc", "Shifts");
             AddMenuButton("👤  Khách hàng", "Customers");
             AddMenuButton("🎟️  Coupon", "Coupons");
+            AddMenuButton("🏷️  Voucher", "Vouchers");
+            AddMenuButton("📦  Đặt vé online", "Bookings");
             AddMenuButton("📄  Hóa đơn", "Invoices");
             AddMenuButton("🎬  Phim đang chiếu", "NowShowing");
             AddMenuButton("🎟️  Bán vé", "SellTicket");
@@ -261,6 +266,11 @@ public class FrmMain : Form
             ToggleUserDropdown(false);
             LoadModule("Invoices");
         });
+        var btnShift = CreateUserDropdownButton("⏰ Ca làm việc", async (s, e) =>
+        {
+            ToggleUserDropdown(false);
+            await ManageShiftAsync();
+        });
 
         // Logout button inside the dropdown
         var btnDropdownLogout = new Button
@@ -282,6 +292,7 @@ public class FrmMain : Form
 
         pnlUserDropdown.Controls.Add(btnDropdownLogout);
         pnlUserDropdown.Controls.Add(btnMyInvoices);
+        pnlUserDropdown.Controls.Add(btnShift);
         pnlUserDropdown.Controls.Add(btnProfile);
 
         btnUserNav = new Button
@@ -330,8 +341,8 @@ public class FrmMain : Form
     private void ToggleUserDropdown(bool show)
     {
         pnlUserDropdown.Visible = show;
-        pnlUserDropdown.Height = show ? 102 : 0;   // 3 items × 30px + 12px padding
-        pnlSidebarFooter.Height = show ? 150 : 48;
+        pnlUserDropdown.Height = show ? 132 : 0;   // 4 items × 30px + 12px padding
+        pnlSidebarFooter.Height = show ? 180 : 48;
         btnUserNav.Text = BuildUserNavText(show);
         ResizeSidebarMenu();
     }
@@ -436,6 +447,10 @@ public class FrmMain : Form
             "Staff" => new Admin.UcStaffManagement(),
             "Customers" => new Admin.UcCustomerManagement(),
             "Coupons" => new Admin.Coupons.UcCouponManagement(),
+            "Vouchers" => new Admin.Vouchers.UcVoucherManagement(),
+            "Genres" => new Admin.UcGenreManagement(),
+            "Shifts" => new Admin.UcShiftManagement(),
+            "Bookings" => new Admin.UcBookingManagement(),
             "Invoices" => new Admin.UcInvoiceManagement(),
             "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
@@ -469,6 +484,7 @@ public class FrmMain : Form
 
         ucNowShowing.ShowtimeSelected += async (showtime) =>
         {
+            if (!await EnsureShiftOpenAsync()) return;
             await LoadSeatSelectionAsync(showtime);
         };
 
@@ -483,7 +499,22 @@ public class FrmMain : Form
         pnlContent.Controls.Add(ucSeatSelection);
 
         ucSeatSelection.BackRequested += () => LoadModule("NowShowing");
-        ucSeatSelection.ContinueRequested += async (state) => await LoadSnackOrderAsync(state);
+        ucSeatSelection.ContinueRequested += async (state) => 
+        {
+            var newState = new Staff.SaleOrderState
+            {
+                Showtime = state.Showtime,
+                Movie = state.Movie,
+                Room = state.Room,
+                Seats = state.Seats,
+                CustomerName = state.CustomerName,
+                CustomerPhone = state.CustomerPhone,
+                CustomerId = state.CustomerId,
+                TicketTotal = state.TicketTotal,
+                ShiftId = _currentShiftId
+            };
+            await LoadSnackOrderAsync(newState);
+        };
 
         await ucSeatSelection.LoadShowtimeAsync(showtime);
     }
@@ -532,6 +563,62 @@ public class FrmMain : Form
         };
 
         pnlContent.Controls.Add(pnl);
+    }
+
+    private async Task<bool> EnsureShiftOpenAsync()
+    {
+        if (_currentShiftId.HasValue) return true;
+
+        using var ctx = Program.CreateDbContext();
+        var svc = new ShiftService(ctx);
+        var openShift = await svc.GetOpenShiftAsync(SessionManager.CurrentUser!.Id);
+
+        if (openShift != null)
+        {
+            _currentShiftId = openShift.Id;
+            return true;
+        }
+
+        var result = MessageBox.Show("Bạn chưa mở ca làm việc! Bạn có muốn mở ca ngay bây giờ không?", 
+            "Mở ca làm việc", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+        if (result == DialogResult.Yes)
+        {
+            await ManageShiftAsync();
+            return _currentShiftId.HasValue;
+        }
+
+        return false;
+    }
+
+    private async Task ManageShiftAsync()
+    {
+        using var ctx = Program.CreateDbContext();
+        var svc = new ShiftService(ctx);
+        var openShift = await svc.GetOpenShiftAsync(SessionManager.CurrentUser!.Id);
+
+        if (openShift == null)
+        {
+            // Open shift
+            string? cashStr = Admin.UcGenreManagement.ShowInputDialog("Mở ca làm việc", "Nhập số tiền mặt đầu ca:", "0"); // Reusing input dialog
+            if (cashStr != null && decimal.TryParse(cashStr, out var cash))
+            {
+                var (ok, msg, shift) = await svc.OpenShiftAsync(SessionManager.CurrentUser!.Id, cash);
+                MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
+                if (ok && shift != null) _currentShiftId = shift.Id;
+            }
+        }
+        else
+        {
+            // Close shift
+            string? cashStr = Admin.UcGenreManagement.ShowInputDialog("Đóng ca làm việc", "Nhập số tiền mặt cuối ca đếm được:", "0");
+            if (cashStr != null && decimal.TryParse(cashStr, out var cash))
+            {
+                var (ok, msg) = await svc.CloseShiftAsync(openShift.Id, cash);
+                MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
+                if (ok) _currentShiftId = null;
+            }
+        }
     }
 
     private void BtnLogout_Click(object? sender, EventArgs e)
