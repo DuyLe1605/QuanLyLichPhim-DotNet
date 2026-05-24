@@ -87,3 +87,47 @@ $RECYCLE.BIN/
 
 # macOS
 .DS_Store
+
+# Node / Vite (cinemanager-web)
+cinemanager-web/node_modules/
+cinemanager-web/dist/
+cinemanager-web/.vite/
+cinemanager-web/coverage/
+cinemanager-web/.eslintcache
+*.tsbuildinfo
+cinemanager-web/npm-debug.log*
+cinemanager-web/yarn-debug.log*
+cinemanager-web/yarn-error.log*
+cinemanager-web/pnpm-debug.log*
+cinemanager-web/.pnpm-store/
+cinemanager-web/.pnp.*
+cinemanager-web/.parcel-cache/
+cinemanager-web/.turbo/
+
+# Environment files (never commit secrets)
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.template
+!**/.env.sample
+
+# VS Code (keep shared configs if you add them later)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Local database files
+*.mdf
+*.ldf
+*.sqlite
+*.sqlite3
+*.db

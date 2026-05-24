@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="BaiTapLon.Tests/BaiTapLon.Tests.csproj" />
+  <Project Path="BaiTapLon.Api/BaiTapLon.Api.csproj" />
+  <Project Path="BaiTapLon.Shared/BaiTapLon.Shared.csproj" />
   <Project Path="BaiTapLon/BaiTapLon.csproj" />
 </Solution>
