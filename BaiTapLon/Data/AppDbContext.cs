@@ -30,6 +30,10 @@ public class AppDbContext : DbContext
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<CouponRedemption> CouponRedemptions => Set<CouponRedemption>();
 
+    // ===== Phase 9: Audit and Review =====
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<MovieReview> MovieReviews => Set<MovieReview>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

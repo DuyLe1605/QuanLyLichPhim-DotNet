@@ -233,6 +233,8 @@ public class FrmMain : Form
             AddMenuButton("🏷️  Voucher", "Vouchers");
             AddMenuButton("📦  Đặt vé online", "Bookings");
             AddMenuButton("📄  Hóa đơn", "Invoices");
+            AddMenuButton("⭐  Đánh giá", "Reviews");
+            AddMenuButton("📜  Lịch sử HT", "AuditLog");
             AddMenuButton("🎬  Phim đang chiếu", "NowShowing");
             AddMenuButton("🎟️  Bán vé", "SellTicket");
         }
@@ -452,6 +454,8 @@ public class FrmMain : Form
             "Shifts" => new Admin.UcShiftManagement(),
             "Bookings" => new Admin.UcBookingManagement(),
             "Invoices" => new Admin.UcInvoiceManagement(),
+            "Reviews" => new Admin.UcReviewManagement(),
+            "AuditLog" => new Admin.UcAuditLog(),
             "NowShowing" or "SellTicket" => CreateNowShowingModule(),
             _ => null
         };

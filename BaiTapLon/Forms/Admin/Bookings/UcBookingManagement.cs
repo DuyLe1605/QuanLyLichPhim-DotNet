@@ -10,6 +10,7 @@ public class UcBookingManagement : UserControl
     private AdminPaginationBar pagination = null!;
     private ComboBox cboStatus = null!;
     private TextBox txtSearch = null!;
+    private TextBox txtQRScan = null!;
     private DateTimePicker dtpDate = null!;
     private List<Booking> _bookings = new();
 
@@ -34,6 +35,10 @@ public class UcBookingManagement : UserControl
         txtSearch = AdminControls.CreateSearchBox("Tìm mã booking, KH...", 200);
         txtSearch.TextChanged += async (s, e) => await LoadAsync();
 
+        txtQRScan = AdminControls.CreateSearchBox("📷 Quét QR Code vào đây...", 220);
+        txtQRScan.BackColor = Color.FromArgb(40, 40, 60);
+        txtQRScan.KeyDown += TxtQRScan_KeyDown;
+
         dgv = AdminControls.CreateGrid();
         pagination = new AdminPaginationBar();
         pagination.PaginationChanged += (s, e) => BindPage();
@@ -42,8 +47,9 @@ public class UcBookingManagement : UserControl
             AdminControls.CreateToolbarLabel("Ngày:", 45), dtpDate,
             AdminControls.CreateToolbarLabel("Trạng thái:", 80), cboStatus,
             txtSearch,
+            txtQRScan,
             AdminControls.CreateButton("✅ Check-In", Color.FromArgb(65, 196, 126), 120, BtnCheckIn_Click),
-            AdminControls.CreateButton("❌ Hủy booking", AdminTheme.ButtonDanger, 130, BtnCancel_Click));
+            AdminControls.CreateButton("❌ Hủy", AdminTheme.ButtonDanger, 80, BtnCancel_Click));
 
         Controls.Add(AdminLayouts.CreateManagementPage(
             "📦  Quản Lý Đặt Vé Online",
@@ -196,5 +202,43 @@ public class UcBookingManagement : UserControl
             }
         }
         catch (Exception ex) { MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi"); }
+    }
+
+    private async void TxtQRScan_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter)
+        {
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+            string code = txtQRScan.Text.Trim();
+            txtQRScan.Clear();
+
+            if (string.IsNullOrWhiteSpace(code)) return;
+
+            using var ctx = Program.CreateDbContext();
+            var booking = await ctx.Bookings.FirstOrDefaultAsync(b => b.BookingCode == code);
+            if (booking == null)
+            {
+                MessageBox.Show($"Không tìm thấy booking với mã: {code}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (booking.Status == "CheckedIn")
+            {
+                MessageBox.Show($"Booking {code} ĐÃ ĐƯỢC CHECK-IN TRƯỚC ĐÓ!", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (booking.Status != "Paid")
+            {
+                MessageBox.Show($"Booking {code} chưa được thanh toán (Trạng thái: {booking.Status})!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            booking.Status = "CheckedIn";
+            await ctx.SaveChangesAsync();
+            MessageBox.Show($"✅ Check-in thành công cho booking {code}!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            await LoadAsync();
+        }
     }
 }
