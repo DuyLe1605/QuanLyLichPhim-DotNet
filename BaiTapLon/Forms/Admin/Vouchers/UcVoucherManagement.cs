@@ -87,6 +87,50 @@ public class UcVoucherManagement : UserControl
             ("Mã", 130), ("Loại", 110), ("GiáTrị", 100),
             ("GiảmTốiĐa", 110), ("BắtĐầu", 110), ("KếtThúc", 110),
             ("ĐãDùng", 90), ("TrạngThái", 120));
+
+        ConfigureVoucherGridColumns();
+    }
+
+    private void ConfigureVoucherGridColumns()
+    {
+        dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgv.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        dgv.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
+
+        SetFill("Mã", 130, 14);
+        SetFill("Loại", 120, 12);
+        SetFill("GiáTrị", 100, 10);
+        SetFill("GiảmTốiĐa", 120, 12);
+        SetFill("BắtĐầu", 110, 10);
+        SetFill("KếtThúc", 110, 10);
+        SetFill("ĐãDùng", 90, 8);
+        SetFill("TrạngThái", 145, 14);
+
+        AlignRight("GiáTrị");
+        AlignRight("GiảmTốiĐa");
+        AlignCenter("ĐãDùng");
+        AlignCenter("TrạngThái");
+    }
+
+    private void SetFill(string columnName, int minWidth, float fillWeight)
+    {
+        if (!dgv.Columns.Contains(columnName)) return;
+        var column = dgv.Columns[columnName]!;
+        column.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+        column.MinimumWidth = minWidth;
+        column.FillWeight = fillWeight;
+    }
+
+    private void AlignRight(string columnName)
+    {
+        if (dgv.Columns.Contains(columnName))
+            dgv.Columns[columnName]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+    }
+
+    private void AlignCenter(string columnName)
+    {
+        if (dgv.Columns.Contains(columnName))
+            dgv.Columns[columnName]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
     }
 
     private void BtnCreate_Click(object? s, EventArgs e)
@@ -199,7 +243,6 @@ public class DlgVoucherEdit : Form
             new VoucherTypeItem("Fixed", "Cố định"),
             new VoucherTypeItem("FreeTicket", "Miễn phí vé")
         });
-        cboType.SelectedIndexChanged += (s, e) => UpdateTypeUI();
         cboType.SelectedIndex = 0;
         AddRow(grid, "Loại *", cboType, row++);
 
@@ -242,6 +285,7 @@ public class DlgVoucherEdit : Form
             Margin = new Padding(0, 12, 0, 0)
         };
         AddRow(grid, "Trạng thái", chkActive, row++);
+        cboType.SelectedIndexChanged += (s, e) => UpdateTypeUI();
 
         // Buttons
         var bar = new FlowLayoutPanel
@@ -294,6 +338,9 @@ public class DlgVoucherEdit : Form
 
     private void UpdateTypeUI()
     {
+        if (lblValue == null || lblMaxDiscount == null || nudValue == null || nudMaxDiscount == null)
+            return;
+
         var type = (cboType.SelectedItem as VoucherTypeItem)?.Value ?? "Percent";
 
         if (type == "Percent")

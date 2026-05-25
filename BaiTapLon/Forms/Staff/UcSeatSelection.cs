@@ -104,7 +104,7 @@ public class UcSeatSelection : UserControl
         pnlRight = new Panel
         {
             Dock = DockStyle.Right,
-            Width = 340,
+            Width = 360,
             BackColor = Color.FromArgb(22, 22, 38),
             AutoScroll = true,
             Padding = new Padding(15)
@@ -213,12 +213,12 @@ public class UcSeatSelection : UserControl
         });
         y += 28;
 
-        pnlRight.Controls.Add(new Label { Text = "Tìm từ Database:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), AutoSize = true });
+        pnlRight.Controls.Add(new Label { Text = "Tìm KH:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), Size = new Size(78, 24), TextAlign = ContentAlignment.MiddleLeft });
         cboCustomerSearch = new ComboBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(210, 28),
-            Location = new Point(105, y),
+            Size = new Size(225, 28),
+            Location = new Point(95, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -246,12 +246,12 @@ public class UcSeatSelection : UserControl
         pnlRight.Controls.Add(cboCustomerSearch);
         y += 35;
 
-        pnlRight.Controls.Add(new Label { Text = "Tên KH:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), AutoSize = true });
+        pnlRight.Controls.Add(new Label { Text = "Tên KH:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), Size = new Size(78, 24), TextAlign = ContentAlignment.MiddleLeft });
         txtCustomerName = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(210, 28),
-            Location = new Point(105, y),
+            Size = new Size(225, 28),
+            Location = new Point(95, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
@@ -260,12 +260,12 @@ public class UcSeatSelection : UserControl
         pnlRight.Controls.Add(txtCustomerName);
         y += 35;
 
-        pnlRight.Controls.Add(new Label { Text = "SĐT:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), AutoSize = true });
+        pnlRight.Controls.Add(new Label { Text = "SĐT:", Font = new Font("Segoe UI", 9), ForeColor = Color.FromArgb(130, 130, 160), Location = new Point(15, y + 3), Size = new Size(78, 24), TextAlign = ContentAlignment.MiddleLeft });
         txtCustomerPhone = new TextBox
         {
             Font = new Font("Segoe UI", 10),
-            Size = new Size(160, 28),
-            Location = new Point(105, y),
+            Size = new Size(178, 28),
+            Location = new Point(95, y),
             BackColor = Color.FromArgb(35, 35, 55),
             ForeColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
@@ -279,7 +279,7 @@ public class UcSeatSelection : UserControl
             Text = "🔍",
             Font = new Font("Segoe UI", 10),
             Size = new Size(45, 28),
-            Location = new Point(270, y),
+            Location = new Point(278, y),
             BackColor = Color.FromArgb(60, 120, 200),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,

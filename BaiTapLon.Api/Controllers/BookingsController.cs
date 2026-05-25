@@ -103,8 +103,43 @@ public class BookingsController : ApiControllerBase
         var taken = await _db.Tickets.AnyAsync(t => t.ShowtimeId == request.ShowtimeId && distinctSeatIds.Contains(t.SeatId));
         if (taken) return Conflict(new { message = "Một hoặc nhiều ghế đã được bán." });
 
-        var subtotal = seats.Sum(s => showtime.BasePrice * s.PriceMultiplier);
-        var (voucher, discount) = await ResolveVoucher(request.VoucherCode, subtotal);
+        var snackSelections = (request.Snacks ?? Array.Empty<BookingSnackRequest>())
+            .Where(s => s.Quantity > 0)
+            .GroupBy(s => s.SnackId)
+            .Select(g => new BookingSnackRequest(g.Key, g.Sum(x => x.Quantity)))
+            .ToList();
+
+        var snackIds = snackSelections.Select(s => s.SnackId).ToArray();
+        var snacks = snackIds.Length == 0
+            ? new List<Snack>()
+            : await _db.Snacks.Where(s => snackIds.Contains(s.Id) && s.IsActive).ToListAsync();
+
+        if (snacks.Count != snackIds.Length)
+            return BadRequest(new { message = "Bắp nước không hợp lệ hoặc đã ngừng bán." });
+
+        var ticketSubtotal = seats.Sum(s => showtime.BasePrice * s.PriceMultiplier);
+        var snackSubtotal = snackSelections.Sum(selection =>
+        {
+            var snack = snacks.First(s => s.Id == selection.SnackId);
+            return snack.Price * selection.Quantity;
+        });
+        var subtotal = ticketSubtotal + snackSubtotal;
+        var (voucher, voucherDiscount) = await ResolveVoucher(request.VoucherCode, subtotal);
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId.Value && c.IsActive);
+        if (customer is null) return NotFound(new { message = "Không tìm thấy khách hàng." });
+
+        var pointsRequested = Math.Max(0, request.PointsToRedeem);
+        if (pointsRequested > customer.LoyaltyPoints)
+            return BadRequest(new { message = $"Không đủ điểm. Bạn có {customer.LoyaltyPoints:N0} điểm." });
+
+        var payableAfterVoucher = Math.Max(0, subtotal - voucherDiscount);
+        var pointsDiscount = Math.Min(pointsRequested * 1_000m, payableAfterVoucher);
+        var pointsConsumed = pointsDiscount <= 0 ? 0 : (int)Math.Ceiling(pointsDiscount / 1_000m);
+        if (pointsConsumed > customer.LoyaltyPoints)
+            return BadRequest(new { message = $"Không đủ điểm. Bạn có {customer.LoyaltyPoints:N0} điểm." });
+
+        var discount = voucherDiscount + pointsDiscount;
         var total = Math.Max(0, subtotal - discount);
         var systemUserId = await _db.Users.Select(u => u.Id).FirstOrDefaultAsync();
         if (systemUserId == 0) return BadRequest(new { message = "Chưa có user hệ thống để tạo invoice." });
@@ -153,6 +188,32 @@ public class BookingsController : ApiControllerBase
             });
         }
 
+        foreach (var selection in snackSelections)
+        {
+            var snack = snacks.First(s => s.Id == selection.SnackId);
+            _db.InvoiceSnacks.Add(new InvoiceSnack
+            {
+                InvoiceId = invoice.Id,
+                SnackId = snack.Id,
+                Quantity = selection.Quantity,
+                UnitPrice = snack.Price
+            });
+        }
+
+        if (pointsConsumed > 0)
+        {
+            customer.LoyaltyPoints -= pointsConsumed;
+            _db.PointTransactions.Add(new PointTransaction
+            {
+                CustomerId = customer.Id,
+                InvoiceId = invoice.Id,
+                Points = -pointsConsumed,
+                Type = "Redeem",
+                Description = $"Đổi {pointsConsumed:N0} điểm → giảm {pointsDiscount:N0}đ",
+                CreatedAt = DateTime.Now
+            });
+        }
+
         if (voucher is not null) voucher.UsedCount++;
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
@@ -163,7 +224,14 @@ public class BookingsController : ApiControllerBase
             booking.Status,
             booking.TotalAmount,
             booking.DiscountAmount,
-            Seats = seats.Select(s => s.Label)
+            PointsRedeemed = pointsConsumed,
+            PointsDiscount = pointsDiscount,
+            Seats = seats.Select(s => s.Label),
+            Snacks = snackSelections.Select(selection =>
+            {
+                var snack = snacks.First(s => s.Id == selection.SnackId);
+                return new { snack.Id, snack.Name, selection.Quantity, snack.Price };
+            })
         });
     }
 

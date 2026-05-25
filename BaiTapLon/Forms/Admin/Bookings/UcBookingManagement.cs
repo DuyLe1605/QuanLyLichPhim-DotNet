@@ -131,7 +131,7 @@ public class UcBookingManagement : UserControl
             ("MãĐặt", 110), ("KháchHàng", 170), ("SĐT", 120),
             ("Phim", 200), ("SuấtChiếu", 150), ("SốVé", 70),
             ("TổngTiền", 120), ("Giảm", 90), ("TT", 70),
-            ("TrạngThái", 110), ("NgàyĐặt", 120));
+            ("TrạngThái", 140), ("NgàyĐặt", 120));
 
         dgv.Columns["MãĐặt"]!.HeaderText = "Mã Đặt";
         dgv.Columns["KháchHàng"]!.HeaderText = "Khách Hàng";
@@ -140,6 +140,54 @@ public class UcBookingManagement : UserControl
         dgv.Columns["TổngTiền"]!.HeaderText = "Tổng Tiền";
         dgv.Columns["TrạngThái"]!.HeaderText = "Trạng Thái";
         dgv.Columns["NgàyĐặt"]!.HeaderText = "Ngày Đặt";
+
+        ConfigureBookingGridColumns();
+    }
+
+    private void ConfigureBookingGridColumns()
+    {
+        dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgv.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        dgv.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
+
+        SetFill("MãĐặt", 105, 9);
+        SetFill("KháchHàng", 145, 13);
+        SetFill("SĐT", 110, 9);
+        SetFill("Phim", 175, 16);
+        SetFill("SuấtChiếu", 160, 14);
+        SetFill("SốVé", 64, 5);
+        SetFill("TổngTiền", 112, 9);
+        SetFill("Giảm", 86, 7);
+        SetFill("TT", 58, 5);
+        SetFill("TrạngThái", 135, 12);
+        SetFill("NgàyĐặt", 112, 9);
+
+        AlignRight("TổngTiền");
+        AlignRight("Giảm");
+        AlignCenter("SốVé");
+        AlignCenter("TT");
+        AlignCenter("TrạngThái");
+    }
+
+    private void SetFill(string columnName, int minWidth, float fillWeight)
+    {
+        if (!dgv.Columns.Contains(columnName)) return;
+        var column = dgv.Columns[columnName]!;
+        column.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+        column.MinimumWidth = minWidth;
+        column.FillWeight = fillWeight;
+    }
+
+    private void AlignRight(string columnName)
+    {
+        if (dgv.Columns.Contains(columnName))
+            dgv.Columns[columnName]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+    }
+
+    private void AlignCenter(string columnName)
+    {
+        if (dgv.Columns.Contains(columnName))
+            dgv.Columns[columnName]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
     }
 
     private async void BtnCheckIn_Click(object? s, EventArgs e)

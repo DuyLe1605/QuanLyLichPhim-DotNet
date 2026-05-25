@@ -3,3 +3,5 @@ import { profileApi } from "../api/profile.api";
 
 export const useProfile = () => useQuery({ queryKey: ["profile"], queryFn: profileApi.get });
 export const usePoints = () => useQuery({ queryKey: ["points"], queryFn: profileApi.points });
+export const updateProfile = profileApi.update;
+export const redeemCoupon = profileApi.redeemCoupon;

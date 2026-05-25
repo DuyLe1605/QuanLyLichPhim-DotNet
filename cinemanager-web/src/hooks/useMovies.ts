@@ -9,3 +9,4 @@ export const useMovie = (id: string) => useQuery({ queryKey: ["movies", id], que
 export const useShowtimes = (id: string, date = todayInputValue()) =>
   useQuery({ queryKey: ["showtimes", id, date], queryFn: () => moviesApi.showtimes(id, date) });
 export const useReviews = (id: string) => useQuery({ queryKey: ["reviews", id], queryFn: () => moviesApi.reviews(id) });
+export const createReview = moviesApi.createReview;

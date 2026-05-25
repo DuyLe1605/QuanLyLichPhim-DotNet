@@ -7,6 +7,10 @@ export type Customer = {
   memberCode: string;
   tier: string;
   totalPoints: number;
+  loyaltyPoints?: number;
+  membershipPoints?: number;
+  monthlySpent?: number;
+  totalSpent?: number;
 };
 
 export type AuthResponse = { accessToken: string; refreshToken: string; customer: Customer };
@@ -78,4 +82,9 @@ export type Snack = {
   price: number;
   imageUrl?: string;
   type: string;
+};
+
+export type SnackSelection = {
+  snack: Snack;
+  quantity: number;
 };
