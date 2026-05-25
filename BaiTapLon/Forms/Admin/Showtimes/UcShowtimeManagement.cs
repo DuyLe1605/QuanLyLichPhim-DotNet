@@ -133,14 +133,16 @@ public class UcShowtimeManagement : UserControl
 
     private async void BtnAdd_Click(object? s, EventArgs e)
     {
-        using var dlg = new DlgShowtimeEdit(_movies, _rooms);
+        using var dlg = new DlgShowtimeBulkCreate(_movies, _rooms, dtpDate.Value.Date);
         if (dlg.ShowDialog() != DialogResult.OK) return;
+
         using var ctx = Program.CreateDbContext();
-        var (ok, msg) = await new ShowtimeService(ctx).CreateAsync(dlg.ShowtimeData);
+        var (ok, msg) = await new ShowtimeService(ctx).CreateManyAsync(dlg.ShowtimesToCreate);
         MessageBox.Show(msg, ok ? "Thành công" : "Lỗi");
+
         if (ok)
         {
-            dtpDate.Value = dlg.ShowtimeData.StartTime.Date;
+            dtpDate.Value = dlg.SelectedDate;
             await LoadDataAsync();
         }
     }

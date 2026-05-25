@@ -16,6 +16,7 @@ public class DlgMovieEdit : Form
     private TextBox txtDescription = null!;
     private TextBox txtTrailer = null!;
     private DateTimePicker dtpRelease = null!;
+    private DateTimePicker dtpEnd = null!;
     private CheckedListBox clbGenres = null!;
     private PictureBox picPoster = null!;
     private ErrorProvider errorProvider = null!;
@@ -84,14 +85,14 @@ public class DlgMovieEdit : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 9,
+            RowCount = 10,
             BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 18, 0),
             Padding = Padding.Empty
         };
         formGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
         formGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66F));
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 9; i++)
             formGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
         formGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
         content.Controls.Add(formGrid, 0, 0);
@@ -147,13 +148,25 @@ public class DlgMovieEdit : Form
         };
         AddFormRow(formGrid, "Ngày khởi chiếu", dtpRelease, 6);
 
+        dtpEnd = new DateTimePicker
+        {
+            Font = new Font("Segoe UI", 10),
+            Dock = DockStyle.Fill,
+            Format = DateTimePickerFormat.Short,
+            ShowCheckBox = true,
+            Checked = false,
+            CalendarForeColor = Color.Black,
+            Margin = new Padding(0, 6, 0, 6)
+        };
+        AddFormRow(formGrid, "Ngày kết thúc", dtpEnd, 7);
+
         txtTrailer = MakeTextBox();
-        AddFormRow(formGrid, "Link trailer", txtTrailer, 7);
+        AddFormRow(formGrid, "Link trailer", txtTrailer, 8);
 
         txtDescription = MakeTextBox();
         txtDescription.Multiline = true;
         txtDescription.ScrollBars = ScrollBars.Vertical;
-        AddFormRow(formGrid, "Mô tả", txtDescription, 8);
+        AddFormRow(formGrid, "Mô tả", txtDescription, 9);
 
         var sidePanel = new TableLayoutPanel
         {
@@ -266,6 +279,17 @@ public class DlgMovieEdit : Form
         txtTrailer.Text = _editMovie.TrailerUrl;
         dtpRelease.Value = _editMovie.ReleaseDate ?? DateTime.Today;
 
+        if (_editMovie.EndDate.HasValue)
+        {
+            dtpEnd.Checked = true;
+            dtpEnd.Value = _editMovie.EndDate.Value.Date;
+        }
+        else
+        {
+            dtpEnd.Checked = false;
+            dtpEnd.Value = DateTime.Today;
+        }
+
         int ageIdx = cboAgeRating.Items.IndexOf(_editMovie.AgeRating ?? "P");
         cboAgeRating.SelectedIndex = ageIdx >= 0 ? ageIdx : 0;
 
@@ -323,10 +347,19 @@ public class DlgMovieEdit : Form
             Description = txtDescription.Text.Trim(),
             TrailerUrl = txtTrailer.Text.Trim(),
             ReleaseDate = (DateTime?)dtpRelease.Value,
+            EndDate = dtpEnd.Checked ? dtpEnd.Value.Date : null,
             Poster = _posterData,
             PosterPath = _posterPath,
             IsActive = true
         };
+
+        if (MovieData.ReleaseDate.HasValue && MovieData.EndDate.HasValue
+            && MovieData.EndDate.Value.Date < MovieData.ReleaseDate.Value.Date)
+        {
+            errorProvider.SetError(dtpEnd, "Ngày kết thúc không được nhỏ hơn ngày khởi chiếu.");
+            this.DialogResult = DialogResult.None;
+            return;
+        }
 
         SelectedGenreIds.Clear();
         for (int i = 0; i < clbGenres.Items.Count; i++)

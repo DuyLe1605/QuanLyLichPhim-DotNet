@@ -3,11 +3,13 @@ import { useMyBookings } from "../hooks/useBookings";
 import { useProfile } from "../hooks/useProfile";
 import { useAuth } from "../hooks/useAuth";
 import QRCode from "react-qr-code";
+import { useDialog } from "../hooks/useDialog";
 
 export function ProfilePage() {
   const { data: profile } = useProfile();
   const { data: bookings = [] } = useMyBookings();
   const { logout } = useAuth();
+  const dialog = useDialog();
 
   return (
     <div className="page narrow">
@@ -43,7 +45,20 @@ export function ProfilePage() {
               <input type="text" defaultValue={profile?.email} disabled />
             </div>
             
-            <button className="primary-button" style={{ marginTop: '16px' }} type="button" onClick={() => alert('Chức năng cập nhật đang phát triển!')}>CẬP NHẬT THÔNG TIN</button>
+            <button
+              className="primary-button"
+              style={{ marginTop: "16px" }}
+              type="button"
+              onClick={() =>
+                dialog.alert({
+                  variant: "info",
+                  title: "Đang phát triển",
+                  message: "Chức năng cập nhật thông tin đang được phát triển."
+                })
+              }
+            >
+              CẬP NHẬT THÔNG TIN
+            </button>
           </form>
         </div>
 

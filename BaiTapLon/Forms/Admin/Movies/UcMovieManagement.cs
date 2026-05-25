@@ -108,7 +108,8 @@ public class UcMovieManagement : UserControl
                 DoTuoi = m.AgeRating ?? "P",
                 TheLoai = string.Join(", ", m.MovieGenres.Select(mg => mg.Genre.Name)),
                 NgayKhoiChieu = m.ReleaseDate.HasValue ? m.ReleaseDate.Value.ToString("dd/MM/yyyy") : "",
-                TrangThai = m.IsActive ? "Đang chiếu" : "Đã ẩn"
+                NgayKetThuc = m.EndDate.HasValue ? m.EndDate.Value.ToString("dd/MM/yyyy") : "",
+                TrangThai = GetMovieStatusText(m)
             }).ToList();
 
         AdminControls.HideColumn(dgvMovies, "Id");
@@ -120,6 +121,7 @@ public class UcMovieManagement : UserControl
             ("DoTuoi", 90),
             ("TheLoai", 220),
             ("NgayKhoiChieu", 140),
+            ("NgayKetThuc", 140),
             ("TrangThai", 120));
 
         // Rename column headers to have proper display names
@@ -131,7 +133,15 @@ public class UcMovieManagement : UserControl
             ("DoTuoi", "Độ Tuổi"),
             ("TheLoai", "Thể Loại"),
             ("NgayKhoiChieu", "Ngày Khởi Chiếu"),
+            ("NgayKetThuc", "Ngày Kết Thúc"),
             ("TrangThai", "Trạng Thái"));
+    }
+
+    private static string GetMovieStatusText(Movie movie)
+    {
+        if (!movie.IsActive) return "Đã ẩn";
+        if (movie.EndDate.HasValue && movie.EndDate.Value.Date < DateTime.Today.Date) return "Hết chiếu";
+        return "Đang chiếu";
     }
 
     private async void BtnAdd_Click(object? sender, EventArgs e)

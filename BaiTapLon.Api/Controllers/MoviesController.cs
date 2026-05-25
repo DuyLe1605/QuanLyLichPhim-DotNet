@@ -48,6 +48,7 @@ public class MoviesController : ApiControllerBase
                 m.AgeRating,
                 m.PosterPath,
                 m.ReleaseDate,
+                m.EndDate,
                 Genres = m.MovieGenres.Select(mg => new { mg.Genre.Id, mg.Genre.Name }),
                 AverageRating = _db.MovieReviews.Where(r => r.MovieId == m.Id).Average(r => (double?)r.Rating) ?? 0,
                 ReviewCount = _db.MovieReviews.Count(r => r.MovieId == m.Id)
@@ -77,6 +78,7 @@ public class MoviesController : ApiControllerBase
                 m.PosterPath,
                 m.TrailerUrl,
                 m.ReleaseDate,
+                m.EndDate,
                 Genres = m.MovieGenres.Select(mg => new { mg.Genre.Id, mg.Genre.Name }),
                 AverageRating = _db.MovieReviews.Where(r => r.MovieId == m.Id).Average(r => (double?)r.Rating) ?? 0,
                 ReviewCount = _db.MovieReviews.Count(r => r.MovieId == m.Id)

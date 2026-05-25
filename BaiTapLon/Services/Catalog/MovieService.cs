@@ -59,6 +59,10 @@ public class MovieService
         if (movie.Duration <= 0)
             return (false, "Thời lượng phải lớn hơn 0!");
 
+        if (movie.ReleaseDate.HasValue && movie.EndDate.HasValue
+            && movie.EndDate.Value.Date < movie.ReleaseDate.Value.Date)
+            return (false, "Ngày kết thúc không được nhỏ hơn ngày khởi chiếu!");
+
         // Kiểm tra mã phim trùng
         bool codeExists = await _context.Movies.AnyAsync(m => m.Code == movie.Code);
         if (codeExists)
@@ -87,6 +91,10 @@ public class MovieService
         if (existing == null)
             return (false, "Phim không tồn tại!");
 
+        if (movie.ReleaseDate.HasValue && movie.EndDate.HasValue
+            && movie.EndDate.Value.Date < movie.ReleaseDate.Value.Date)
+            return (false, "Ngày kết thúc không được nhỏ hơn ngày khởi chiếu!");
+
         existing.Code = movie.Code;
         existing.Title = movie.Title;
         existing.Director = movie.Director;
@@ -96,6 +104,7 @@ public class MovieService
         existing.Description = movie.Description;
         existing.TrailerUrl = movie.TrailerUrl;
         existing.ReleaseDate = movie.ReleaseDate;
+        existing.EndDate = movie.EndDate;
 
         if (!string.IsNullOrWhiteSpace(movie.PosterPath))
         {

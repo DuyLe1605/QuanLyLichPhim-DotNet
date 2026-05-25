@@ -126,6 +126,15 @@ public class DlgVoucherEdit : Form
     private NumericUpDown nudValue = null!, nudMaxDiscount = null!, nudMaxUses = null!;
     private DateTimePicker dtpStart = null!, dtpEnd = null!;
     private CheckBox chkActive = null!;
+    private Label lblValue = null!, lblMaxDiscount = null!;
+
+    private sealed class VoucherTypeItem
+    {
+        public string Value { get; }
+        public string Text { get; }
+        public VoucherTypeItem(string value, string text) { Value = value; Text = text; }
+        public override string ToString() => Text;
+    }
 
     public DlgVoucherEdit(Voucher? existing = null)
     {
@@ -146,8 +155,11 @@ public class DlgVoucherEdit : Form
 
         var root = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2,
-            BackColor = Color.Transparent, Padding = new Padding(24, 20, 24, 12)
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent,
+            Padding = new Padding(24, 20, 24, 12)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
@@ -155,7 +167,9 @@ public class DlgVoucherEdit : Form
 
         var grid = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8,
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 8,
             BackColor = Color.Transparent
         };
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
@@ -164,45 +178,67 @@ public class DlgVoucherEdit : Form
         root.Controls.Add(grid, 0, 0);
 
         int row = 0;
-        txtCode = MakeTxt(); txtCode.CharacterCasing = CharacterCasing.Upper;
+        txtCode = MakeTxt();
+        txtCode.CharacterCasing = CharacterCasing.Upper;
         txtCode.Enabled = _existing == null;
         AddRow(grid, "Mã voucher *", txtCode, row++);
 
         cboType = new ComboBox
         {
-            Font = AdminTheme.BodyFont, Dock = DockStyle.Fill,
-            BackColor = AdminTheme.InputBack, ForeColor = Color.White,
-            DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat,
+            Font = AdminTheme.BodyFont,
+            Dock = DockStyle.Fill,
+            BackColor = AdminTheme.InputBack,
+            ForeColor = Color.White,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            FlatStyle = FlatStyle.Flat,
             Margin = new Padding(0, 6, 0, 6)
         };
-        cboType.Items.AddRange(new[] { "Percent", "Fixed", "FreeTicket" });
+        cboType.Items.AddRange(new object[]
+        {
+            new VoucherTypeItem("Percent", "Phần trăm"),
+            new VoucherTypeItem("Fixed", "Cố định"),
+            new VoucherTypeItem("FreeTicket", "Miễn phí vé")
+        });
+        cboType.SelectedIndexChanged += (s, e) => UpdateTypeUI();
         cboType.SelectedIndex = 0;
         AddRow(grid, "Loại *", cboType, row++);
 
-        nudValue = MakeNud(0, 100000000, 10); AddRow(grid, "Giá trị *", nudValue, row++);
-        nudMaxDiscount = MakeNud(0, 100000000, 0); AddRow(grid, "Giảm tối đa", nudMaxDiscount, row++);
-        nudMaxUses = MakeNud(1, 100000, 100); AddRow(grid, "Lượt tối đa *", nudMaxUses, row++);
+        nudValue = MakeNud(0, 100000000, 10);
+        lblValue = AddRow(grid, "Giá trị *", nudValue, row++);
+
+        nudMaxDiscount = MakeNud(0, 100000000, 0);
+        lblMaxDiscount = AddRow(grid, "Giảm tối đa", nudMaxDiscount, row++);
+
+        nudMaxUses = MakeNud(1, 100000, 100);
+        AddRow(grid, "Lượt tối đa *", nudMaxUses, row++);
 
         dtpStart = new DateTimePicker
         {
-            Font = AdminTheme.BodyFont, Dock = DockStyle.Fill,
-            Format = DateTimePickerFormat.Short, Value = DateTime.Today,
+            Font = AdminTheme.BodyFont,
+            Dock = DockStyle.Fill,
+            Format = DateTimePickerFormat.Short,
+            Value = DateTime.Today,
             Margin = new Padding(0, 8, 0, 8)
         };
         AddRow(grid, "Ngày bắt đầu *", dtpStart, row++);
 
         dtpEnd = new DateTimePicker
         {
-            Font = AdminTheme.BodyFont, Dock = DockStyle.Fill,
-            Format = DateTimePickerFormat.Short, Value = DateTime.Today.AddDays(30),
+            Font = AdminTheme.BodyFont,
+            Dock = DockStyle.Fill,
+            Format = DateTimePickerFormat.Short,
+            Value = DateTime.Today.AddDays(30),
             Margin = new Padding(0, 8, 0, 8)
         };
         AddRow(grid, "Ngày kết thúc *", dtpEnd, row++);
 
         chkActive = new CheckBox
         {
-            Text = "Đang hoạt động", Font = AdminTheme.BodyFont,
-            ForeColor = AdminTheme.Text, Dock = DockStyle.Fill, Checked = true,
+            Text = "Đang hoạt động",
+            Font = AdminTheme.BodyFont,
+            ForeColor = AdminTheme.Text,
+            Dock = DockStyle.Fill,
+            Checked = true,
             Margin = new Padding(0, 12, 0, 0)
         };
         AddRow(grid, "Trạng thái", chkActive, row++);
@@ -210,37 +246,96 @@ public class DlgVoucherEdit : Form
         // Buttons
         var bar = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false, BackColor = Color.Transparent, Padding = new Padding(0, 8, 0, 0)
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, 8, 0, 0)
         };
         root.Controls.Add(bar, 0, 1);
 
-        var btnCancel = AdminControls.CreateButton("✕ Hủy", AdminTheme.ButtonNeutral, 100, (s, e) => { DialogResult = DialogResult.Cancel; Close(); });
+        var btnCancel = AdminControls.CreateButton("✕ Hủy", AdminTheme.ButtonNeutral, 100, (s, e) =>
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        });
         btnCancel.Height = 38;
         var btnSave = AdminControls.CreateButton("💾 Lưu", AdminTheme.ButtonSuccess, 110, BtnSave_Click);
         btnSave.Height = 38;
         bar.Controls.Add(btnCancel);
         bar.Controls.Add(btnSave);
         AcceptButton = btnSave; CancelButton = btnCancel;
+
+        UpdateTypeUI();
     }
 
     private void LoadData()
     {
         if (_existing == null) return;
+
         txtCode.Text = _existing.Code;
-        cboType.SelectedItem = _existing.Type;
-        nudValue.Value = Math.Clamp(_existing.Value, 0, 100000000);
-        nudMaxDiscount.Value = _existing.MaxDiscount.HasValue ? Math.Clamp(_existing.MaxDiscount.Value, 0, 100000000) : 0;
-        nudMaxUses.Value = Math.Clamp(_existing.MaxUses, 1, 100000);
+
+        var typeItem = cboType.Items.Cast<object>()
+            .OfType<VoucherTypeItem>()
+            .FirstOrDefault(x => x.Value == _existing.Type);
+        if (typeItem != null) cboType.SelectedItem = typeItem;
+
+        nudValue.Value = Math.Clamp(_existing.Value, nudValue.Minimum, nudValue.Maximum);
+        nudMaxDiscount.Value = _existing.MaxDiscount.HasValue
+            ? Math.Clamp(_existing.MaxDiscount.Value, nudMaxDiscount.Minimum, nudMaxDiscount.Maximum)
+            : 0;
+        nudMaxUses.Value = Math.Clamp(_existing.MaxUses, (int)nudMaxUses.Minimum, (int)nudMaxUses.Maximum);
         dtpStart.Value = _existing.StartDate;
         dtpEnd.Value = _existing.EndDate;
         chkActive.Checked = _existing.IsActive;
+
+        UpdateTypeUI();
+    }
+
+    private void UpdateTypeUI()
+    {
+        var type = (cboType.SelectedItem as VoucherTypeItem)?.Value ?? "Percent";
+
+        if (type == "Percent")
+        {
+            lblValue.Text = "Giá trị * (%)";
+            nudValue.Minimum = 0;
+            nudValue.Maximum = 100;
+            nudValue.Enabled = true;
+
+            lblMaxDiscount.Text = "Giảm tối đa (đ)";
+            nudMaxDiscount.Enabled = true;
+        }
+        else if (type == "Fixed")
+        {
+            lblValue.Text = "Giá trị * (đ)";
+            nudValue.Minimum = 0;
+            nudValue.Maximum = 100000000;
+            nudValue.Enabled = true;
+
+            lblMaxDiscount.Text = "Giảm tối đa (không áp dụng)";
+            nudMaxDiscount.Value = 0;
+            nudMaxDiscount.Enabled = false;
+        }
+        else // FreeTicket
+        {
+            lblValue.Text = "Giá trị (tự động)";
+            nudValue.Value = 0;
+            nudValue.Enabled = false;
+
+            lblMaxDiscount.Text = "Giảm tối đa (không áp dụng)";
+            nudMaxDiscount.Value = 0;
+            nudMaxDiscount.Enabled = false;
+        }
+
+        // keep value within bounds
+        nudValue.Value = Math.Clamp(nudValue.Value, nudValue.Minimum, nudValue.Maximum);
     }
 
     private async void BtnSave_Click(object? s, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(txtCode.Text)) { MessageBox.Show("Nhập mã voucher!"); return; }
-        if (dtpEnd.Value <= dtpStart.Value) { MessageBox.Show("Ngày kết thúc phải sau ngày bắt đầu!"); return; }
+        if (dtpEnd.Value.Date <= dtpStart.Value.Date) { MessageBox.Show("Ngày kết thúc phải sau ngày bắt đầu!"); return; }
 
         try
         {
@@ -251,10 +346,12 @@ public class DlgVoucherEdit : Form
                 ? (await svc.GetByIdAsync(_existing.Id))!
                 : new Voucher();
 
-            voucher.Code = txtCode.Text.Trim().ToUpper();
-            voucher.Type = cboType.SelectedItem?.ToString() ?? "Percent";
-            voucher.Value = nudValue.Value;
-            voucher.MaxDiscount = nudMaxDiscount.Value > 0 ? nudMaxDiscount.Value : null;
+            var type = (cboType.SelectedItem as VoucherTypeItem)?.Value ?? "Percent";
+
+            voucher.Code = txtCode.Text.Trim().ToUpperInvariant();
+            voucher.Type = type;
+            voucher.Value = type == "FreeTicket" ? 0 : nudValue.Value;
+            voucher.MaxDiscount = type == "Percent" && nudMaxDiscount.Value > 0 ? nudMaxDiscount.Value : null;
             voucher.MaxUses = (int)nudMaxUses.Value;
             voucher.StartDate = dtpStart.Value.Date;
             voucher.EndDate = dtpEnd.Value.Date;
@@ -265,35 +362,55 @@ public class DlgVoucherEdit : Form
                 : (await svc.CreateAsync(voucher)).Let(r => (r.Ok, r.Msg));
 
             if (!ok) { MessageBox.Show(msg, "Lỗi"); return; }
-            DialogResult = DialogResult.OK; Close();
+            DialogResult = DialogResult.OK;
+            Close();
         }
-        catch (Exception ex) { MessageBox.Show($"Lỗi: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi: {ex.Message}");
+        }
     }
 
     private static TextBox MakeTxt() => new()
     {
-        Font = AdminTheme.BodyFont, Dock = DockStyle.Fill,
-        BackColor = AdminTheme.InputBack, ForeColor = Color.White,
-        BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 6, 0, 6)
+        Font = AdminTheme.BodyFont,
+        Dock = DockStyle.Fill,
+        BackColor = AdminTheme.InputBack,
+        ForeColor = Color.White,
+        BorderStyle = BorderStyle.FixedSingle,
+        Margin = new Padding(0, 6, 0, 6)
     };
 
     private static NumericUpDown MakeNud(decimal min, decimal max, decimal val) => new()
     {
-        Font = AdminTheme.BodyFont, Dock = DockStyle.Fill,
-        BackColor = AdminTheme.InputBack, ForeColor = Color.White,
-        BorderStyle = BorderStyle.FixedSingle, Minimum = min, Maximum = max,
-        Value = val, DecimalPlaces = 0, ThousandsSeparator = true,
+        Font = AdminTheme.BodyFont,
+        Dock = DockStyle.Fill,
+        BackColor = AdminTheme.InputBack,
+        ForeColor = Color.White,
+        BorderStyle = BorderStyle.FixedSingle,
+        Minimum = min,
+        Maximum = max,
+        Value = val,
+        DecimalPlaces = 0,
+        ThousandsSeparator = true,
         Margin = new Padding(0, 6, 0, 6)
     };
 
-    private static void AddRow(TableLayoutPanel t, string label, Control c, int row)
+    private static Label AddRow(TableLayoutPanel t, string label, Control c, int row)
     {
-        t.Controls.Add(new Label
+        var lbl = new Label
         {
-            Text = label, Font = AdminTheme.BodyFont, ForeColor = AdminTheme.MutedText,
-            Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0, 0, 10, 0)
-        }, 0, row);
+            Text = label,
+            Font = AdminTheme.BodyFont,
+            ForeColor = AdminTheme.MutedText,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 0, 10, 0)
+        };
+
+        t.Controls.Add(lbl, 0, row);
         t.Controls.Add(c, 1, row);
+        return lbl;
     }
 }
 

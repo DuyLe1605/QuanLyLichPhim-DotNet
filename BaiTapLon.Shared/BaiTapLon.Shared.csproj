@@ -15,6 +15,7 @@
   <ItemGroup>
     <Compile Include="..\BaiTapLon\Models\**\*.cs" LinkBase="Models" />
     <Compile Include="..\BaiTapLon\Data\AppDbContext.cs" Link="Data\AppDbContext.cs" />
+    <Compile Include="..\BaiTapLon\Migrations\**\*.cs" LinkBase="Migrations" />
   </ItemGroup>
 
 </Project>

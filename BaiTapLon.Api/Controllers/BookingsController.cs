@@ -27,6 +27,8 @@ public class BookingsController : ApiControllerBase
             .Include(s => s.Room)
             .FirstOrDefaultAsync(s => s.Id == id);
         if (showtime is null) return NotFound();
+        if (showtime.Room is null)
+            return NotFound(new { message = "Không tìm thấy phòng chiếu của suất chiếu này." });
 
         var soldSeatIds = await _db.Tickets
             .AsNoTracking()
@@ -34,7 +36,16 @@ public class BookingsController : ApiControllerBase
             .Select(t => t.SeatId)
             .ToListAsync();
 
-        var seats = await _db.Seats
+        var soldSeatIdSet = soldSeatIds.Count == 0
+            ? null
+            : soldSeatIds.ToHashSet();
+
+        // NOTE: Do not compute `Price = showtime.BasePrice * s.PriceMultiplier` inside the SQL query.
+        // EF may infer an overly small decimal precision for the BasePrice parameter based on other decimals
+        // (e.g. PriceMultiplier is decimal(4,2)), causing SqlClient to throw:
+        //   "Parameter value '75000,00' is out of range."
+        // Computing in memory is safe here because a room has a small, bounded number of seats.
+        var rawSeats = await _db.Seats
             .AsNoTracking()
             .Where(s => s.RoomId == showtime.RoomId)
             .OrderBy(s => s.GridRow).ThenBy(s => s.GridColumn)
@@ -48,11 +59,24 @@ public class BookingsController : ApiControllerBase
                 s.GridColumn,
                 s.GridSpan,
                 s.Type,
-                s.PriceMultiplier,
-                Price = showtime.BasePrice * s.PriceMultiplier,
-                Status = soldSeatIds.Contains(s.Id) ? "sold" : "available"
+                s.PriceMultiplier
             })
             .ToListAsync();
+
+        var seats = rawSeats.Select(s => new
+        {
+            s.Id,
+            s.RowLabel,
+            s.SeatNumber,
+            s.Label,
+            s.GridRow,
+            s.GridColumn,
+            s.GridSpan,
+            s.Type,
+            s.PriceMultiplier,
+            Price = showtime.BasePrice * s.PriceMultiplier,
+            Status = soldSeatIdSet is not null && soldSeatIdSet.Contains(s.Id) ? "sold" : "available"
+        });
 
         return new
         {

@@ -45,6 +45,9 @@ public class ShowtimeService
         var movie = await _context.Movies.FindAsync(showtime.MovieId);
         if (movie == null) return (false, "Phim không tồn tại!");
 
+        if (movie.EndDate.HasValue && showtime.StartTime.Date > movie.EndDate.Value.Date)
+            return (false, $"Phim \"{movie.Title}\" đã hết chiếu từ {movie.EndDate:dd/MM/yyyy}!");
+
         // Auto tính EndTime
         showtime.EndTime = showtime.StartTime.AddMinutes(movie.Duration + CleanupMinutes);
 
@@ -60,6 +63,96 @@ public class ShowtimeService
         return (true, "Tạo lịch chiếu thành công!");
     }
 
+    /// <summary>
+    /// Tạo nhiều lịch chiếu trong một lần (thường dùng cho tạo nhiều suất cho 1 phim).
+    /// Dừng và trả lỗi nếu có bất kỳ suất nào bị trùng lịch hoặc vi phạm EndDate.
+    /// </summary>
+    public async Task<(bool Success, string Message)> CreateManyAsync(IEnumerable<Showtime> showtimes)
+    {
+        if (showtimes == null) return (false, "Không có lịch chiếu nào để tạo!");
+
+        var items = showtimes
+            .Where(s => s != null)
+            .ToList();
+
+        if (items.Count == 0) return (false, "Không có lịch chiếu nào để tạo!");
+
+        // Load movies in one query
+        var movieIds = items.Select(s => s.MovieId).Distinct().ToList();
+        var movies = await _context.Movies
+            .Where(m => movieIds.Contains(m.Id))
+            .ToDictionaryAsync(m => m.Id);
+
+        foreach (var st in items)
+        {
+            if (st.MovieId <= 0) return (false, "Thiếu MovieId.");
+            if (st.RoomId <= 0) return (false, "Thiếu RoomId.");
+            if (st.BasePrice <= 0) return (false, "Giá vé phải lớn hơn 0.");
+
+            if (!movies.TryGetValue(st.MovieId, out var movie))
+                return (false, $"Phim (Id={st.MovieId}) không tồn tại!");
+
+            if (movie.EndDate.HasValue && st.StartTime.Date > movie.EndDate.Value.Date)
+                return (false, $"Phim \"{movie.Title}\" đã hết chiếu từ {movie.EndDate:dd/MM/yyyy}!");
+
+            // Compute EndTime
+            st.EndTime = st.StartTime.AddMinutes(movie.Duration + CleanupMinutes);
+            st.IsActive = true;
+        }
+
+        // Check conflicts among new items per room
+        foreach (var g in items.GroupBy(s => s.RoomId))
+        {
+            var ordered = g.OrderBy(s => s.StartTime).ToList();
+            for (int i = 0; i < ordered.Count - 1; i++)
+            {
+                if (ordered[i].StartTime < ordered[i + 1].EndTime && ordered[i].EndTime > ordered[i + 1].StartTime)
+                {
+                    return (false, $"Các suất mới bị trùng nhau trong phòng (Id={g.Key}): {ordered[i].StartTime:HH:mm} và {ordered[i + 1].StartTime:HH:mm}.");
+                }
+            }
+        }
+
+        // Check conflicts against existing showtimes
+        foreach (var g in items.GroupBy(s => s.RoomId))
+        {
+            var minStart = g.Min(s => s.StartTime);
+            var maxEnd = g.Max(s => s.EndTime);
+
+            var existing = await _context.Showtimes
+                .Include(s => s.Movie)
+                .Where(s => s.IsActive
+                         && s.RoomId == g.Key
+                         && s.StartTime < maxEnd
+                         && s.EndTime > minStart)
+                .ToListAsync();
+
+            foreach (var st in g)
+            {
+                var conflict = existing.FirstOrDefault(s => st.StartTime < s.EndTime && st.EndTime > s.StartTime);
+                if (conflict != null)
+                {
+                    return (false, $"Trùng lịch với \"{conflict.Movie.Title}\" ({conflict.StartTime:HH:mm} - {conflict.EndTime:HH:mm})! (Phòng Id={g.Key})");
+                }
+            }
+        }
+
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            _context.Showtimes.AddRange(items);
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            return (false, $"Tạo lịch chiếu thất bại: {ex.Message}");
+        }
+
+        return (true, $"Đã tạo {items.Count} lịch chiếu.");
+    }
+
     public async Task<(bool Success, string Message)> UpdateAsync(Showtime showtime)
     {
         var existing = await _context.Showtimes.FindAsync(showtime.Id);
@@ -67,6 +160,9 @@ public class ShowtimeService
 
         var movie = await _context.Movies.FindAsync(showtime.MovieId);
         if (movie == null) return (false, "Phim không tồn tại!");
+
+        if (movie.EndDate.HasValue && showtime.StartTime.Date > movie.EndDate.Value.Date)
+            return (false, $"Phim \"{movie.Title}\" đã hết chiếu từ {movie.EndDate:dd/MM/yyyy}!");
 
         var newEnd = showtime.StartTime.AddMinutes(movie.Duration + CleanupMinutes);
 

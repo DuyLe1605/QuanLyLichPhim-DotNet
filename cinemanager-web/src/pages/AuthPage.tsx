@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useDialog } from "../hooks/useDialog";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Vui lòng nhập tên đăng nhập"),
@@ -23,6 +24,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 export function AuthPage() {
   const { login, register: authRegister } = useAuth();
   const navigate = useNavigate();
+  const dialog = useDialog();
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
@@ -32,7 +34,11 @@ export function AuthPage() {
       await login(data);
       navigate("/profile");
     } catch (error) {
-      alert("Đăng nhập thất bại. Sai thông tin hoặc tài khoản không tồn tại.");
+      await dialog.alert({
+        variant: "error",
+        title: "Đăng nhập thất bại",
+        message: "Sai thông tin hoặc tài khoản không tồn tại."
+      });
     }
   }
 
@@ -41,7 +47,11 @@ export function AuthPage() {
       await authRegister(data);
       navigate("/profile");
     } catch (error) {
-      alert("Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.");
+      await dialog.alert({
+        variant: "error",
+        title: "Đăng ký thất bại",
+        message: "Vui lòng kiểm tra lại thông tin."
+      });
     }
   }
 
