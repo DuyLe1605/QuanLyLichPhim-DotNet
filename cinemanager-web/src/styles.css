@@ -271,9 +271,32 @@ input, select { min-height: 44px; border: 1px solid #d8e0ea; border-radius: 8px;
 .stack { display: grid; gap: 12px; }
 .history-row, .review-row { display: flex; justify-content: space-between; gap: 18px; background: #fff; border: 1px solid #d8e0ea; border-radius: 8px; padding: 14px; }
 .history-row span { display: block; margin-top: 4px; color: #64748b; }
+.review-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding-right: 8px;
+}
+.review-scroll .review-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  align-items: start;
+}
+.review-row span { display: block; margin-top: 4px; color: #64748b; font-size: .85rem; }
+.review-row p { margin: 0; color: #334155; line-height: 1.5; }
+.review-edit-button {
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: #8cc63f;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
 .review-form {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 12px;
   align-items: center;
   margin-bottom: 18px;
@@ -340,7 +363,7 @@ input, select { min-height: 44px; border: 1px solid #d8e0ea; border-radius: 8px;
 @media (max-width: 780px) {
   .navbar { flex-wrap: wrap; }
   .nav-actions { width: 100%; justify-content: flex-start; }
-  .toolbar, .detail-layout, .booking-layout, .booking-flow, .review-form { grid-template-columns: 1fr; }
+  .toolbar, .detail-layout, .booking-layout, .booking-flow, .review-form, .review-scroll .review-row { grid-template-columns: 1fr; }
   .hero { min-height: 560px; align-items: flex-end; }
   .profile-card, .history-row, .footer { flex-direction: column; align-items: stretch; }
 }

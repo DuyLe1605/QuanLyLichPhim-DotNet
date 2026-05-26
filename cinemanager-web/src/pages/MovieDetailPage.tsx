@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { moviesApi } from "../api/movies.api";
 import { ShowtimePicker } from "../components/movie/ShowtimePicker";
 import { useMovie, useReviews, useShowtimes } from "../hooks/useMovies";
+import { useProfile } from "../hooks/useProfile";
 import { getImageUrl, todayInputValue } from "../lib/utils";
 
 export function MovieDetailPage() {
@@ -13,18 +14,37 @@ export function MovieDetailPage() {
   const [date, setDate] = useState(todayInputValue());
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
+  const [reviewMessage, setReviewMessage] = useState("");
   const { data: movie } = useMovie(id);
   const { data: showtimes = [] } = useShowtimes(id, date);
   const { data: reviews = [] } = useReviews(id);
+  const { data: profile } = useProfile();
 
   const reviewMutation = useMutation({
-    mutationFn: () => moviesApi.createReview(id, { rating, comment: comment.trim() || undefined }),
-    onSuccess: async () => {
+    mutationFn: () => {
+      const input = { rating, comment: comment.trim() || undefined };
+      return editingReviewId
+        ? moviesApi.updateReview(id, editingReviewId, input)
+        : moviesApi.createReview(id, input);
+    },
+    onSuccess: async (result) => {
       setRating(5);
       setComment("");
+      setEditingReviewId(null);
+      setReviewMessage(
+        result.pointsAwarded > 0
+          ? `Cảm ơn bạn đã đánh giá. Bạn nhận được ${result.pointsAwarded} điểm thưởng.`
+          : editingReviewId
+            ? "Đã cập nhật đánh giá của bạn."
+            : "Đã gửi đánh giá mới của bạn."
+      );
       await queryClient.invalidateQueries({ queryKey: ["reviews", id] });
       await queryClient.invalidateQueries({ queryKey: ["movies", id] });
-    }
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["points"] });
+    },
+    onError: () => setReviewMessage("Không thể gửi đánh giá. Vui lòng thử lại.")
   });
 
   if (!movie) return <div className="page narrow">Đang tải...</div>;
@@ -62,7 +82,10 @@ export function MovieDetailPage() {
             <strong>Diễn viên:</strong> <span>{movie.actors ?? "Đang cập nhật"}</span>
             <strong>Thể loại:</strong> <span style={{ color: "#8cc63f" }}>{movie.genres.map((g) => g.name).join(", ")}</span>
             <strong>Thời lượng:</strong> <span>{movie.duration} phút</span>
-            <strong>Đánh giá:</strong> <span className="rating-line"><Star size={16} fill="#ffd166" color="#ffd166" /> {movie.averageRating.toFixed(1)}/5.0</span>
+            <strong>Đánh giá:</strong>
+            <span className="rating-line">
+              <Star size={16} fill="#ffd166" color="#ffd166" /> {movie.averageRating.toFixed(1)}/5.0 ({movie.reviewCount})
+            </span>
           </div>
         </div>
       </section>
@@ -87,7 +110,10 @@ export function MovieDetailPage() {
       </section>
 
       <section className="content-section flush" style={{ marginTop: "48px", borderTop: "1px solid #dde3ea", paddingTop: "32px" }}>
-        <h2 style={{ color: "#8cc63f", textTransform: "uppercase", marginBottom: "24px" }}>Bình luận từ khán giả</h2>
+        <div className="section-heading">
+          <h2 style={{ color: "#8cc63f", textTransform: "uppercase" }}>Bình luận từ khán giả</h2>
+          <span className="muted">Thưởng 5 điểm cho đánh giá đầu tiên</span>
+        </div>
         <form
           className="review-form"
           onSubmit={(e) => {
@@ -109,13 +135,46 @@ export function MovieDetailPage() {
             ))}
           </div>
           <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Viết cảm nhận sau khi xem phim" />
-          <button className="primary-button" disabled={reviewMutation.isPending} type="submit">Gửi đánh giá</button>
+          <button className="primary-button" disabled={reviewMutation.isPending} type="submit">
+            {editingReviewId ? "Lưu chỉnh sửa" : "Gửi đánh giá"}
+          </button>
+          {editingReviewId && (
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => {
+                setEditingReviewId(null);
+                setRating(5);
+                setComment("");
+              }}
+            >
+              Hủy
+            </button>
+          )}
         </form>
-        <div className="stack">
+        {reviewMessage && <p className={reviewMutation.isError ? "error" : "voucher-ok"}>{reviewMessage}</p>}
+        <div className="review-scroll">
           {reviews.length === 0 ? <p className="muted">Chưa có bình luận nào.</p> : reviews.map((r) => (
             <article className="review-row" key={r.id}>
-              <strong>{r.customer.fullName} · <span style={{ color: "#ffd166" }}>{"★".repeat(r.rating)}</span></strong>
-              <p>{r.comment}</p>
+              <div>
+                <strong>{r.customer.fullName} · <span style={{ color: "#ffd166" }}>{"★".repeat(r.rating)}</span></strong>
+                <span>{new Date(r.createdAt).toLocaleDateString("vi-VN")}</span>
+                {profile?.id === r.customer.id && (
+                  <button
+                    className="review-edit-button"
+                    type="button"
+                    onClick={() => {
+                      setEditingReviewId(r.id);
+                      setRating(r.rating);
+                      setComment(r.comment ?? "");
+                      setReviewMessage("");
+                    }}
+                  >
+                    Sửa
+                  </button>
+                )}
+              </div>
+              <p>{r.comment || "Không có bình luận."}</p>
             </article>
           ))}
         </div>

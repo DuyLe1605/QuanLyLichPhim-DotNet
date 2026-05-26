@@ -10,6 +10,8 @@ namespace BaiTapLon.Api.Controllers;
 [Route("api/movies")]
 public class MoviesController : ApiControllerBase
 {
+    private const string ReviewRewardSettingKey = "ReviewRewardPoints";
+    private const int DefaultReviewRewardPoints = 5;
     private readonly AppDbContext _db;
     private readonly TokenService _tokens;
 
@@ -137,21 +139,89 @@ public class MoviesController : ApiControllerBase
         if (customerId is null) return Unauthorized();
         if (request.Rating is < 1 or > 5) return BadRequest(new { message = "Rating phải từ 1 đến 5." });
 
-        var exists = await _db.Movies.AnyAsync(m => m.Id == id && m.IsActive);
-        if (!exists) return NotFound();
+        var movie = await _db.Movies.FirstOrDefaultAsync(m => m.Id == id && m.IsActive);
+        if (movie is null) return NotFound();
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId.Value && c.IsActive);
+        if (customer is null) return NotFound(new { message = "Không tìm thấy khách hàng." });
+
+        var pointsAwarded = 0;
+        var hasPreviousReview = await _db.MovieReviews
+            .AnyAsync(r => r.MovieId == id && r.CustomerId == customerId.Value);
 
         var review = new MovieReview
         {
             MovieId = id,
-            CustomerId = customerId.Value,
+            CustomerId = customer.Id,
             Rating = request.Rating,
             Comment = request.Comment,
             CreatedAt = DateTime.Now
         };
 
         _db.MovieReviews.Add(review);
+        if (!hasPreviousReview)
+        {
+            pointsAwarded = await GetReviewRewardPointsAsync();
+            customer.LoyaltyPoints += pointsAwarded;
+            customer.TotalPoints += pointsAwarded;
+            _db.PointTransactions.Add(new PointTransaction
+            {
+                CustomerId = customer.Id,
+                Points = pointsAwarded,
+                Type = "Earn",
+                Description = $"Thưởng đánh giá phim: {movie.Title}",
+                CreatedAt = DateTime.Now
+            });
+        }
+
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetReviews), new { id }, new { review.Id, review.Rating, review.Comment, review.CreatedAt });
+        return CreatedAtAction(nameof(GetReviews), new { id }, new
+        {
+            review.Id,
+            review.Rating,
+            review.Comment,
+            review.CreatedAt,
+            PointsAwarded = pointsAwarded
+        });
+    }
+
+    [HttpPut("{id:int}/reviews/{reviewId:int}")]
+    public async Task<ActionResult<object>> UpdateReview(int id, int reviewId, ReviewRequest request)
+    {
+        var customerId = GetCustomerId(_tokens);
+        if (customerId is null) return Unauthorized();
+        if (request.Rating is < 1 or > 5) return BadRequest(new { message = "Rating phải từ 1 đến 5." });
+
+        var review = await _db.MovieReviews
+            .FirstOrDefaultAsync(r => r.Id == reviewId && r.MovieId == id && r.CustomerId == customerId.Value);
+        if (review is null) return NotFound(new { message = "Không tìm thấy đánh giá của bạn." });
+
+        review.Rating = request.Rating;
+        review.Comment = request.Comment;
+        review.CreatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+
+        return new
+        {
+            review.Id,
+            review.Rating,
+            review.Comment,
+            review.CreatedAt,
+            PointsAwarded = 0
+        };
+    }
+
+    private async Task<int> GetReviewRewardPointsAsync()
+    {
+        var raw = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.Key == ReviewRewardSettingKey)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync();
+
+        return int.TryParse(raw, out var points) && points >= 0
+            ? points
+            : DefaultReviewRewardPoints;
     }
 }

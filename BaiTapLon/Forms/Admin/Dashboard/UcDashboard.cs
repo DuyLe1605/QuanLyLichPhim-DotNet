@@ -18,6 +18,7 @@ public class UcDashboard : UserControl
     private Label lblMovies = null!, lblShows = null!;
     private Label lblTickets = null!, lblRevenue = null!, lblInvoices = null!;
     private Label lblSnackRev = null!, lblNewCust = null!, lblAov = null!;
+    private Label lblReviews = null!, lblAvgRating = null!;
     private Label lblLoading = null!;
     private DateTimePicker dtpFrom = null!, dtpTo = null!;
     private ComboBox cboRevenueMode = null!;
@@ -57,7 +58,7 @@ public class UcDashboard : UserControl
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 288));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));
@@ -84,6 +85,8 @@ public class UcDashboard : UserControl
         lblSnackRev = AddStatCard("Doanh thu bắp nước", "0 đ", "Từ quầy", Color.FromArgb(250, 128, 114));
         lblNewCust = AddStatCard("KH mới", "0", "Tháng này", Color.FromArgb(100, 149, 237));
         lblAov = AddStatCard("AOV", "0 đ", "GTĐH trung bình", Color.FromArgb(32, 178, 170));
+        lblReviews = AddStatCard("Review", "0", "Tổng đánh giá", Color.FromArgb(255, 182, 72));
+        lblAvgRating = AddStatCard("Điểm phim", "0.0/5", "Trung bình sao", Color.FromArgb(72, 209, 204));
 
         root.Controls.Add(CreateFilterBar(), 0, 2);
         root.Controls.Add(CreateSectionTitle("Doanh thu"), 0, 3);
@@ -340,6 +343,8 @@ public class UcDashboard : UserControl
             lblSnackRev.Text = stats.TotalSnackRevenue.ToString("N0") + " đ";
             lblNewCust.Text = stats.NewCustomersMonth.ToString("N0");
             lblAov.Text = stats.AOV.ToString("N0") + " đ";
+            lblReviews.Text = stats.TotalReviews.ToString("N0");
+            lblAvgRating.Text = stats.AverageRating.ToString("N1") + "/5";
         }
         catch (Exception ex)
         {
@@ -505,7 +510,7 @@ public class UcDashboard : UserControl
         var width = Math.Max(560, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 2);
         root.Width = width;
 
-        // Max 4 columns for 8 cards looks perfectly balanced (2 rows of 4)
+        // Keep KPI cards scan-friendly while allowing the review cards to wrap cleanly.
         var columns = width < 720 ? 2 : width < 1100 ? 3 : 4;
 
         statsGrid.SuspendLayout();

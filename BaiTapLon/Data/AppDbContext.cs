@@ -33,6 +33,7 @@ public class AppDbContext : DbContext
     // ===== Phase 9: Audit and Review =====
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<MovieReview> MovieReviews => Set<MovieReview>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -279,6 +280,19 @@ public class AppDbContext : DbContext
         // ===== Customer (new fields) =====
         modelBuilder.Entity<Customer>()
             .Property(c => c.MonthlySpent).HasPrecision(14, 2);
+
+        // ===== SystemSetting =====
+        modelBuilder.Entity<SystemSetting>()
+            .HasIndex(s => s.Key)
+            .IsUnique();
+
+        modelBuilder.Entity<SystemSetting>()
+            .Property(s => s.Key)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<SystemSetting>()
+            .Property(s => s.Value)
+            .HasMaxLength(500);
 
         // ===== Seed Data =====
         SeedData(modelBuilder);

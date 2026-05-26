@@ -18,7 +18,8 @@ public class ReportService
     public record DashboardStats(
         int TotalMovies, int TotalRooms, int TotalShowtimesToday,
         int TotalTicketsSold, decimal TotalRevenue, int TotalInvoices,
-        decimal TotalSnackRevenue, int NewCustomersMonth, decimal AOV);
+        decimal TotalSnackRevenue, int NewCustomersMonth, decimal AOV,
+        int TotalReviews, double AverageRating);
 
     // ==================== QUERIES ====================
 
@@ -35,8 +36,10 @@ public class ReportService
         decimal snackRevenue = await _context.InvoiceSnacks.SumAsync(s => (decimal?)(s.Quantity * s.UnitPrice)) ?? 0;
         int newCust = await _context.Customers.CountAsync(c => c.CreatedAt.Year == DateTime.Now.Year && c.CreatedAt.Month == DateTime.Now.Month);
         decimal aov = invoices > 0 ? revenue / invoices : 0;
+        int reviews = await _context.MovieReviews.CountAsync();
+        double avgRating = await _context.MovieReviews.AverageAsync(r => (double?)r.Rating) ?? 0;
 
-        return new DashboardStats(movies, rooms, showsToday, tickets, revenue, invoices, snackRevenue, newCust, aov);
+        return new DashboardStats(movies, rooms, showsToday, tickets, revenue, invoices, snackRevenue, newCust, aov, reviews, avgRating);
     }
 
     /// <summary>

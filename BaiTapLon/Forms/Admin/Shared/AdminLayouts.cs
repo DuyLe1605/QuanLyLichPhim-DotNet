@@ -57,7 +57,7 @@ public static class AdminLayouts
         {
             Name = "pnlHeader",
             Dock = DockStyle.Top,
-            Height = 112,
+            Height = 144,
             BackColor = Color.Transparent,
             Padding = new Padding(0, 0, 0, 8),
             Margin = Padding.Empty
@@ -73,7 +73,7 @@ public static class AdminLayouts
             Padding = Padding.Empty
         };
         headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
 
         var titleLabel = new Label
         {

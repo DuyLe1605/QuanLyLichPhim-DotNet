@@ -13,6 +13,14 @@ function normalizePosterPath(posterPath?: string) {
     return normalized;
 }
 
+export type ReviewCreateResult = {
+    id: number;
+    rating: number;
+    comment?: string;
+    createdAt: string;
+    pointsAwarded: number;
+};
+
 export const moviesApi = {
     genres: async () => (await apiClient.get<Genre[]>("/genres")).data,
     list: async (params?: { search?: string; genreId?: number }) =>
@@ -28,5 +36,7 @@ export const moviesApi = {
         (await apiClient.get<Showtime[]>(`/movies/${id}/showtimes`, { params: { date } })).data,
     reviews: async (id: string) => (await apiClient.get<Review[]>(`/movies/${id}/reviews`)).data,
     createReview: async (id: string, input: { rating: number; comment?: string }) =>
-        (await apiClient.post(`/movies/${id}/reviews`, input)).data,
+        (await apiClient.post<ReviewCreateResult>(`/movies/${id}/reviews`, input)).data,
+    updateReview: async (id: string, reviewId: number, input: { rating: number; comment?: string }) =>
+        (await apiClient.put<ReviewCreateResult>(`/movies/${id}/reviews/${reviewId}`, input)).data,
 };

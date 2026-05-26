@@ -6,6 +6,8 @@ namespace BaiTapLon.Services;
 
 public class ReviewService
 {
+    private const string ReviewRewardSettingKey = "ReviewRewardPoints";
+    private const int DefaultReviewRewardPoints = 5;
     private readonly AppDbContext _context;
 
     public ReviewService(AppDbContext context)
@@ -22,18 +24,53 @@ public class ReviewService
             .ToListAsync();
     }
 
-    public async Task AddReviewAsync(int customerId, int movieId, int rating, string? comment)
+    public async Task<int> AddReviewAsync(int customerId, int movieId, int rating, string? comment)
     {
-        var review = new MovieReview
+        var hasPreviousReview = await _context.MovieReviews
+            .AnyAsync(r => r.CustomerId == customerId && r.MovieId == movieId);
+        var movie = await _context.Movies.AsNoTracking().FirstOrDefaultAsync(m => m.Id == movieId);
+        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == customerId && c.IsActive);
+        if (customer is null) return 0;
+
+        _context.MovieReviews.Add(new MovieReview
         {
             CustomerId = customerId,
             MovieId = movieId,
             Rating = rating,
             Comment = comment,
             CreatedAt = DateTime.Now
-        };
-        _context.MovieReviews.Add(review);
+        });
+
+        var pointsAwarded = hasPreviousReview ? 0 : await GetReviewRewardPointsAsync();
+        if (pointsAwarded > 0)
+        {
+            customer.LoyaltyPoints += pointsAwarded;
+            customer.TotalPoints += pointsAwarded;
+            _context.PointTransactions.Add(new PointTransaction
+            {
+                CustomerId = customer.Id,
+                Points = pointsAwarded,
+                Type = "Earn",
+                Description = $"Thưởng đánh giá phim: {movie?.Title ?? movieId.ToString()}",
+                CreatedAt = DateTime.Now
+            });
+        }
+
         await _context.SaveChangesAsync();
+        return pointsAwarded;
+    }
+
+    private async Task<int> GetReviewRewardPointsAsync()
+    {
+        var raw = await _context.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.Key == ReviewRewardSettingKey)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync();
+
+        return int.TryParse(raw, out var points) && points >= 0
+            ? points
+            : DefaultReviewRewardPoints;
     }
 
     public async Task<double> GetAverageRatingAsync(int movieId)
