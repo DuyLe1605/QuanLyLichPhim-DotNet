@@ -10,6 +10,8 @@ namespace BaiTapLon.Api.Controllers;
 [Route("api/bookings")]
 public class BookingsController : ApiControllerBase
 {
+    private const decimal EarnSpendUnit = 10_000m;
+    private const decimal RedeemValuePerPoint = 100m;
     private readonly AppDbContext _db;
     private readonly TokenService _tokens;
 
@@ -134,8 +136,8 @@ public class BookingsController : ApiControllerBase
             return BadRequest(new { message = $"Không đủ điểm. Bạn có {customer.LoyaltyPoints:N0} điểm." });
 
         var payableAfterVoucher = Math.Max(0, subtotal - voucherDiscount);
-        var pointsDiscount = Math.Min(pointsRequested * 1_000m, payableAfterVoucher);
-        var pointsConsumed = pointsDiscount <= 0 ? 0 : (int)Math.Ceiling(pointsDiscount / 1_000m);
+        var pointsDiscount = Math.Min(pointsRequested * RedeemValuePerPoint, payableAfterVoucher);
+        var pointsConsumed = pointsDiscount <= 0 ? 0 : (int)Math.Ceiling(pointsDiscount / RedeemValuePerPoint);
         if (pointsConsumed > customer.LoyaltyPoints)
             return BadRequest(new { message = $"Không đủ điểm. Bạn có {customer.LoyaltyPoints:N0} điểm." });
 
@@ -203,6 +205,7 @@ public class BookingsController : ApiControllerBase
         if (pointsConsumed > 0)
         {
             customer.LoyaltyPoints -= pointsConsumed;
+            customer.TotalPoints = Math.Max(0, customer.TotalPoints - pointsConsumed);
             _db.PointTransactions.Add(new PointTransaction
             {
                 CustomerId = customer.Id,
@@ -213,6 +216,38 @@ public class BookingsController : ApiControllerBase
                 CreatedAt = DateTime.Now
             });
         }
+
+        var earnedBasePoints = (int)Math.Floor(total / EarnSpendUnit);
+        var earnedPoints = (int)Math.Floor(earnedBasePoints * GetTierMultiplier(customer.Tier));
+        if (earnedPoints > 0)
+        {
+            customer.LoyaltyPoints += earnedPoints;
+            customer.MembershipPoints += earnedBasePoints;
+            customer.TotalPoints += earnedPoints;
+            customer.TotalSpent += total;
+            customer.MonthlySpent += total;
+            _db.PointTransactions.Add(new PointTransaction
+            {
+                CustomerId = customer.Id,
+                InvoiceId = invoice.Id,
+                Points = earnedPoints,
+                Type = "Earn",
+                Description = $"Tích điểm từ đặt vé online #{invoice.Id}",
+                CreatedAt = DateTime.Now
+            });
+        }
+        else
+        {
+            customer.TotalSpent += total;
+            customer.MonthlySpent += total;
+        }
+
+        customer.Tier = customer.TotalSpent switch
+        {
+            >= 10_000_000m => "Diamond",
+            >= 2_000_000m => "VIP",
+            _ => "Standard"
+        };
 
         if (voucher is not null) voucher.UsedCount++;
         await _db.SaveChangesAsync();
@@ -226,6 +261,7 @@ public class BookingsController : ApiControllerBase
             booking.DiscountAmount,
             PointsRedeemed = pointsConsumed,
             PointsDiscount = pointsDiscount,
+            PointsEarned = earnedPoints,
             Seats = seats.Select(s => s.Label),
             Snacks = snackSelections.Select(selection =>
             {
@@ -317,4 +353,11 @@ public class BookingsController : ApiControllerBase
 
         return (voucher, Math.Min(discount, subtotal));
     }
+
+    private static decimal GetTierMultiplier(string tier) => tier switch
+    {
+        "VIP" => 1.5m,
+        "Diamond" => 2m,
+        _ => 1m
+    };
 }

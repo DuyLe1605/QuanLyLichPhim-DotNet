@@ -6,6 +6,9 @@ namespace BaiTapLon.Services;
 
 public class LoyaltyService
 {
+    public const decimal EarnSpendUnit = 10_000m;
+    public const decimal RedeemValuePerPoint = 100m;
+
     private readonly AppDbContext _context;
     private readonly TierService _tierService;
 
@@ -27,7 +30,7 @@ public class LoyaltyService
         if (customer == null)
             return (0, 0);
 
-        int basePoints = (int)Math.Floor(paymentAmount / 10_000m);
+        int basePoints = (int)Math.Floor(paymentAmount / EarnSpendUnit);
         decimal multiplier = _tierService.GetMultiplier(customer.Tier);
         int loyaltyEarned = (int)Math.Floor(basePoints * multiplier);
         int membershipEarned = basePoints;
@@ -35,6 +38,7 @@ public class LoyaltyService
         // Update customer balances
         customer.LoyaltyPoints    += loyaltyEarned;
         customer.MembershipPoints += membershipEarned;
+        customer.TotalPoints      += loyaltyEarned;
         customer.TotalSpent       += paymentAmount;
         customer.MonthlySpent     += paymentAmount;
 
@@ -65,7 +69,7 @@ public class LoyaltyService
 
     /// <summary>
     /// Redeems loyalty points for a discount at checkout.
-    /// 1 point = 1,000 VND. Discount is capped at the order total.
+    /// 1 point = 100 VND. Discount is capped at the order total.
     /// </summary>
     public async Task<(bool Success, string Message, decimal DiscountAmount)> RedeemPointsForDiscountAsync(
         int customerId, int pointsToRedeem, decimal orderTotal)
@@ -80,10 +84,11 @@ public class LoyaltyService
         if (pointsToRedeem > customer.LoyaltyPoints)
             return (false, $"Không đủ điểm! Bạn có {customer.LoyaltyPoints:N0} điểm.", 0m);
 
-        decimal discount = Math.Min((decimal)pointsToRedeem * 1_000m, orderTotal);
-        int pointsConsumed = (int)Math.Ceiling(discount / 1_000m);
+        decimal discount = Math.Min((decimal)pointsToRedeem * RedeemValuePerPoint, orderTotal);
+        int pointsConsumed = (int)Math.Ceiling(discount / RedeemValuePerPoint);
 
         customer.LoyaltyPoints -= pointsConsumed;
+        customer.TotalPoints = Math.Max(0, customer.TotalPoints - pointsConsumed);
 
         var transaction = new PointTransaction
         {

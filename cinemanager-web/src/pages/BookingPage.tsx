@@ -11,7 +11,7 @@ import { useSnacks } from "../hooks/useSnacks";
 import type { Seat, Snack, SnackSelection } from "../lib/types";
 import { formatCurrency, getImageUrl } from "../lib/utils";
 
-const POINT_VALUE = 1000;
+const POINT_VALUE = 100;
 
 export function BookingPage() {
   const { showtimeId = "" } = useParams();

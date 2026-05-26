@@ -157,6 +157,7 @@ public class CouponService
 
             // Add points to customer
             customer.LoyaltyPoints += coupon.PointsAwarded;
+            customer.TotalPoints += coupon.PointsAwarded;
 
             // Create PointTransaction
             var pointTransaction = new PointTransaction

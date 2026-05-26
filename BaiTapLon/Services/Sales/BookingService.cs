@@ -151,7 +151,6 @@ public class BookingService
                 });
             }
 
-            AddEarnedPoints(customer, invoice.Id, total);
             customer.TotalSpent += total;
             customer.Tier = customer.TotalSpent switch
             {
@@ -222,27 +221,4 @@ public class BookingService
         return code;
     }
 
-    private void AddEarnedPoints(Customer customer, int invoiceId, decimal amount)
-    {
-        var rate = customer.Tier switch
-        {
-            "Diamond" => 0.02m,
-            "VIP" => 0.015m,
-            _ => 0.01m
-        };
-
-        var points = (int)Math.Floor(amount * rate);
-        if (points <= 0) return;
-
-        customer.TotalPoints += points;
-        _context.PointTransactions.Add(new PointTransaction
-        {
-            CustomerId = customer.Id,
-            InvoiceId = invoiceId,
-            Points = points,
-            Type = "Earn",
-            Description = $"Tích điểm từ đặt vé online #{invoiceId}",
-            CreatedAt = DateTime.Now
-        });
-    }
 }

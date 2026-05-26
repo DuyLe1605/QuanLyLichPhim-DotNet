@@ -6,6 +6,7 @@ namespace BaiTapLon.Forms.Customer;
 
 public class UcPaymentGateway : UserControl
 {
+    private const decimal PointRedeemValue = LoyaltyService.RedeemValuePerPoint;
     private readonly CustomerBookingState state;
     private readonly Label lblTimer = new();
     private readonly Label lblStatus = new();
@@ -252,7 +253,7 @@ public class UcPaymentGateway : UserControl
         {
             int pts = (int)nudPoints.Value;
             state.PointsToRedeem = pts;
-            decimal maxDiscount = pts * 1000m;
+            decimal maxDiscount = pts * PointRedeemValue;
             _pointsDiscount = Math.Min(maxDiscount, state.GrandTotal - _couponDiscount);
             lblPointsDiscount.Text = pts > 0 ? $"-{_pointsDiscount:N0}đ" : "";
             UpdateTotal();
@@ -380,7 +381,7 @@ public class UcPaymentGateway : UserControl
         if (result.Success)
         {
             state.AppliedCouponCode = code;
-            _couponDiscount = result.PointsAwarded * 1000m; // points → VND
+            _couponDiscount = result.PointsAwarded * PointRedeemValue; // points → VND
             lblCouponStatus.Text = $"✅ Mã hợp lệ! Giảm {_couponDiscount:N0}đ ({result.PointsAwarded:N0} điểm)";
             lblCouponStatus.ForeColor = CustomerUi.Accent;
             btnRemoveCoupon.Visible = true;
